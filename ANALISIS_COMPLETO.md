@@ -1,64 +1,64 @@
+# ANÁLISIS TÉCNICO INTEGRAL - PROYECTO LARAVEL COMERCIOREALPLUS
 
-# Código Fuente Completo del Proyecto
+## RESUMEN EJECUTIVO
 
-Este archivo contiene una concatenación de todos los archivos de código fuente del proyecto para facilitar su análisis y estudio.
+**Aplicación**: Sistema de comercio electrónico completo construido con Laravel 10 + Sanctum
+**Framework**: Laravel 10.48.29 con PHP 8.2.12
+**Autenticación**: Laravel Sanctum para APIs
+**Frontend**: Blade (SSR) + Vue.js con Vite para componentes dinámicos
+**Base de datos**: PostgreSQL/MySQL con migraciones Eloquent
+**Arquitectura**: API RESTful con controladores dedicados
 
----
-## Fichero: `.env`
----
-```
+**Módulos principales**:
+- Gestión de usuarios y autenticación
+- Catálogo de productos y categorías
+- Sistema de tiendas públicas
+- Carrito de compras y órdenes
+- Sistema de suscripciones
+- Notificaciones y ratings
 
-```
-
----
-## Fichero: `.eslintrc.json`
----
-```json
-{
-  "extends": ["next/core-web-vitals"]
-}
-```
-
----
-## Fichero: `README.md`
----
-```md
-# Comercio Plus
-
-Plataforma de e-commerce para tiendas de repuestos de motos.
-
-Para comenzar, echa un vistazo a src/app/page.tsx.
-```
+**Puntos de riesgo más probables**:
+- Inconsistencias modelo-migración en campos fillable
+- Validaciones incompletas en endpoints críticos
+- Falta de pruebas exhaustivas en flujos complejos
+- Gestión de relaciones Eloquent sin constraints apropiados
+- Posibles problemas de concurrencia en operaciones de carrito/orden
 
 ---
-## Fichero: `apphosting.yaml`
----
-```yaml
-# Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
 
-runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
-```
+## MAPA DEL PROYECTO (TOC)
 
----
-## Fichero: `components.json`
----
-```json
-{
-  "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "default",
-  "rsc": true,
-  "tsx": true,
-  "tailwind": {
-    "config": "tailwind.config.ts",
-    "css": "src/app/globals.css",
-    "baseColor": "neutral",
-    "cssVariables": true,
-    "prefix": ""
-  },
+### 1. Estructura del Repositorio
+- **app/**: Código de negocio (Modelos, Controladores, Policies)
+- **bootstrap/**: Arranque del framework
+- **config/**: Configuraciones (app.php, database.php, etc.)
+- **database/**: Migraciones, seeders, factories
+- **public/**: Punto de entrada web y assets
+- **resources/**: Vistas Blade y código frontend (Vue.js)
+- **routes/**: Definición de rutas API/Web
+- **storage/**: Caché, logs, archivos subidos
+- **tests/**: Pruebas unitarias y feature
+- **vendor/**: Dependencias PHP (Composer)
+
+### 2. Inventario por Carpeta
+- **Modelos**: User, Product, Category, Store, Order, Cart, etc.
+- **Controladores**: API controllers para cada entidad
+- **Migraciones**: 15+ migraciones para esquema completo
+- **Factories/Seeders**: Datos de prueba para desarrollo
+- **Tests**: Cobertura básica de features principales
+
+### 3. Rutas y Endpoints
+- **Públicas**: /public-stores, /products, /categories
+- **Protegidas**: CRUD completo para todas las entidades
+- **Middleware**: auth:sanctum para endpoints protegidos
+
+### 4. Base de Datos
+- **Tablas principales**: users, products, categories, stores, orders, carts
+- **Relaciones**: belongsTo/hasMany apropiadas
+- **Índices**: En slugs y campos de búsqueda
+- **Constraints**: FKs con onDelete/onUpdate
+
+### 5. Validaciones y Reglas
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",

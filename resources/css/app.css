@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens */
+:root{
+  --cp-primary:#FF6000;
+  --cp-primary-2:#FF8A3D;
+}
+
+/* Base */
+@layer base{
+  html,body{height:100%}
+  body{@apply bg-neutral-950 text-white antialiased;}
+}
+
+/* Utilidades opcionales */
+@layer utilities{
+  .bg-cp-primary{background-color:var(--cp-primary)}
+  .bg-cp-primary-2{background-color:var(--cp-primary-2)}
+  .from-cp-primary{
+    --tw-gradient-from:var(--cp-primary) var(--tw-gradient-from-position);
+    --tw-gradient-to:rgb(255 96 0 / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)
+  }
+  .to-cp-primary-2{--tw-gradient-to:var(--cp-primary-2) var(--tw-gradient-to-position)}
+}
+
+/* Keyframes del marquee (no poner dentro de @layer) */
+@keyframes cp-scroll-left{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
