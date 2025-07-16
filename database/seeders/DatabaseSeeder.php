@@ -17,5 +17,8 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             ProductSeeder::class,
         ]);
+
+        // Agregar creación de usuarios de prueba
+        \App\Models\User::factory(10)->create();
     }
 }
