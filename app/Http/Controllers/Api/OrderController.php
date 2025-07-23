@@ -30,7 +30,7 @@ class OrderController extends Controller
      */
     public function create()
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -38,7 +38,18 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'date' => 'required|date',
+            'payment_method' => 'required|string|max:255',
+        ]);
+
+        $order = Order::create($validated);
+
+        return response()->json([
+            'message' => 'Orden creada correctamente.',
+            'data' => $order,
+        ], 201);
     }
 
     /**
@@ -46,7 +57,13 @@ class OrderController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $order = Order::find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Orden no encontrada'], 404);
+        }
+
+        return response()->json($order);
     }
 
     /**
@@ -54,7 +71,7 @@ class OrderController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -62,7 +79,24 @@ class OrderController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $order = Order::find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Orden no encontrada'], 404);
+        }
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'date' => 'required|date',
+            'payment_method' => 'required|string|max:255',
+        ]);
+
+        $order->update($validated);
+
+        return response()->json([
+            'message' => 'Orden actualizada correctamente.',
+            'data' => $order,
+        ]);
     }
 
     /**
@@ -70,6 +104,16 @@ class OrderController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $order = Order::find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Orden no encontrada'], 404);
+        }
+
+        $order->delete();
+
+        return response()->json([
+            'message' => 'Orden eliminada correctamente.',
+        ]);
     }
 }

@@ -30,7 +30,7 @@ class CartProductController extends Controller
      */
     public function create()
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -38,7 +38,17 @@ class CartProductController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'cart_id' => 'required|exists:carts,id',
+            'product_id' => 'required|exists:products,id',
+        ]);
+
+        $cartProduct = CartProduct::create($validated);
+
+        return response()->json([
+            'message' => 'Producto agregado al carrito correctamente.',
+            'data' => $cartProduct,
+        ], 201);
     }
 
     /**
@@ -46,7 +56,13 @@ class CartProductController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $cartProduct = CartProduct::find($id);
+
+        if (!$cartProduct) {
+            return response()->json(['message' => 'Producto en carrito no encontrado'], 404);
+        }
+
+        return response()->json($cartProduct);
     }
 
     /**
@@ -54,7 +70,7 @@ class CartProductController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -62,7 +78,23 @@ class CartProductController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $cartProduct = CartProduct::find($id);
+
+        if (!$cartProduct) {
+            return response()->json(['message' => 'Producto en carrito no encontrado'], 404);
+        }
+
+        $validated = $request->validate([
+            'cart_id' => 'required|exists:carts,id',
+            'product_id' => 'required|exists:products,id',
+        ]);
+
+        $cartProduct->update($validated);
+
+        return response()->json([
+            'message' => 'Producto en carrito actualizado correctamente.',
+            'data' => $cartProduct,
+        ]);
     }
 
     /**
@@ -70,6 +102,16 @@ class CartProductController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $cartProduct = CartProduct::find($id);
+
+        if (!$cartProduct) {
+            return response()->json(['message' => 'Producto en carrito no encontrado'], 404);
+        }
+
+        $cartProduct->delete();
+
+        return response()->json([
+            'message' => 'Producto en carrito eliminado correctamente.',
+        ]);
     }
 }

@@ -121,4 +121,26 @@ public function scopeIncluded(Builder $query) // Scope local que permite incluir
         return $query->get(); // Devuelve todos si no hay perPage
     }
 
+    public function scopeSort(Builder $query)
+    {
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return $query;
+        }
+
+        $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
+
+        foreach ($sortFields as $field) {
+            $direction = 'asc';
+            if (str_starts_with($field, '-')) {
+                $direction = 'desc';
+                $field = substr($field, 1);
+            }
+            if ($allowSort->contains($field)) {
+                $query->orderBy($field, $direction);
+            }
+        }
+
+        return $query;
+    }
 }

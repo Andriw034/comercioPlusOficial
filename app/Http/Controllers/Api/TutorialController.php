@@ -30,7 +30,7 @@ class TutorialController extends Controller
      */
     public function create()
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -38,7 +38,17 @@ class TutorialController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'language' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $tutorial = Tutorial::create($validated);
+
+        return response()->json([
+            'message' => 'Tutorial creado correctamente.',
+            'data' => $tutorial,
+        ], 201);
     }
 
     /**
@@ -46,7 +56,13 @@ class TutorialController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $tutorial = Tutorial::find($id);
+
+        if (!$tutorial) {
+            return response()->json(['message' => 'Tutorial no encontrado'], 404);
+        }
+
+        return response()->json($tutorial);
     }
 
     /**
@@ -54,7 +70,7 @@ class TutorialController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -62,7 +78,23 @@ class TutorialController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $tutorial = Tutorial::find($id);
+
+        if (!$tutorial) {
+            return response()->json(['message' => 'Tutorial no encontrado'], 404);
+        }
+
+        $validated = $request->validate([
+            'language' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $tutorial->update($validated);
+
+        return response()->json([
+            'message' => 'Tutorial actualizado correctamente.',
+            'data' => $tutorial,
+        ]);
     }
 
     /**
@@ -70,6 +102,16 @@ class TutorialController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $tutorial = Tutorial::find($id);
+
+        if (!$tutorial) {
+            return response()->json(['message' => 'Tutorial no encontrado'], 404);
+        }
+
+        $tutorial->delete();
+
+        return response()->json([
+            'message' => 'Tutorial eliminado correctamente.',
+        ]);
     }
 }

@@ -30,7 +30,7 @@ class ChannelController extends Controller
      */
     public function create()
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -38,7 +38,17 @@ class ChannelController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'type' => 'required|string|max:255',
+            'link' => 'required|string|max:255',
+        ]);
+
+        $channel = Channel::create($validated);
+
+        return response()->json([
+            'message' => 'Canal creado correctamente.',
+            'data' => $channel,
+        ], 201);
     }
 
     /**
@@ -46,7 +56,13 @@ class ChannelController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $channel = Channel::find($id);
+
+        if (!$channel) {
+            return response()->json(['message' => 'Canal no encontrado'], 404);
+        }
+
+        return response()->json($channel);
     }
 
     /**
@@ -54,7 +70,7 @@ class ChannelController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -62,7 +78,23 @@ class ChannelController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $channel = Channel::find($id);
+
+        if (!$channel) {
+            return response()->json(['message' => 'Canal no encontrado'], 404);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|string|max:255',
+            'link' => 'required|string|max:255',
+        ]);
+
+        $channel->update($validated);
+
+        return response()->json([
+            'message' => 'Canal actualizado correctamente.',
+            'data' => $channel,
+        ]);
     }
 
     /**
@@ -70,6 +102,16 @@ class ChannelController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $channel = Channel::find($id);
+
+        if (!$channel) {
+            return response()->json(['message' => 'Canal no encontrado'], 404);
+        }
+
+        $channel->delete();
+
+        return response()->json([
+            'message' => 'Canal eliminado correctamente.',
+        ]);
     }
 }

@@ -30,7 +30,7 @@ class ClaimController extends Controller
      */
     public function create()
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -38,7 +38,18 @@ class ClaimController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'message' => 'required|string',
+            'date' => 'required|date',
+            'contact_method' => 'required|string|in:email,phone',
+        ]);
+
+        $claim = Claim::create($validated);
+
+        return response()->json([
+            'message' => 'Reclamo creado correctamente.',
+            'data' => $claim,
+        ], 201);
     }
 
     /**
@@ -46,7 +57,13 @@ class ClaimController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $claim = Claim::find($id);
+
+        if (!$claim) {
+            return response()->json(['message' => 'Reclamo no encontrado'], 404);
+        }
+
+        return response()->json($claim);
     }
 
     /**
@@ -54,7 +71,7 @@ class ClaimController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -62,7 +79,24 @@ class ClaimController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $claim = Claim::find($id);
+
+        if (!$claim) {
+            return response()->json(['message' => 'Reclamo no encontrado'], 404);
+        }
+
+        $validated = $request->validate([
+            'message' => 'required|string',
+            'date' => 'required|date',
+            'contact_method' => 'required|string|in:email,phone',
+        ]);
+
+        $claim->update($validated);
+
+        return response()->json([
+            'message' => 'Reclamo actualizado correctamente.',
+            'data' => $claim,
+        ]);
     }
 
     /**
@@ -70,6 +104,16 @@ class ClaimController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $claim = Claim::find($id);
+
+        if (!$claim) {
+            return response()->json(['message' => 'Reclamo no encontrado'], 404);
+        }
+
+        $claim->delete();
+
+        return response()->json([
+            'message' => 'Reclamo eliminado correctamente.',
+        ]);
     }
 }

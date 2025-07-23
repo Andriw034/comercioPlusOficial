@@ -30,7 +30,7 @@ class CartController extends Controller
      */
     public function create()
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -38,7 +38,16 @@ class CartController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $cart = Cart::create($validated);
+
+        return response()->json([
+            'message' => 'Carrito creado correctamente.',
+            'data' => $cart,
+        ], 201);
     }
 
     /**
@@ -46,7 +55,13 @@ class CartController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $cart = Cart::find($id);
+
+        if (!$cart) {
+            return response()->json(['message' => 'Carrito no encontrado'], 404);
+        }
+
+        return response()->json($cart);
     }
 
     /**
@@ -54,7 +69,7 @@ class CartController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // No aplica para API
     }
 
     /**
@@ -62,7 +77,22 @@ class CartController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $cart = Cart::find($id);
+
+        if (!$cart) {
+            return response()->json(['message' => 'Carrito no encontrado'], 404);
+        }
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $cart->update($validated);
+
+        return response()->json([
+            'message' => 'Carrito actualizado correctamente.',
+            'data' => $cart,
+        ]);
     }
 
     /**
@@ -70,6 +100,16 @@ class CartController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $cart = Cart::find($id);
+
+        if (!$cart) {
+            return response()->json(['message' => 'Carrito no encontrado'], 404);
+        }
+
+        $cart->delete();
+
+        return response()->json([
+            'message' => 'Carrito eliminado correctamente.',
+        ]);
     }
 }

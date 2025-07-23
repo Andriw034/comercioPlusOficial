@@ -18,11 +18,11 @@ use Illuminate\Http\Request;
 class OrmController extends Controller
 {
     public function consulta(){
-       // $user = User::find(2);
-        //return $user->products;
+      //  $user = User::find(2);
+      //  return $user->products;
 
-        //$user = User::find(2);
-        //return $user->sales;
+        $user = User::find(2);
+        return $user->sales;
 
        // $user = User::find(2);
         // return $user->locations;
@@ -102,8 +102,8 @@ class OrmController extends Controller
      // $location = Location::find(1);
       //return $location->sales;
 
-      $claim = Claim::find(1);
-        return $claim->user;
+    //  $claim = Claim::find(1);
+        //return $claim->user;
       
 }
 }

@@ -7,9 +7,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Builder;
-
+use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
+ use HasRoles;
+ 
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
@@ -57,37 +59,38 @@ class User extends Authenticatable
     {
         return $this->hasMany(Product::class);
     }
-
-
     public function sales()
     {
         return $this->hasMany(Sale::class);
     }
-
     public function locations()
     {
         return $this->hasMany(Location::class);
     }
-
     public function ratings()
     {
         return $this->hasMany(Rating::class);
     }
-
     public function notifications()
     {
         return $this->hasMany(Notification::class);
     }
-
     public function setting()
     {
         return $this->hasOne(Setting::class);
     }
+     
 
-    public function roles()
-    {
-        return $this->belongsTo(Role::class);
-    }
+
+
+
+    //public function roles()
+   // {
+   //     return $this->belongsTo(Role::class);
+   // }
+
+
+
 
           // return request('included');
        public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
@@ -140,5 +143,28 @@ class User extends Authenticatable
         }
 
         return $query->get(); // Devuelve todos si no hay perPage
+    }
+
+    public function scopeSort(Builder $query)
+    {
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return $query;
+        }
+
+        $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
+
+        foreach ($sortFields as $field) {
+            $direction = 'asc';
+            if (str_starts_with($field, '-')) {
+                $direction = 'desc';
+                $field = substr($field, 1);
+            }
+            if ($allowSort->contains($field)) {
+                $query->orderBy($field, $direction);
+            }
+        }
+
+        return $query;
     }
 }
