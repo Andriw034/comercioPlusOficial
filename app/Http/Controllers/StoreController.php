@@ -3,51 +3,102 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Setting;
+use App\Models\Store;
 
 class StoreController extends Controller
 {
+    // Mostrar la tienda del usuario autenticado
     public function index()
     {
-        // Obtener configuración actual de la tienda
-        $store = Setting::where('key', 'store_config')->first();
-        $storeData = $store ? json_decode($store->value) : null;
+        $store = Store::where('user_id', Auth::id())->first();
 
-        return view('store.index', ['store' => $storeData]);
+        if (!$store) {
+            return redirect()->route('store.create')->with('info', 'Aún no has creado tu tienda.');
+        }
+
+        return view('store.index', ['store' => $store]);
     }
 
-    public function create(Request $request)
+    // Mostrar formulario de creación si aún no tiene tienda
+    public function create()
+    {
+        $existingStore = Store::where('user_id', Auth::id())->first();
+
+        if ($existingStore) {
+            return redirect()->route('store.index')->with('warning', 'Ya has creado una tienda.');
+        }
+
+        return view('store.create');
+    }
+
+    // Guardar tienda
+    public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'logo' => 'nullable|image|max:2048', // max 2MB
+            'description' => 'nullable|string',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
         ]);
 
-        $store = Setting::firstOrNew(['key' => 'store_config']);
-
-        $storeData = [
-            'name' => $request->name,
-            'description' => $request->description,
-        ];
+        $store = new Store();
+        $store->name = $request->name;
+        $store->description = $request->description;
+        $store->user_id = Auth::id();
 
         if ($request->hasFile('logo')) {
-            // Guardar logo y obtener ruta
-            $path = $request->file('logo')->store('public/store_logos');
-            // Guardar solo la ruta relativa sin 'public/'
-            $storeData['logo'] = str_replace('public/', '', $path);
-        } else {
-            // Mantener logo anterior si existe
-            $existingData = $store->value ? json_decode($store->value, true) : [];
-            if (isset($existingData['logo'])) {
-                $storeData['logo'] = $existingData['logo'];
-            }
+            $store->logo = $request->file('logo')->store('logos', 'public');
         }
 
-        $store->value = json_encode($storeData);
+        if ($request->hasFile('cover')) {
+            $store->cover = $request->file('cover')->store('covers', 'public');
+        }
+
         $store->save();
 
-        return redirect()->route('store.index')->with('success', 'Configuración de la tienda guardada correctamente.');
+        return redirect()->route('products.create')->with('success', 'Tienda creada con éxito. Ahora crea tu primer producto.');
+    }
+
+    // Mostrar formulario de edición de tienda
+    public function edit()
+    {
+        $store = Store::where('user_id', Auth::id())->firstOrFail();
+        return view('store.edit', ['store' => $store]);
+    }
+
+    // Actualizar tienda
+    public function update(Request $request)
+    {
+        $store = Store::where('user_id', Auth::id())->firstOrFail();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
+        ]);
+
+        $store->name = $request->name;
+        $store->description = $request->description;
+
+        if ($request->hasFile('logo')) {
+            if ($store->logo) {
+                Storage::disk('public')->delete($store->logo);
+            }
+            $store->logo = $request->file('logo')->store('logos', 'public');
+        }
+
+        if ($request->hasFile('cover')) {
+            if ($store->cover) {
+                Storage::disk('public')->delete($store->cover);
+            }
+            $store->cover = $request->file('cover')->store('covers', 'public');
+        }
+
+        $store->save();
+
+        return redirect()->route('store.index')->with('success', 'Tienda actualizada correctamente.');
     }
 }

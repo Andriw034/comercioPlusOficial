@@ -2,29 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class OrderMessage extends Model
 {
-
-    
- protected $fillable = [
-    'message',
- ];
-    protected $allowIncluded = [
-       'message',
-    ];
-
-    protected $allowSort =  [
-     'message',
-
-    ];
-    protected $allowFilter  = [
-         'message',
-        
-    ];
     use HasFactory;
 
      public function order()
@@ -32,7 +15,25 @@ class OrderMessage extends Model
         return $this->belongsTo(Order::class);
     }
 
-      public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
+       protected $fillable = [
+        'order_id',
+        'message',
+    ];
+
+    protected $allowIncluded = ['order'];
+
+      protected $allowSort = [
+        'order_id',
+        'message',
+    ];
+
+      protected $allowFilter  = [
+        'order_id',
+        'message',
+    ];
+
+
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
     {
         if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
             return $query; // Retorna la consulta sin modificar
@@ -83,27 +84,5 @@ class OrderMessage extends Model
 
         return $query->get(); // Devuelve todos si no hay perPage
     }
-
-    public function scopeSort(Builder $query)
-    {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return $query;
-        }
-
-        $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
-
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
-            }
-            if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
-            }
-        }
-
-        return $query;
-    }
+    
 }

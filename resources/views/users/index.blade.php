@@ -3,77 +3,98 @@
 @section('title', 'Lista de Usuarios')
 
 @section('content')
+<div class="max-w-7xl mx-auto p-6 bg-white rounded shadow">
 
+    <h1 class="text-2xl font-bold mb-6 text-center">Usuarios</h1>
 
+    <!-- Formulario de búsqueda y filtros -->
+    <form method="GET" action="{{ route('users.index') }}" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <input type="text" name="search" value="{{ request('search') }}"
+               class="border-gray-300 rounded px-3 py-2 w-full"
+               placeholder="Buscar por nombre o email">
 
-    <div class="flex justify-between items-center mb-6 px-12">
-        <h1 class="text-3xl font-bold text-center">Usuarios</h1>
+        <select name="status" class="border-gray-300 rounded px-3 py-2 w-full">
+            <option value="">Todos los estados</option>
+            <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Activo</option>
+            <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Inactivo</option>
+        </select>
 
-        <a href="{{ route('users.create') }}"
-            class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-all duration-200">
-            + Nuevo Usuario
+        <select name="role_id" class="border-gray-300 rounded px-3 py-2 w-full">
+            <option value="">Todos los roles</option>
+            @foreach(\App\Models\Role::all() as $role)
+                <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}>
+                    {{ $role->name }}
+                </option>
+            @endforeach
+        </select>
+
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Buscar
+        </button>
+    </form>
+
+    <!-- Botón para crear -->
+    <div class="mb-4 text-right">
+        <a href="{{ route('users.create') }}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Crear Usuario
         </a>
     </div>
 
-    <div class="overflow-x-auto flex justify-center">
-        <table class="min-w-[1200px] bg-white border border-gray-300 rounded-lg shadow-lg text-sm">
-            <thead class="bg-gray-100 text-gray-700">
+    <!-- Tabla de usuarios -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200">
+            <thead class="bg-gray-100">
                 <tr>
-                    <th class="px-4 py-2 border-b">ID</th>
-                    <th class="px-4 py-2 border-b">Nombre</th>
-                    <th class="px-4 py-2 border-b">Email</th>
-                    <th class="px-4 py-2 border-b">Teléfono</th>
-                    <th class="px-4 py-2 border-b">Dirección</th>
-                    <th class="px-4 py-2 border-b">Rol</th>
-                    <th class="px-4 py-2 border-b">Estado</th>
-                    <th class="px-4 py-2 border-b">Avatar</th>
-                    <th class="px-4 py-2 border-b">Creado</th>
-                    <th class="px-4 py-2 border-b">Actualizado</th>
-                    <th class="px-4 py-2 border-b">Acciones</th>
+                    <th class="px-4 py-2 border">Avatar</th>
+                    <th class="px-4 py-2 border">Nombre</th>
+                    <th class="px-4 py-2 border">Email</th>
+                    <th class="px-4 py-2 border">Rol</th>
+                    <th class="px-4 py-2 border">Estado</th>
+                    <th class="px-4 py-2 border">Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach ($users as $user)
-                    <tr class="text-center hover:bg-gray-50">
-                        <td class="px-4 py-2 border-b">{{ $user->id }}</td>
-                        <td class="px-4 py-2 border-b">{{ $user->name }}</td>
-                        <td class="px-4 py-2 border-b">{{ $user->email }}</td>
-                        <td class="px-4 py-2 border-b">{{ $user->phone ?? '-' }}</td>
-                        <td class="px-4 py-2 border-b">{{ $user->address ?? '-' }}</td>
-                        <td class="px-4 py-2 border-b">{{ $user->role ? $user->role->name : 'Sin rol' }}</td>
-                        <td class="px-4 py-2 border-b">
-                            @if ($user->status)
-                                <span class="text-green-600 font-semibold">Activo</span>
-                            @else
-                                <span class="text-red-600 font-semibold">Inactivo</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-2 border-b">
-                            <img src="{{ $user->avatar ? asset('storage/avatars/' . $user->avatar) : 'https://i.pravatar.cc/100?u=' . $user->email }}"
-                                alt="Avatar" class="w-10 h-10 rounded-full mx-auto shadow">
-                        </td>
-                        <td class="px-4 py-2 border-b">{{ $user->created_at->format('d/m/Y') }}</td>
-                        <td class="px-4 py-2 border-b">{{ $user->updated_at->format('d/m/Y') }}</td>
-                        <td class="px-4 py-2 border-b space-x-1">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('users.edit', $user->id) }}"
-                                    class="inline-block w-15 text-center bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded transition-all duration-200">
-                                    Editar
-                                </a>
-                                <form action="{{ route('users.destroy', $user->id) }}" method="POST"
-                                    onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                        class="w-15 text-center bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded transition-all duration-200">
-                                        Eliminar
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                @endforeach
+                @forelse($users as $user)
+                <tr class="text-center">
+                    <td class="px-4 py-2 border">
+                        @if($user->avatar)
+                            <img src="{{ asset('storage/' . $user->avatar) }}" class="w-10 h-10 rounded-full mx-auto">
+                        @else
+                            <span class="text-gray-400">Sin avatar</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2 border">{{ $user->name }}</td>
+                    <td class="px-4 py-2 border">{{ $user->email }}</td>
+                    <td class="px-4 py-2 border">{{ $user->role->name ?? '-' }}</td>
+                    <td class="px-4 py-2 border">
+                        @if($user->status)
+                            <span class="text-green-600 font-semibold">Activo</span>
+                        @else
+                            <span class="text-red-600 font-semibold">Inactivo</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2 border space-x-2">
+                        <a href="{{ route('users.edit', $user) }}" class="text-blue-600 hover:underline">Editar</a>
+                        <form action="{{ route('users.destroy', $user) }}" method="POST" class="inline"
+                              onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-gray-500">No se encontraron usuarios.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
+
+    <!-- Paginación -->
+    <div class="mt-6">
+        {{ $users->appends(request()->query())->links() }}
+    </div>
+</div>
 @endsection

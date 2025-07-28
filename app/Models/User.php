@@ -8,145 +8,109 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Traits\HasRoles;
+
 class User extends Authenticatable
 {
- use HasRoles;
- 
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasRoles, HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'phone','avatar',
-        'status',
-        'address',
-        'role_id'
+        'name', 'email', 'password', 'phone', 'avatar',
+        'status', 'address', 'role_id'
     ];
 
     protected $allowIncluded = [
-        'name',
-        'email',
-        'password',
-        'phone',
-        'avatar',
-        'status',
-        'address',
-        'role_id'
-    ];
-    protected $allowSort = [
-        'name',
-        'email',
-        'password',
-        'phone',
-        'avatar',
-        'status',
-        'address',
-        'role_id'
-    ];
-    protected $allowFilter = [
-        'name',
-        'email',
-        'password',
-        'phone',
-        'avatar',
-        'status',
-        'address',
-        'role_id'
+        'products', 'sales', 'ratings', 'category', 
+        'locations', 'notifications', 'setting', 'roles', 'profile'
     ];
 
-    public function products()
-    {
+    protected $allowSort = [
+        'name', 'email', 'password', 'phone', 'avatar',
+        'status', 'address', 'role_id'
+    ];
+
+    protected $allowFilter = [
+        'name', 'email', 'password', 'phone', 'avatar',
+        'status', 'address', 'role_id'
+    ];
+
+    public function products() {
         return $this->hasMany(Product::class);
     }
-    public function sales()
-    {
+
+    public function sales() {
         return $this->hasMany(Sale::class);
     }
-    public function locations()
-    {
+
+    public function locations() {
         return $this->hasMany(Location::class);
     }
-    public function ratings()
-    {
+
+    public function ratings() {
         return $this->hasMany(Rating::class);
     }
-    public function notifications()
-    {
+
+    public function notifications() {
         return $this->hasMany(Notification::class);
     }
-    public function setting()
-    {
+
+    public function setting() {
         return $this->hasOne(Setting::class);
     }
-     
 
+    public function publicStores() {
+        return $this->hasMany(PublicStore::class);
+    }
 
+    public function store() {
+        return $this->hasOne(Store::class);
+    }
 
-
-    //public function roles()
-   // {
-   //     return $this->belongsTo(Role::class);
-   // }
-
-
-
-
-          // return request('included');
-       public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
-        {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
-            return $query; // Retorna la consulta sin modificar
+    public function scopeIncluded(Builder $query) {
+        if (empty($this->allowIncluded) || empty(request('included'))) {
+            return $query;
         }
 
-        $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colección
+        $relations = explode(',', request('included'));
+        $allowIncluded = collect($this->allowIncluded);
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relación pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relación no está permitida
-                unset($relations[$key]); // Se elimina del array para no ser incluida
+        foreach ($relations as $key => $relationship) {
+            if (!$allowIncluded->contains($relationship)) {
+                unset($relations[$key]);
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones válidas en la consulta
+        return $query->with($relations);
     }
 
-
-
-    public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
-    {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se envió ninguno
-            return $query; // Retorna la consulta sin modificar
+    public function scopeFilter(Builder $query) {
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return $query;
         }
 
-        $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colección Laravel
+        $filters = request('filter');
+        $allowFilter = collect($this->allowFilter);
 
-        foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
-            if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica búsqueda parcial (LIKE '%valor%')
+        foreach ($filters as $filter => $value) {
+            if ($allowFilter->contains($filter)) {
+                $query->where($filter, 'LIKE', "%{$value}%");
             }
         }
 
-        return $query; // Retorna la consulta modificada con los filtros aplicados
+        return $query;
     }
 
-
-    public function scopeGetOrPaginate(Builder $query)
-    {
+    public function scopeGetOrPaginate(Builder $query) {
         if (request('perPage')) {
             $perPage = intval(request('perPage'));
-
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginación
+                return $query->paginate($perPage);
             }
         }
 
-        return $query->get(); // Devuelve todos si no hay perPage
+        return $query->get();
     }
 
-    public function scopeSort(Builder $query)
-    {
+    public function scopeSort(Builder $query) {
         if (empty($this->allowSort) || empty(request('sort'))) {
             return $query;
         }
@@ -165,6 +129,6 @@ class User extends Authenticatable
             }
         }
 
-        return $query;
+        return $query->get();
     }
 }

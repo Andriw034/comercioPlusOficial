@@ -2,31 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class OrderProduct extends Model
 {
     use HasFactory;
- 
- protected $fillable = [
-    'unit_price',
- ];
-    protected $allowIncluded = [
-      'unit_price',
-    ];
 
-    protected $allowSort =  [
-      'unit_price',
-
-    ];
-    protected $allowFilter  = [
-        'unit_price',
-        
-    ];
-
-    
     public function order()
     {
         return $this->belongsTo(Order::class);
@@ -35,6 +18,30 @@ class OrderProduct extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+
+        protected $fillable = [
+        'order_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+    ];
+
+    protected $allowIncluded = ['order', 'product'];
+
+      protected $allowSort =  [
+        'order_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+    ];
+
+      protected $allowFilter  = [
+        'order_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+    ];
 
     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
     {
@@ -88,26 +95,7 @@ class OrderProduct extends Model
         return $query->get(); // Devuelve todos si no hay perPage
     }
 
-    public function scopeSort(Builder $query)
-    {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return $query;
-        }
 
-        $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
 
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
-            }
-            if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
-            }
-        }
-
-        return $query;
-    }
+    
 }

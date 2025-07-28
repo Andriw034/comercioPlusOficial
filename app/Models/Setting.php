@@ -10,57 +10,52 @@ class Setting extends Model
 {
     use HasFactory;
 
-    public function user()
-{
-    return $this->belongsTo(User::class);
-}
-
-protected $allowIncluded = ['user'];
-
     protected $fillable = ['key', 'value', 'role', 'user_id'];
 
+    protected $allowIncluded = ['user'];
     protected $allowSort = ['key', 'value', 'role', 'user_id'];
-
     protected $allowFilter = ['key', 'value', 'role', 'user_id'];
 
-    public function scopeIncluded( Builder $query) // Scope local que permite incluir relaciones dinámicamente
+    public function user()
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
-            return $query; // Retorna la consulta sin modificar
+        return $this->belongsTo(User::class);
+    }
+
+    public function scopeIncluded(Builder $query)
+    {
+        if (empty($this->allowIncluded) || empty(request('included'))) {
+            return $query;
         }
 
-        $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colección
+        $relations = explode(',', request('included'));
+        $allowIncluded = collect($this->allowIncluded);
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relación pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relación no está permitida
-                unset($relations[$key]); // Se elimina del array para no ser incluida
+        foreach ($relations as $key => $relationship) {
+            if (!$allowIncluded->contains($relationship)) {
+                unset($relations[$key]);
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones válidas en la consulta
+        return $query->with($relations);
     }
 
-
-
-    public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
+    public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se envió ninguno
-            return $query; // Retorna la consulta sin modificar
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return $query;
         }
 
-        $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colección Laravel
+        $filters = request('filter');
+        $allowFilter = collect($this->allowFilter);
 
-        foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
-            if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica búsqueda parcial (LIKE '%valor%')
+        foreach ($filters as $filter => $value) {
+            if ($allowFilter->contains($filter)) {
+                $query->where($filter, 'LIKE', '%' . $value . '%');
             }
         }
 
-        return $query; // Retorna la consulta modificada con los filtros aplicados
+        return $query;
     }
-
 
     public function scopeGetOrPaginate(Builder $query)
     {
@@ -68,11 +63,10 @@ protected $allowIncluded = ['user'];
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginación
+                return $query->paginate($perPage);
             }
         }
 
-        return $query->get(); // Devuelve todos si no hay perPage
+        return $query->get();
     }
-
 }

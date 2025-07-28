@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // 'usuario' o 'administrador'
-       $table->unsignedBigInteger('role_id')->default(1);
+           $table->string('name'); // Nombre para mostrar
+            $table->string('slug')->unique(); // Clave corta para lógica (admin, user)
+            $table->string('description')->nullable(); // Descripción opcional
+            $table->boolean('is_active')->default(true); // Por si algún día desactivas roles
             $table->timestamps();
         });
     }

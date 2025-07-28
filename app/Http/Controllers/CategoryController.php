@@ -7,10 +7,18 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function index()
+      public function index()
     {
-        $categories = Category::paginate(10);
-        return view('categories.index', compact('categories'));
+        $cateogry = Category::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Listado de productos',
+            'data' => $cateogry,
+        ]);
     }
 
     public function create()
@@ -20,14 +28,15 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
+        $request->validate([
+            'name' => 'required|string|max:255'
         ]);
 
-        Category::create($validated);
+        Category::create($request->all());
 
         return redirect()->route('categories.index')->with('success', 'Categoría creada correctamente.');
     }
+    
 
     public function edit(Category $category)
     {
@@ -36,19 +45,19 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
+        $request->validate([
+            'name' => 'required|string|max:255'
         ]);
 
-        $category->update($validated);
+        $category->update($request->all());
 
-        return redirect()->route('categories.index')->with('success', 'Categoría actualizada correctamente.');
+        return redirect()->route('categories.index')->with('success', 'Categoría actualizada.');
     }
 
     public function destroy(Category $category)
     {
         $category->delete();
-
-        return redirect()->route('categories.index')->with('success', 'Categoría eliminada correctamente.');
+        return redirect()->route('categories.index')->with('success', 'Categoría eliminada.');
     }
 }
+

@@ -9,35 +9,17 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
 
-   protected $fillable = [
-  'description',
-        'price',
-        'stock',
-        'image',
-        'offer',
-        'average_ating',
-    ];
-
-    protected $allowIncluded = ['user'];
-
-    protected $allowSort =  [
-      'description',
-        'price',
-        'stock',
-        'image',
-        'offer',
-          'average_ating',
-
-    ];
-    protected $allowFilter  = [
+    protected $fillable = [
+        'name',
         'description',
         'price',
         'stock',
         'image',
+        'category_id',
         'offer',
-          'average_ating',
+        'average_rating',
+        'user_id',
     ];
-
 
     public function user()
     {
@@ -50,11 +32,13 @@ class Product extends Model
     }
 
     public function ratings()
-{
-    return $this->hasMany(Rating::class);
-}
+    {
+        return $this->hasMany(Rating::class);
+    }
 
- 
+    //-----------------------------------------------------
+
+
     public function category()
     {
         return $this->belongsTo(Category::class);
@@ -69,7 +53,36 @@ class Product extends Model
     {
         return $this->hasMany(CartProduct::class);
     }
-public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
+
+    protected $allowIncluded = ['user', 'sales', 'ratings', 'category', 'orderproduct', 'cartproducts'];
+
+    protected $allowSort = [
+        'name',
+        'description',
+        'price',
+        'stock',
+        'image',
+        'category_id',
+        'offer',
+        'average_rating',
+        'user_id',
+    ];
+
+    protected $allowFilter = [
+        'name',
+        'description',
+        'price',
+        'stock',
+        'image',
+        'category_id',
+        'offer',
+        'average_rating',
+        'user_id',
+    ];
+
+
+
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
     {
         if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
             return $query; // Retorna la consulta sin modificar
@@ -120,27 +133,5 @@ public function scopeIncluded(Builder $query) // Scope local que permite incluir
 
         return $query->get(); // Devuelve todos si no hay perPage
     }
-
-    public function scopeSort(Builder $query)
-    {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return $query;
-        }
-
-        $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
-
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
-            }
-            if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
-            }
-        }
-
-        return $query;
-    }
+    
 }

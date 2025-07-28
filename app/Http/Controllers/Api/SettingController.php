@@ -44,10 +44,20 @@ class SettingController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        //
-    }
+    public function showForm()
+{
+    return view('settings.index');
+}
+
+public function saveSettings(Request $request)
+{
+    set_setting('store_name', $request->store_name);
+    set_setting('primary_color', $request->primary_color);
+    set_setting('theme_style', $request->theme_style);
+
+    return redirect()->back()->with('success', 'Configuración actualizada correctamente.');
+}
+
 
     /**
      * Show the form for editing the specified resource.

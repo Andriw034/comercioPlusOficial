@@ -3,87 +3,64 @@
 @section('title', 'Editar Usuario')
 
 @section('content')
-<div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-6 text-center">Editar Usuario</h1>
+<div class="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-md">
+    <h1 class="text-3xl font-bold mb-8 text-center text-orange-600">Editar Usuario</h1>
 
     <form action="{{ route('users.update', $user->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
-        <!-- Nombre -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Nombre</label>
-            <input type="text" name="name" value="{{ old('name', $user->name) }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Nombre -->
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">Nombre</label>
+                <input type="text" name="name" value="{{ old('name', $user->name) }}"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400" required>
+                @error('name')
+                    <small class="text-red-600">{{ $message }}</small>
+                @enderror
+            </div>
 
-        <!-- Email -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Email</label>
-            <input type="email" name="email" value="{{ old('email', $user->email) }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
-        </div>
+            <!-- Email -->
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">Email</label>
+                <input type="email" name="email" value="{{ old('email', $user->email) }}"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400" required>
+                @error('email')
+                    <small class="text-red-600">{{ $message }}</small>
+                @enderror
+            </div>
 
-        <!-- Teléfono -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Teléfono</label>
-            <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" class="w-full border border-gray-300 rounded px-3 py-2">
-        </div>
+            <!-- Teléfono -->
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">Teléfono</label>
+                <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </div>
 
-        <!-- Dirección -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Dirección</label>
-            <input type="text" name="address" value="{{ old('address', $user->address) }}" class="w-full border border-gray-300 rounded px-3 py-2">
-        </div>
+            <!-- Dirección -->
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">Dirección</label>
+                <input type="text" name="address" value="{{ old('address', $user->address) }}"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </div>
 
-        <!-- Rol -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Rol</label>
-            <select name="role_id" class="w-full border border-gray-300 rounded px-3 py-2" required>
-                @foreach ($roles as $role)
-                    <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}>
-                        {{ $role->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
+            <!-- Rol -->
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">Rol</label>
+                <select name="role_id"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400" required>
+                    @foreach ($roles as $role)
+                        <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}>
+                            {{ $role->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
-        <!-- Estado -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Estado</label>
-            <select name="status" class="w-full border border-gray-300 rounded px-3 py-2">
-                <option value="1" {{ $user->status ? 'selected' : '' }}>Activo</option>
-                <option value="0" {{ !$user->status ? 'selected' : '' }}>Inactivo</option>
-            </select>
-        </div>
-
-        <!-- Avatar -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Avatar</label>
-            @if ($user->avatar)
-                <div class="mb-2">
-                    <img src="{{ asset('storage/avatars/' . $user->avatar) }}" class="w-16 h-16 rounded-full shadow">
-                </div>
-            @endif
-            <input type="file" name="avatar" class="w-full border border-gray-300 rounded px-3 py-2">
-        </div>
-
-        <!-- Contraseña -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Contraseña (opcional)</label>
-            <input type="password" name="password" class="w-full border border-gray-300 rounded px-3 py-2">
-        </div>
-
-        <!-- Confirmación -->
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Confirmar Contraseña</label>
-            <input type="password" name="password_confirmation" class="w-full border border-gray-300 rounded px-3 py-2">
-        </div>
-
-        <!-- Botón -->
-        <div class="text-right">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
-                Actualizar Usuario
-            </button>
-        </div>
-    </form>
-</div>
-@endsection
+            <!-- Estado -->
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">Estado</label>
+                <select name="status"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                    <option value="1" {{ $user->status ? 'selected' : '' }}>Activo</option>

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.admin') {{-- Asegúrate que es el layout con el sidebar --}}
 
 @section('content')
 <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow-md">
@@ -17,33 +17,42 @@
     <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
         @csrf
         @method('PUT')
+
         <div>
             <label for="name" class="block font-semibold mb-2 text-gray-700">Nombre</label>
-            <input type="text" name="name" id="name" placeholder="Nombre del producto" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" value="{{ old('name', $product->name) }}" required>
+            <input type="text" name="name" id="name" class="w-full border px-4 py-3 rounded focus:ring-2 focus:ring-blue-500" value="{{ old('name', $product->name) }}" required>
         </div>
+
         <div>
             <label for="description" class="block font-semibold mb-2 text-gray-700">Descripción</label>
-            <textarea name="description" id="description" rows="5" placeholder="Descripción del producto" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" required>{{ old('description', $product->description) }}</textarea>
+            <textarea name="description" id="description" class="w-full border px-4 py-3 rounded focus:ring-2 focus:ring-blue-500" rows="4" required>{{ old('description', $product->description) }}</textarea>
         </div>
+
         <div>
             <label for="category_id" class="block font-semibold mb-2 text-gray-700">Categoría</label>
-            <select name="category_id" id="category_id" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" required>
+            <select name="category_id" id="category_id" class="w-full border px-4 py-3 rounded focus:ring-2 focus:ring-blue-500" required>
                 <option value="">Seleccione una categoría</option>
                 @foreach($categories as $category)
-                <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>
-                    {{ $category->name }}
-                </option>
+                    <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>
+                        {{ $category->name }}
+                    </option>
                 @endforeach
             </select>
         </div>
+
         <div>
             <label for="image" class="block font-semibold mb-2 text-gray-700">Imagen</label>
-            @if($product->image)
-            <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="h-32 w-32 object-cover rounded mb-4">
+            @if ($product->image)
+                <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="h-32 w-32 object-cover mb-2 rounded">
             @endif
             <input type="file" name="image" id="image" accept="image/*" class="w-full">
         </div>
-        <button type="submit" class="bg-primary text-white px-6 py-3 rounded font-semibold hover:bg-primary-light transition-colors duration-300">Actualizar Producto</button>
+
+        <div class="text-right">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+                💾 Actualizar Producto
+            </button>
+        </div>
     </form>
 </div>
 @endsection

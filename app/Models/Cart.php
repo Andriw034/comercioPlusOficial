@@ -10,61 +10,66 @@ class Cart extends Model
 {
     use HasFactory;
 
-    protected $allowIncluded = [
-        'user',
-    ];
-
-    protected $allowSort = [
-        'id',
-        'created_at',
-        'updated_at',
-    ];
-
-    protected $allowFilter = [
-        'id',
-        'user_id',
-    ];
-
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function scopeIncluded(Builder $query)
+     protected $fillable = [
+        'user_id',
+        'status',
+    ];
+
+    protected $allowIncluded = ['user'];
+
+    protected $allowSort = [
+        'user_id',
+        'status',
+    ];
+
+    protected $allowFilter = [
+        'user_id',
+        'status',
+    ];
+
+     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
-            return $query;
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
+            return $query; // Retorna la consulta sin modificar
         }
 
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
+        $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colección
 
-        foreach ($relations as $key => $relationship) {
-            if (!$allowIncluded->contains($relationship)) {
-                unset($relations[$key]);
+        foreach ($relations as $key => $relationship) { // Recorre cada relación pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relación no está permitida
+                unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations);
+        return $query->with($relations); // Incluye solo las relaciones válidas en la consulta
     }
 
-    public function scopeFilter(Builder $query)
+
+
+    public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return $query;
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se envió ninguno
+            return $query; // Retorna la consulta sin modificar
         }
 
-        $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
+        $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colección Laravel
 
-        foreach ($filters as $filter => $value) {
-            if ($allowFilter->contains($filter)) {
-                $query->where($filter, 'LIKE', '%' . $value . '%');
+        foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
+            if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica búsqueda parcial (LIKE '%valor%')
             }
         }
 
-        return $query;
+        return $query; // Retorna la consulta modificada con los filtros aplicados
     }
+
 
     public function scopeGetOrPaginate(Builder $query)
     {
@@ -72,33 +77,11 @@ class Cart extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage);
+                return $query->paginate($perPage); // Devuelve con paginación
             }
         }
 
-        return $query->get();
+        return $query->get(); // Devuelve todos si no hay perPage
     }
 
-    public function scopeSort(Builder $query)
-    {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return $query;
-        }
-
-        $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
-
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
-            }
-            if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
-            }
-        }
-
-        return $query;
-    }
 }

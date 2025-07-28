@@ -2,20 +2,21 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Auth Controllers
+// Controladores de autenticación
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 
-// Otros controladores
+// Controladores generales
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\StoreController;
-use App\Http\Controllers\StorePublicController;
+use App\Http\Controllers\PublicStoreController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\OrmController;
 
 // -------------------------------------
@@ -23,7 +24,7 @@ use App\Http\Controllers\OrmController;
 // -------------------------------------
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('home');
 
 // -------------------------------------
 // Autenticación
@@ -33,7 +34,7 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register']);
+Route::post('/register', [RegisterController::class, 'register'])->name('register.submit');
 
 // -------------------------------------
 // Recuperación de contraseña
@@ -46,13 +47,8 @@ Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('
 // -------------------------------------
 // Panel de administrador
 // -------------------------------------
-Route::get('/admin', [DashboardController::class, 'index'])->middleware(['auth'])->name('admin.dashboard');
+Route::get('/admin', [DashboardController::class, 'index'])->middleware('auth')->name('admin.dashboard');
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
-
-// -------------------------------------
-// Usuarios
-// -------------------------------------
-Route::resource('users', UserController::class);
 
 // -------------------------------------
 // Zona privada (requiere login)
@@ -65,40 +61,43 @@ Route::middleware('auth')->group(function () {
 
     // Productos
     Route::resource('products', ProductController::class);
+    Route::get('/productos/crear', [ProductController::class, 'create'])->name('producto.create');
+    Route::post('/producto/crear', [ProductController::class, 'store'])->name('producto.store');
 
     // Categorías
     Route::resource('categories', CategoryController::class);
-});
 
-// -------------------------------------
-// Gestión de tienda por comerciantes
-// -------------------------------------
-Route::middleware(['auth', 'role:comerciante'])->group(function () {
-    // Crear tienda
+    // Tiendas (Gestión del comerciante)
     Route::get('/store/create', [StoreController::class, 'create'])->name('store.create');
-    Route::post('/store', [StoreController::class, 'store'])->name('store.store');
-
-    // Editar tienda
+    Route::post('/store/create', [StoreController::class, 'store'])->name('store.create.post');
     Route::get('/merchant/store/edit', [StoreController::class, 'edit'])->name('merchant.store.edit');
     Route::put('/merchant/store/update', [StoreController::class, 'update'])->name('merchant.store.update');
+
+    // Editar vista pública de tienda
+    Route::get('/mi-tienda/editar', [PublicStoreController::class, 'edit'])->name('store.edit');
+    Route::put('/mi-tienda/{store}', [PublicStoreController::class, 'update'])->name('store.update');
+
+    // Configuración
+    Route::get('/configuracion', [SettingController::class, 'showForm'])->name('settings.form');
+    Route::post('/configuracion', [SettingController::class, 'saveSettings'])->name('settings.update');
 });
 
 // -------------------------------------
-// Vistas públicas de tiendas
+// Usuarios
 // -------------------------------------
+Route::resource('users', UserController::class);
 
-// Mostrar mini tienda pública con productos
-Route::get('/tienda/{slug}', [StorePublicController::class, 'show'])->name('store.public');
-
-// (Opcional) rutas públicas para editar desde vista pública (según permisos)
-Route::middleware('auth')->group(function () {
-    Route::get('/mi-tienda/editar', [StorePublicController::class, 'edit'])->name('store.edit');
-    Route::put('/mi-tienda/{store}', [StorePublicController::class, 'update'])->name('store.update');
-});
+// -------------------------------------
+// Tienda pública (sin login)
+// -------------------------------------
+Route::get('/tienda/{slug}', [PublicStoreController::class, 'show'])->name('store.public');
 
 // -------------------------------------
 // Pruebas y consultas
 // -------------------------------------
-Route::get('consulta', [OrmController::class, 'consulta']);
+Route::get('/consulta', [OrmController::class, 'consulta']);
 
+// -------------------------------------
+// Otras vistas
+// -------------------------------------
 Route::get('/store', [StoreController::class, 'index'])->name('store.index');

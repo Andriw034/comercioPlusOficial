@@ -2,43 +2,50 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Claim extends Model
 {
     use HasFactory;
- protected $fillable = [
-   'message',
-       'date',
-        'contact_method', ['email', 'phone'],
- ];
-    protected $allowIncluded = [
-      
-      'message',
-       'date',
-        'contact_method', ['email', 'phone'],
-    ];
 
-    protected $allowSort =  [
-      'message',
-       'date',
-        'contact_method', ['email', 'phone'],
-    ];
-    protected $allowFilter  = [
-       'message',
-       'date',
-        'contact_method', ['email', 'phone'],
-    ];
+    protected $casts = [
+    'date' => 'datetime',
+];
 
      public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    
-     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
+     protected $fillable = [
+        'user_id',
+        'message',
+        'date',
+        'contact_method',
+    ];
+
+    protected $allowIncluded = ['user'];
+
+      protected $allowSort = [
+        'user_id',
+        'message',
+        'date',
+        'contact_method',
+    ];
+
+
+      protected $allowFilter  =[
+        'user_id',
+        'message',
+        'date',
+        'contact_method',
+    ];
+
+
+
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
     {
         if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
             return $query; // Retorna la consulta sin modificar
@@ -88,28 +95,5 @@ class Claim extends Model
         }
 
         return $query->get(); // Devuelve todos si no hay perPage
-    }
-
-    public function scopeSort(Builder $query)
-    {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return $query;
-        }
-
-        $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
-
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
-            }
-            if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
-            }
-        }
-
-        return $query;
     }
 }

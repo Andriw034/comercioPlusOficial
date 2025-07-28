@@ -10,21 +10,55 @@ use Illuminate\Support\Facades\Storage;
 class UserController extends Controller
 {
     // Mostrar la lista de usuarios
-    public function index()
-    {
-        // Obtener usuarios con su rol relacionado y paginación
-        $users = User::with('roles')->paginate(10);
+   
+    public function index(Request $request)
+{
+    $query = User::with('role');
 
-        // Enviar datos a la vista
-        return view('users.index', compact('users'));
+    if ($request->filled('search')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('name', 'like', '%' . $request->search . '%')
+              ->orWhere('email', 'like', '%' . $request->search . '%');
+        });
     }
 
-    public function create()
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    if ($request->filled('role_id')) {
+        $query->where('role_id', $request->role_id);
+    }
+
+    $users = $query->paginate(10);
+
+    return view('users.index', compact('users'));
+}
+
+    public function welcome(Request $request)
     {
+        $query = User::with('roles');
 
-        $roles = Role::all(); // Asegúrate de importar el modelo Role
+        if ($request->filled('buscar')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->buscar . '%')
+                  ->orWhere('email', 'like', '%' . $request->buscar . '%');
+            });
+        }
 
-        return view('users.create', compact('roles'));
+        if ($request->filled('estado')) {
+            $estado = $request->estado === 'activo' ? 1 : 0;
+            $query->where('status', $estado);
+        }
+
+        if ($request->filled('rol')) {
+            $role = $request->rol;
+            $query->role($role);
+        }
+
+        $users = $query->paginate(10);
+
+        return view('welcome', compact('users'));
     }
 
 
@@ -115,4 +149,14 @@ class UserController extends Controller
 
         return redirect()->route('users.index')->with('success', 'Usuario eliminado correctamente.');
     }
+  public function show($id)
+    {
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Método show llamado correctamente',
+            'id' => $id
+        ]);
+    }
+
+    
 }
