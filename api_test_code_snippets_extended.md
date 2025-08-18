@@ -1,8 +1,210 @@
-# Ejemplos de código para probar todas las rutas API con scopes incluidos, filtros, orden y paginación
+# Guía Completa de Endpoints API - ComercioRealPlus
 
-Este documento contiene ejemplos para el método `index` de cada controlador API, mostrando cómo aplicar los scopes `included()`, `filter()`, `sort()` y paginación para facilitar las pruebas en Postman.
+Este documento contiene todos los endpoints disponibles para probar en Postman, incluyendo ejemplos con scopes, filtros, ordenamiento y paginación.
+
+## 🚀 Endpoints Principales Disponibles
+
+### Base URL: `http://localhost:8000/api`
 
 ---
+
+## 📋 LISTA COMPLETA DE ENDPOINTS DISPONIBLES
+
+### 1. **USUARIOS** - `/api/users`
+```
+GET    /api/users                    # Listar usuarios
+POST   /api/users                    # Crear usuario
+GET    /api/users/{id}               # Ver usuario específico
+PUT    /api/users/{id}               # Actualizar usuario
+DELETE /api/users/{id}               # Eliminar usuario
+```
+
+### 2. **PRODUCTOS** - `/api/products`
+```
+GET    /api/products                 # Listar productos
+POST   /api/products                 # Crear producto
+GET    /api/products/{id}            # Ver producto específico
+PUT    /api/products/{id}            # Actualizar producto
+DELETE /api/products/{id}            # Eliminar producto
+```
+
+### 3. **CARRITOS** - `/api/carts`
+```
+GET    /api/carts                    # Listar carritos
+POST   /api/carts                    # Crear carrito
+GET    /api/carts/{id}               # Ver carrito específico
+PUT    /api/carts/{id}               # Actualizar carrito
+DELETE /api/carts/{id}               # Eliminar carrito
+```
+
+### 4. **PRODUCTOS DEL CARRITO** - `/api/cart-products`
+```
+GET    /api/cart-products            # Listar productos del carrito
+POST   /api/cart-products            # Agregar producto al carrito
+GET    /api/cart-products/{id}       # Ver producto del carrito
+PUT    /api/cart-products/{id}       # Actualizar producto del carrito
+DELETE /api/cart-products/{id}       # Eliminar producto del carrito
+```
+
+### 5. **CATEGORÍAS** - `/api/categories`
+```
+GET    /api/categories               # Listar categorías
+POST   /api/categories               # Crear categoría
+GET    /api/categories/{id}          # Ver categoría específica
+PUT    /api/categories/{id}          # Actualizar categoría
+DELETE /api/categories/{id}          # Eliminar categoría
+```
+
+### 6. **ÓRDENES** - `/api/orders`
+```
+GET    /api/orders                   # Listar órdenes
+POST   /api/orders                   # Crear orden
+GET    /api/orders/{id}              # Ver orden específica
+PUT    /api/orders/{id}              # Actualizar orden
+DELETE /api/orders/{id}              # Eliminar orden
+```
+
+### 7. **PRODUCTOS DE ÓRDENES** - `/api/order-products`
+```
+GET    /api/order-products           # Listar productos de órdenes
+POST   /api/order-products           # Crear producto de orden
+GET    /api/order-products/{id}      # Ver producto de orden
+PUT    /api/order-products/{id}      # Actualizar producto de orden
+DELETE /api/order-products/{id}      # Eliminar producto de orden
+```
+
+### 8. **OTROS ENDPOINTS DISPONIBLES**
+```
+GET    /api/channels                 # Canales
+GET    /api/claims                   # Reclamos
+GET    /api/locations                # Ubicaciones
+GET    /api/notifications            # Notificaciones
+GET    /api/order-messages           # Mensajes de órdenes
+GET    /api/profiles                 # Perfiles
+GET    /api/pruebas                  # Pruebas
+GET    /api/ratings                  # Calificaciones
+GET    /api/roles                    # Roles
+GET    /api/sales                    # Ventas
+GET    /api/settings                 # Configuraciones
+GET    /api/tutorials                # Tutoriales
+```
+
+---
+
+## 🔍 SOLUCIÓN AL PROBLEMA: Obtener Productos de Usuarios
+
+### ❌ Endpoint Incorrecto (No existe):
+```
+GET /api/users.products
+```
+
+### ✅ Endpoints Correctos para obtener productos de usuarios:
+
+#### Opción 1: Obtener usuarios con sus productos incluidos
+```
+GET /api/users?included=products
+```
+
+#### Opción 2: Obtener usuarios con productos y filtros
+```
+GET /api/users?included=products&filter[name]=Juan&sort=-created_at
+```
+
+#### Opción 3: Obtener productos filtrados por usuario
+```
+GET /api/products?filter[user_id]=1&included=user
+```
+
+---
+
+## 📖 EJEMPLOS ESPECÍFICOS PARA POSTMAN
+
+### 🧑‍💼 USUARIOS CON PRODUCTOS
+
+#### 1. Obtener todos los usuarios con sus productos:
+```
+GET http://localhost:8000/api/users?included=products
+```
+
+#### 2. Obtener usuarios con productos, filtrado por nombre:
+```
+GET http://localhost:8000/api/users?included=products&filter[name]=Juan
+```
+
+#### 3. Obtener usuarios con productos y múltiples relaciones:
+```
+GET http://localhost:8000/api/users?included=products,sales,ratings
+```
+
+#### 4. Obtener usuarios con productos, ordenados y paginados:
+```
+GET http://localhost:8000/api/users?included=products&sort=-created_at&page=1&per_page=5
+```
+
+### 🛍️ PRODUCTOS POR USUARIO
+
+#### 1. Obtener productos de un usuario específico:
+```
+GET http://localhost:8000/api/products?filter[user_id]=1
+```
+
+#### 2. Obtener productos con información del usuario:
+```
+GET http://localhost:8000/api/products?included=user&filter[user_id]=1
+```
+
+#### 3. Obtener productos con usuario y categoría:
+```
+GET http://localhost:8000/api/products?included=user,category&filter[user_id]=1
+```
+
+---
+
+## 🔧 PARÁMETROS DE CONSULTA DISPONIBLES
+
+### Para USUARIOS (`/api/users`):
+- **Relaciones disponibles**: `products`, `sales`, `ratings`, `category`, `locations`, `notifications`, `setting`, `roles`, `profile`
+- **Filtros disponibles**: `name`, `email`, `phone`, `status`, `address`, `role_id`
+- **Ordenamiento disponible**: `name`, `email`, `phone`, `status`, `address`, `role_id`
+
+### Para PRODUCTOS (`/api/products`):
+- **Relaciones disponibles**: `user`, `sales`, `ratings`, `category`, `orderproduct`, `cartproducts`
+- **Filtros disponibles**: Según configuración del modelo
+- **Ordenamiento disponible**: Según configuración del modelo
+
+---
+
+## 📝 SINTAXIS DE PARÁMETROS
+
+### Incluir relaciones:
+```
+?included=relacion1,relacion2,relacion3
+```
+
+### Filtrar por campos:
+```
+?filter[campo1]=valor1&filter[campo2]=valor2
+```
+
+### Ordenar resultados:
+```
+?sort=campo          # Ascendente
+?sort=-campo         # Descendente
+?sort=campo1,-campo2 # Múltiple ordenamiento
+```
+
+### Paginar resultados:
+```
+?page=1&per_page=10
+```
+
+### Combinar todo:
+```
+?included=products,sales&filter[status]=1&sort=-created_at&page=1&per_page=5
+```
+
+---
+=======
 
 ## CartController
 

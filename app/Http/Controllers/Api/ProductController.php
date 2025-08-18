@@ -15,10 +15,10 @@ class ProductController extends Controller
      */
     public function index()
     {
-          $productos = Product::included() 
-        ->filter()
-        ->sort()
-        ->getOrPaginate();;
+        $productos = Product::included()
+            ->filter()
+            ->sort()
+            ->getOrPaginate();
 
         return response()->json([
             'status' => 'ok',

@@ -49,7 +49,7 @@
         </div>
 
         <div class="text-right">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-black font-bold px-6 py-2 rounded transition duration-300">
                 💾 Actualizar Producto
             </button>
         </div>

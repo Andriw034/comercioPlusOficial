@@ -1,42 +1,56 @@
 @extends('layouts.admin')
 
+@section('page_title', 'Administration Panel')
+@section('page_subtitle', 'Manage your store and products')
+
 @section('content')
-<div class="max-w-7xl mx-auto">
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">Panel de Administración</h1>
-        @if($logo)
-            <img src="{{ asset('storage/' . $logo) }}" alt="Logo" class="h-16">
-        @endif
-    </div>
+  {{-- Sección "Featured products" con línea degradada --}}
+  <div class="mt-2">
+    <h2 class="text-lg md:text-xl font-semibold">Featured Products</h2>
+    <div class="mt-2 h-[3px] w-full rounded bg-gradient-to-r from-brand-400 via-slate-200 to-transparent"></div>
+  </div>
 
-    <p class="mb-6 text-gray-700">Bienvenido al panel de administración. Aquí puedes gestionar tu tienda y productos.</p>
+  <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    @forelse($products as $product)
+      <article class="card-float">
+        {{-- Imagen representativa o placeholder --}}
+        <div class="card-thumb">
+          @if(!empty($product->image))
+            <img src="{{ asset('storage/'.$product->image) }}" alt="{{ $product->name }}">
+          @else
+            <div class="thumb-empty">Aquí va una imagen</div>
+          @endif
+        </div>
 
-    <section>
-        <h2 class="text-2xl font-semibold mb-4">Productos Destacados</h2>
-        @if($products->count() > 0)
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach($products as $product)
-                <div class="bg-white rounded shadow p-4 flex flex-col">
-                    <div class="h-48 w-full mb-4 overflow-hidden rounded">
-                        @if($product->image)
-                        <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="object-cover h-full w-full transition-transform duration-300 hover:scale-105">
-                        @else
-                        <div class="flex items-center justify-center h-full bg-gray-200 text-gray-500">Sin imagen</div>
-                        @endif
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ $product->name }}</h3>
-                    <p class="text-gray-700 mb-4">{{ $product->category->name ?? 'Sin categoría' }}</p>
-                    <a href="{{ route('products.edit', $product) }}" class="mt-auto bg-primary text-white py-2 rounded hover:bg-primary-light transition-colors duration-300 text-center font-semibold">Editar Producto</a>
-                </div>
-                @endforeach
+        {{-- Cuerpo minimal --}}
+        <div class="p-5">
+          <h3 class="font-semibold text-slate-900">{{ $product->name }}</h3>
+          <div class="mt-4 flex items-center justify-between">
+            <span class="text-brand-600 font-semibold">
+              ${{ number_format($product->price ?? 0, 2) }}
+            </span>
+            <div class="flex gap-2">
+              <a href="{{ route('products.edit', $product) }}" class="btn btn-ghost text-sm">Editar</a>
+              <form action="{{ route('products.destroy', $product) }}" method="POST"
+                    onsubmit="return confirm('¿Eliminar este producto?')">
+                @csrf @method('DELETE')
+                <button class="btn bg-rose-500 hover:bg-rose-600 text-white text-sm">
+                  Eliminar
+                </button>
+              </form>
             </div>
+          </div>
+        </div>
+      </article>
+    @empty
+      <div class="col-span-full card-float p-10 text-center">
+        <p class="text-slate-600">Aún no tienes productos.</p>
+        <a href="{{ route('products.create') }}" class="btn btn-primary mt-3">Crear el primero</a>
+      </div>
+    @endforelse
+  </div>
 
-            <div class="mt-6">
-                {{ $products->links() }}
-            </div>
-        @else
-            <p class="text-gray-600">No hay productos disponibles.</p>
-        @endif
-    </section>
-</div>
+  <div class="mt-6">
+    {{ $products->links() }}
+  </div>
 @endsection

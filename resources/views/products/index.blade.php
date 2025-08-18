@@ -5,7 +5,7 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">Productos</h1>
         <a href="{{ route('products.create') }}"
-            class="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded shadow transition">
+            class="bg-primary hover:bg-primary-light text-black font-bold px-4 py-2 rounded shadow transition">
             + Agregar Producto
         </a>
     </div>
@@ -38,7 +38,7 @@
 
                 <div class="flex justify-between mt-4 pt-3 border-t gap-2">
                     <a href="{{ route('products.edit', $product) }}"
-                        class="inline-flex items-center px-3 py-2 bg-gray-500 hover:bg-gray-700 text-white text-sm rounded shadow transition">
+                        class="inline-flex items-center px-3 py-2 bg-gray-500 hover:bg-gray-700 text-black font-bold text-sm rounded shadow transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -52,7 +52,7 @@
                         @csrf
                         @method('DELETE')
                         <button type="submit"
-                            class="inline-flex items-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded shadow transition">
+                            class="inline-flex items-center px-3 py-2 bg-red-600 hover:bg-red-700 text-black font-bold text-sm rounded shadow transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

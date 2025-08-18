@@ -9,23 +9,35 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('claims', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->text('message');
-            $table->dateTime('date');
-            $table->enum('contact_method', ['email', 'phone']);
-            $table->timestamps();
-        });
-    }
+  public function up(): void
+{
+    Schema::table('stores', function (Blueprint $table) {
+        if (!Schema::hasColumn('stores', 'logo_path')) {
+            $table->string('logo_path')->nullable()->after('logo');
+        }
+        if (!Schema::hasColumn('stores', 'cover_path')) {
+            $table->string('cover_path')->nullable()->after('logo_path');
+        }
+        if (!Schema::hasColumn('stores', 'description')) {
+            $table->text('description')->nullable()->after('cover_path');
+        }
+    });
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('claims');
-    }
-};
+    Schema::table('products', function (Blueprint $table) {
+        if (!Schema::hasColumn('products', 'image_path')) {
+            $table->string('image_path')->nullable()->after('description');
+        }
+    });
+}
+
+public function down(): void
+{
+    Schema::table('stores', function (Blueprint $table) {
+        $table->dropColumn(['logo_path','cover_path','description']);
+    });
+
+    Schema::table('products', function (Blueprint $table) {
+        $table->dropColumn(['image_path']);
+    });
+}
+}; ?>

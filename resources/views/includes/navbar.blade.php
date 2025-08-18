@@ -1,70 +1,75 @@
-<nav x-data="{ menuOpen: false }" class="bg-white shadow-sm fixed top-0 left-0 right-0 z-50 border-b border-gray-200">
+@if(auth()->check())
+<nav class="bg-white dark:bg-gray-900 shadow-sm fixed top-0 left-0 right-0 z-50 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16 items-center">
-            
+
             <!-- Logo -->
             <div class="flex items-center gap-2">
-                <x-application-logo class="w-8 h-8 text-[#ff9800]" />
-                <h1 class="text-2xl font-black text-[#0f172a]">Commerce Plus</h1>
+                <svg class="w-8 h-8 text-[#FF6000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <h1 class="text-2xl font-black text-gray-900 dark:text-white">Commerce Plus</h1>
             </div>
 
-            <!-- Buscador (desktop) -->
-            <div class="hidden md:flex flex-1 mx-6">
-                <input type="text" placeholder="Buscar productos o categorías..."
-                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff9800] text-sm text-gray-700 placeholder-gray-400">
-            </div>
-
-            <!-- Usuario y menú -->
+            <!-- Usuario y botones -->
             <div class="flex items-center gap-4">
 
-                <x-nav-menu />
+                <!-- Botón de Modo Oscuro -->
+                <button id="darkModeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200">
+                    <!-- Ícono de Sol (visible en modo oscuro) -->
+                    <svg id="sunIcon" class="w-5 h-5 text-yellow-500 hidden" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                    </svg>
+                    <!-- Ícono de Luna (visible en modo claro) -->
+                    <svg id="moonIcon" class="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                    </svg>
+                </button>
 
-                <span class="text-gray-900 font-medium hidden sm:inline">
-                    @if(Auth::check())
-                        👋 Hola, <strong>{{ Auth::user()->name }}</strong>
-                    @else
-                        Invitado
-                    @endif
+                <!-- Saludo -->
+                <span class="text-gray-900 dark:text-white font-medium hidden sm:inline">
+                    👋 Hola, <strong>{{ Auth::user()->name }}</strong>
                 </span>
 
-                @if(Auth::check())
+                <!-- Botón de Cerrar Sesión -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="bg-[#ff9800] hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-semibold transition">Cerrar sesión</button>
+                    <button class="bg-[#FF6000] hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-semibold transition">
+                        Cerrar sesión
+                    </button>
                 </form>
-                @endif
-
             </div>
         </div>
     </div>
 
-    <!-- Buscador móvil -->
-    <div class="block md:hidden px-4 pb-4 pt-2">
-        <label for="mobile-search" class="sr-only">Buscar</label>
-        <div class="relative">
-            <input id="mobile-search" type="search" placeholder="Buscar productos, categorías..."
-                class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 bg-gray-100 placeholder-gray-500 text-gray-700 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#ff9800] transition"
-                autocomplete="off" />
-            <span class="absolute inset-y-0 left-4 flex items-center text-gray-500">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="7" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-            </span>
-        </div>
-    </div>
-
-    <!-- Script -->
+    <!-- Script de Modo Oscuro -->
     <script>
-        const searchInput = document.getElementById('mobile-search');
-        searchInput?.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                const query = encodeURIComponent(this.value.trim());
-                if (query) {
-                    window.location.href = `/buscar?q=${query}`;
-                }
+        const html = document.documentElement;
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+
+        // Verificar preferencia almacenada
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            html.classList.add('dark');
+            sunIcon.classList.remove('hidden');
+            moonIcon.classList.add('hidden');
+        }
+
+        // Alternar modo al hacer clic
+        darkModeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+
+            if (html.classList.contains('dark')) {
+                localStorage.setItem('darkMode', 'enabled');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                localStorage.setItem('darkMode', 'disabled');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
             }
         });
     </script>
 </nav>
+@endif

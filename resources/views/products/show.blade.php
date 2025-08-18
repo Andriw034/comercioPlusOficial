@@ -25,7 +25,7 @@
                     <div><span class="font-semibold">Stock:</span> {{ $product->stock }}</div>
                     <div><span class="font-semibold">Precio:</span> <span class="text-green-600 font-bold">${{ number_format($product->price, 2) }}</span></div>
                     <div>
-                        <span class="font-semibold">Oferta:</span> 
+                        <span class="font-semibold">Oferta:</span>
                         <span class="{{ $product->offer ? 'text-red-500' : 'text-gray-500' }}">
                             {{ $product->offer ? 'Sí' : 'No' }}
                         </span>
@@ -49,7 +49,7 @@
 
         <div class="mt-6">
             <a href="{{ route('products.index') }}"
-                class="inline-flex items-center bg-primary text-white px-4 py-2 rounded hover:bg-primary-light transition">
+                class="inline-flex items-center bg-primary text-black font-bold px-4 py-2 rounded hover:bg-primary-light transition">
                 ← Volver a la lista
             </a>
         </div>

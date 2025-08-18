@@ -4,44 +4,72 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
 {
+    // Mostrar formulario con selección de roles
     public function showRegistrationForm()
     {
-        // Obtener logo desde settings para rol 'all' o usuario null
-        $logoSetting = Setting::where('key', 'logo')->where(function($query) {
-            $query->where('role', 'all')->orWhereNull('user_id');
-        })->first();
-
-        $logo = $logoSetting ? $logoSetting->value : null;
-
-        return view('auth.register', compact('logo'));
+        return view('auth.register-new');
     }
 
+    // Procesar registro
     public function register(Request $request)
     {
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users',
-            'password' => 'required|string|confirmed|min:6',
+        $validated = $request->validate([
+            'name'      => ['required','string','max:255'],
+            'email'     => ['required','string','lowercase','email:rfc','unique:users,email'],
+            'password'  => ['required','confirmed', Password::min(6)],
+            // 1 = comerciante, 2 = cliente
+            'role_id'   => ['required','in:1,2'],
         ]);
 
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role_id'  => 2, // Por ejemplo, 2 para "usuario normal"
-        ]);
+        return DB::transaction(function () use ($request, $validated) {
+            // Crear usuario
+            $user = User::create([
+                'name'     => $validated['name'],
+                'email'    => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role_id'  => $validated['role_id'],
+            ]);
 
-        // No iniciar sesión automáticamente después del registro
-        // Auth::login($user);
+            // Asignar rol con Spatie si está instalado
+            if (method_exists($user, 'assignRole')) {
+                if ($validated['role_id'] == 1) {
+                    $user->assignRole('comerciante');
+                } else {
+                    $user->assignRole('cliente');
+                }
+            }
 
-        // Redirigir a la página de login con mensaje de éxito
-        return redirect('/login')->with('success', 'Registro exitoso. Por favor, inicie sesión.');
+            // Autologin + regenerar sesión
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            // Redirecciones por rol
+            if ($user->role_id == 1) {
+                // Comerciante → crear tienda
+                return redirect()
+                    ->route('store.create')
+                    ->with('success', 'Registro exitoso. Por favor, crea tu tienda.');
+            } else {
+                // Cliente → página pública (ajusta el slug si ya tienes tienda por defecto)
+                $slug = 'demo'; // cámbialo si corresponde
+                if (function_exists('route') && Route::has('store.public')) {
+                    return redirect()
+                        ->route('store.public', ['slug' => $slug])
+                        ->with('success', 'Registro exitoso. ¡Bienvenido!');
+                }
+                // Fallback al inicio
+                return redirect('/')
+                    ->with('success', 'Registro exitoso. ¡Bienvenido!');
+            }
+        });
     }
 }

@@ -12,7 +12,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Ejemplos de cron (opcional):
+        // $schedule->command('users:clear')->dailyAt('03:00');
+        // $schedule->command('passwords:update')->weeklyOn(1, '02:30'); // lunes 02:30
+        // $schedule->command('stores:check-columns')->hourly();
+        // $schedule->command('products:check-table')->everyThirtyMinutes();
+        // $schedule->command('public-stores:create-table')->dailyAt('01:00');
     }
 
     /**
@@ -20,13 +25,9 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        // Autocargar todo lo que esté en app/Console/Commands
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }
-
-    protected $commands = [
-        \App\Console\Commands\ClearUsers::class,
-        \App\Console\Commands\UpdatePasswords::class,
-    ];
 }

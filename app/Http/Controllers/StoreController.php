@@ -4,101 +4,120 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Models\Store;
 
 class StoreController extends Controller
 {
-    // Mostrar la tienda del usuario autenticado
+    /**
+     * Mostrar la tienda del usuario autenticado.
+     */
     public function index()
     {
         $store = Store::where('user_id', Auth::id())->first();
 
-        if (!$store) {
+        if (! $store) {
             return redirect()->route('store.create')->with('info', 'Aún no has creado tu tienda.');
         }
 
-        return view('store.index', ['store' => $store]);
+        return view('store.index', compact('store'));
     }
 
-    // Mostrar formulario de creación si aún no tiene tienda
+    /**
+     * Mostrar formulario de creación de tienda.
+     */
     public function create()
     {
         $existingStore = Store::where('user_id', Auth::id())->first();
 
         if ($existingStore) {
-            return redirect()->route('store.index')->with('warning', 'Ya has creado una tienda.');
+            return redirect()->route('store.index')->with('warning', 'Ya tienes una tienda creada.');
         }
 
         return view('store.create');
     }
 
-    // Guardar tienda
+    /**
+     * Guardar una nueva tienda.
+     */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
+        $validated = $request->validate([
+            'name'          => 'required|string|max:255',
+            'description'   => 'nullable|string',     // 👈 usa "description" (EN)
+            'logo'          => 'nullable|image|max:2048',
+            'cover_image'   => 'nullable|image|max:4096',
+            'primary_color' => 'nullable|string|max:7', // #RRGGBB
         ]);
 
-        $store = new Store();
-        $store->name = $request->name;
-        $store->description = $request->description;
-        $store->user_id = Auth::id();
-
-        if ($request->hasFile('logo')) {
-            $store->logo = $request->file('logo')->store('logos', 'public');
+        // Generar slug único
+        $slug = Str::slug($validated['name']);
+        if (Store::where('slug', $slug)->exists()) {
+            $slug .= '-' . substr(Str::uuid(), 0, 6);
         }
 
-        if ($request->hasFile('cover')) {
-            $store->cover = $request->file('cover')->store('covers', 'public');
-        }
+        // Subir archivos si existen
+        $logoPath  = $request->hasFile('logo')
+            ? $request->file('logo')->store('logos', 'public')
+            : null;
 
-        $store->save();
+        $coverPath = $request->hasFile('cover_image')
+            ? $request->file('cover_image')->store('covers', 'public')
+            : null;
 
-        return redirect()->route('products.create')->with('success', 'Tienda creada con éxito. Ahora crea tu primer producto.');
+        // Crear tienda
+        Store::create([
+            'user_id'       => Auth::id(),
+            'name'          => $validated['name'],
+            'description'   => $validated['description'] ?? null, // 👈 columna real en BD
+            'logo'          => $logoPath,
+            'cover_image'   => $coverPath,
+            'primary_color' => $validated['primary_color'] ?? '#FF6000',
+            'slug'          => $slug,
+        ]);
+
+        return redirect()->route('products.create')->with('status', 'Tienda creada exitosamente');
     }
 
-    // Mostrar formulario de edición de tienda
-    public function edit()
-    {
-        $store = Store::where('user_id', Auth::id())->firstOrFail();
-        return view('store.edit', ['store' => $store]);
-    }
-
-    // Actualizar tienda
+    /**
+     * Actualizar una tienda existente del usuario.
+     */
     public function update(Request $request)
     {
-        $store = Store::where('user_id', Auth::id())->firstOrFail();
+        $store = auth()->user()->store ?? abort(404);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
+        $validated = $request->validate([
+            'name'          => 'required|string|max:255',
+            'description'   => 'nullable|string',     // 👈 usa "description" (EN)
+            'logo'          => 'nullable|image|max:2048',
+            'cover_image'   => 'nullable|image|max:4096',
+            'primary_color' => 'nullable|string|max:7',
         ]);
 
-        $store->name = $request->name;
-        $store->description = $request->description;
-
+        // Subidas opcionales
         if ($request->hasFile('logo')) {
-            if ($store->logo) {
-                Storage::disk('public')->delete($store->logo);
-            }
             $store->logo = $request->file('logo')->store('logos', 'public');
         }
+        if ($request->hasFile('cover_image')) {
+            $store->cover_image = $request->file('cover_image')->store('covers', 'public');
+        }
 
-        if ($request->hasFile('cover')) {
-            if ($store->cover) {
-                Storage::disk('public')->delete($store->cover);
+        // Campos de texto
+        $store->name          = $validated['name'];
+        $store->description   = $validated['description'] ?? $store->description; // 👈 columna real
+        $store->primary_color = $validated['primary_color'] ?? $store->primary_color;
+
+        // Si cambió el nombre, actualizar slug (opcional)
+        if ($store->isDirty('name')) {
+            $newSlug = Str::slug($store->name);
+            if (Store::where('slug', $newSlug)->where('id', '!=', $store->id)->exists()) {
+                $newSlug .= '-' . substr(Str::uuid(), 0, 6);
             }
-            $store->cover = $request->file('cover')->store('covers', 'public');
+            $store->slug = $newSlug;
         }
 
         $store->save();
 
-        return redirect()->route('store.index')->with('success', 'Tienda actualizada correctamente.');
+        return back()->with('status', 'Configuración de tienda actualizada');
     }
 }
