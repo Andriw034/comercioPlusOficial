@@ -20,7 +20,7 @@ class UserFactory extends Factory
             'password' => bcrypt('password'), // password por defecto
             'avatar' => null,
             'status' => 1,
-            'role_id' => 1, // Ajusta según roles existentes
+            'role' => 'comerciante',
             'created_at' => now(),
             'updated_at' => now(),
         ];

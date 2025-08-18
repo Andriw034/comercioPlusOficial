@@ -16,7 +16,7 @@ class User extends Authenticatable
     protected $guard_name = 'web';
 
     protected $fillable = [
-        'name','email','password','phone','avatar','status','address','role_id'
+        'name','email','password','phone','avatar','status','address','role'
     ];
 
     public function store()
