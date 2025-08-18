@@ -35,7 +35,7 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register'])->name('register.submit');
+Route::post('/register', [RegisterController::class, 'register']);
 
 // Recuperación de contraseña
 Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
@@ -45,41 +45,41 @@ Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('
 
 /*
 |--------------------------------------------------------------------------
-| Zona privada (requiere login) — SIN Spatie
+| Zona privada (requiere login)
 |--------------------------------------------------------------------------
-| Usamos role_id en users:
-|   1 => admin
-|   2 => comerciante
-|   3 => cliente
 */
+Route::get('/post-login', [LoginController::class, 'postLoginRedirect'])->name('post.login');
+
 Route::middleware('auth')->group(function () {
 
-    // Dashboard genérico (existe para evitar el error "Route [dashboard] not defined")
+    // Dashboard genérico
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Admin (puede usar el mismo controlador por ahora)
     Route::get('/admin', [DashboardController::class, 'index'])->name('admin.dashboard');
 
-    // Atajo "Mi Tienda"
-    Route::get('/store', function () {
-        $user = auth()->user();
-        if (! $user->store) {
-            return redirect()->route('store.create');
-        }
-        return redirect()->route('store.edit', ['store' => $user->store->id]);
-    })->name('store.index');
+    Route::middleware('role:comerciante')->group(function () {
+        // Atajo "Mi Tienda"
+        Route::get('/store', function () {
+            $user = auth()->user();
+            if (! $user->store) {
+                return redirect()->route('store.create');
+            }
+            return redirect()->route('store.edit', ['store' => $user->store->id]);
+        })->name('store.index');
 
-    // Tiendas
-    Route::get('/store/create', [StoreController::class, 'create'])->name('store.create');
-    Route::post('/store',        [StoreController::class, 'store'])->name('store.store');
-    Route::get('/store/{store}/edit', [StoreController::class, 'edit'])->name('store.edit');
-    Route::put('/store/{store}',       [StoreController::class, 'update'])->name('store.update');
-    Route::delete('/store/{store}',    [StoreController::class, 'destroy'])->name('store.destroy');
-    Route::get('/store/success', [StoreController::class, 'success'])->name('store.success');
+        // Tiendas
+        Route::get('/store/create', [StoreController::class, 'create'])->name('store.create');
+        Route::post('/store',        [StoreController::class, 'store'])->name('store.store');
+        Route::get('/store/{store}/edit', [StoreController::class, 'edit'])->name('store.edit');
+        Route::put('/store/{store}',       [StoreController::class, 'update'])->name('store.update');
+        Route::delete('/store/{store}',    [StoreController::class, 'destroy'])->name('store.destroy');
+        Route::get('/store/success', [StoreController::class, 'success'])->name('store.success');
 
-    // Productos / Categorías
-    Route::resource('products', ProductController::class);
-    Route::resource('categories', CategoryController::class)->only(['index','store','update','destroy']);
+        // Productos / Categorías
+        Route::resource('products', ProductController::class);
+        Route::resource('categories', CategoryController::class)->only(['index','store','update','destroy']);
+    });
 });
 
 /*
@@ -92,14 +92,10 @@ if (config('app.debug')) {
         if (!auth()->check()) return 'No autenticado';
         $user = auth()->user();
 
-        $map = [1 => 'admin', 2 => 'comerciante', 3 => 'cliente'];
-        $roleById = isset($user->role_id) ? ($map[$user->role_id] ?? null) : null;
-
         return [
             'user_id' => $user->id,
             'email'   => $user->email,
-            'role_id' => $user->role_id ?? null,
-            'role'    => $roleById,
+            'role'    => $user->role,
         ];
     });
 }

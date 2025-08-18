@@ -1,109 +1,73 @@
-@extends('layouts.app')
-
-@section('content')
-<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-    <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-            Crea tu cuenta
-        </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-            Únete a ComercioRealPlus
-        </p>
-    </div>
-
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
-            <form method="POST" action="{{ route('register') }}" class="space-y-6">
-                @csrf
-
-                <!-- Nombre -->
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700">
-                        Nombre completo
-                    </label>
-                    <div class="mt-1">
-                        <input id="name" name="name" type="text" required 
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                               value="{{ old('name') }}">
-                        @error('name')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
-                <!-- Email -->
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">
-                        Correo electrónico
-                    </label>
-                    <div class="mt-1">
-                        <input id="email" name="email" type="email" required 
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                               value="{{ old('email') }}">
-                        @error('email')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
-                <!-- Contraseña -->
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">
-                        Contraseña
-                    </label>
-                    <div class="mt-1">
-                        <input id="password" name="password" type="password" required 
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        @error('password')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
-                <!-- Confirmar contraseña -->
-                <div>
-                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700">
-                        Confirmar contraseña
-                    </label>
-                    <div class="mt-1">
-                        <input id="password_confirmation" name="password_confirmation" type="password" required 
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                    </div>
-                </div>
-
-                <!-- Selección de rol -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3">
-                        ¿Qué tipo de cuenta deseas crear?
-                    </label>
-                    
-                    <div class="space-y-3">
-                        <!-- Comerciante -->
-                        <label class="relative flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                            <input type="radio" name="role_id" value="1" required 
-                                   class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                                   {{ old('role_id') == '1' ? 'checked' : '' }}>
-                            <div class="ml-3 flex-1">
-                                <div class="flex items-center">
-                                    <svg class="h-6 w-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                                    </svg>
-                                    <span class="text-sm font-medium text-gray-900">Comerciante</span>
-                                </div>
-                                <p class="text-sm text-gray-500 mt-1">
-                                    Vender productos y gestionar tu propia tienda online
-                                </p>
-                            </div>
-                        </label>
-
-                        <!-- Cliente -->
-                        <label class="relative flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                            <input type="radio" name="role_id" value="2" required 
-                                   class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                    </button>
-                </div>
-            </form>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registro - ComercioPlus</title>
+    @vite(['resources/css/app.css','resources/js/app.js'])
+</head>
+<body class="bg-bg-50 text-textc-800">
+<div class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 space-y-6">
+        <div class="flex items-center gap-2 mb-4">
+            <div class="h-10 w-10 rounded-xl" style="background:linear-gradient(135deg,#FFC1A3,#FF9F75);"></div>
+            <span class="font-semibold text-lg text-textc-900">ComercioPlus</span>
         </div>
+        <h1 class="text-2xl font-bold text-textc-900">Crear cuenta</h1>
+
+        @if($errors->any())
+            <div class="bg-state-danger/20 text-state-danger px-4 py-2 rounded-xl text-sm">
+                <ul class="list-disc pl-5">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('register') }}" class="space-y-4">
+            @csrf
+            <div>
+                <label class="text-sm text-textc-700" for="name">Nombre</label>
+                <input id="name" name="name" value="{{ old('name') }}" required class="mt-1 w-full rounded-xl border border-gray-200 bg-bg-100 px-4 py-2 focus:border-brand-300 focus:ring-brand-300" />
+            </div>
+            <div>
+                <label class="text-sm text-textc-700" for="email">Correo electrónico</label>
+                <input id="email" name="email" type="email" value="{{ old('email') }}" required class="mt-1 w-full rounded-xl border border-gray-200 bg-bg-100 px-4 py-2 focus:border-brand-300 focus:ring-brand-300" />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm text-textc-700" for="password">Contraseña</label>
+                    <input id="password" name="password" type="password" required class="mt-1 w-full rounded-xl border border-gray-200 bg-bg-100 px-4 py-2 focus:border-brand-300 focus:ring-brand-300" />
+                </div>
+                <div>
+                    <label class="text-sm text-textc-700" for="password_confirmation">Confirmar</label>
+                    <input id="password_confirmation" name="password_confirmation" type="password" required class="mt-1 w-full rounded-xl border border-gray-200 bg-bg-100 px-4 py-2 focus:border-brand-300 focus:ring-brand-300" />
+                </div>
+            </div>
+            <div>
+                <span class="text-sm text-textc-700">Tipo de cuenta</span>
+                <div class="mt-2 space-y-3">
+                    <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-bg-100">
+                        <input type="radio" name="role" value="comerciante" class="mt-1 h-4 w-4 text-brand-300 border-gray-300 focus:ring-brand-300" {{ old('role')=='comerciante' ? 'checked' : '' }}>
+                        <span>
+                            <span class="block text-sm font-medium text-textc-900">Comerciante</span>
+                            <span class="block text-sm text-textc-700">Vende y gestiona tu propia tienda</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-bg-100">
+                        <input type="radio" name="role" value="cliente" class="mt-1 h-4 w-4 text-brand-300 border-gray-300 focus:ring-brand-300" {{ old('role')=='cliente' ? 'checked' : '' }}>
+                        <span>
+                            <span class="block text-sm font-medium text-textc-900">Cliente</span>
+                            <span class="block text-sm text-textc-700">Compra productos de tus tiendas favoritas</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-brand-300 text-white rounded-xl py-3 font-medium hover:opacity-90 transition">Crear cuenta</button>
+        </form>
+        <p class="text-center text-sm text-textc-700">¿Ya tienes cuenta? <a href="{{ route('login') }}" class="text-brand-300 hover:underline">Inicia sesión</a></p>
     </div>
 </div>
-@endsection
+</body>
+</html>

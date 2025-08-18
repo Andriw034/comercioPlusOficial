@@ -27,36 +27,29 @@ class LoginController extends Controller
         }
 
         $request->session()->regenerate();
+
+        return redirect()->route('post.login');
+    }
+
+    public function postLoginRedirect()
+    {
         $user = Auth::user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
 
-        // Mapeo simple por role_id (sin Spatie)
-        // 1 => admin, 2 => comerciante, 3 => cliente
-        $role = (int)($user->role_id ?? 0);
-
-        if ($role === 2) { // comerciante
-            // Si tiene tienda creada, lo enviamos al flujo de productos
-            if ($user->store) {
-                return redirect()->route('products.index');
+        if ($user->role === 'comerciante') {
+            $store = $user->store;
+            if (! $store) {
+                return redirect()->route('store.create');
             }
-            // Si no tiene tienda, a crear tienda
-            return redirect()->route('store.create');
+            return redirect()->route('products.index');
         }
 
-        if ($role === 3) { // cliente
-            // Ir al catálogo público (si el user está vinculado a una tienda, úsala; si no, 'demo')
-            $store = $user->store ?? null;
-            $slug  = $store ? $store->slug : 'demo';
-            return redirect()->route('public.store.show', ['slug' => $slug]);
+        if ($user->role === 'cliente') {
+            return redirect()->route('welcome');
         }
 
-        if ($role === 1) { // admin
-            // Si tienes panel admin
-            if (route('admin.dashboard', [], false)) {
-                return redirect()->route('admin.dashboard');
-            }
-        }
-
-        // Fallback genérico
         return redirect()->route('dashboard');
     }
 

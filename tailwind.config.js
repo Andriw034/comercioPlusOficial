@@ -1,45 +1,27 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./resources/**/*.blade.php",
-    "./resources/**/*.js",
-    "./resources/**/*.vue",
-  ],
+  content: ["./resources/**/*.blade.php", "./resources/**/*.js", "./resources/**/*.vue"],
   theme: {
     extend: {
       colors: {
         brand: {
-          50:  "#FFF0E6",
-          100: "#FFE0CC",
-          200: "#FFC199",
-          300: "#FFA266",
-          400: "#FF8333",
-          500: "#FF6000", // NARANJA COMERCIO+
-          600: "#E05500",
-          700: "#B34400",
-          800: "#803200",
-          900: "#4D1E00"
+          DEFAULT: "#FF6000",
+          50: "#FFF1E8",
+          100: "#FFE2D1",
+          200: "#FFC1A3",
+          300: "#FF9F75",
+          400: "#FF7E47",
+          500: "#FF6000",
+          600: "#CC4D00",
+          700: "#993A00",
         },
-        accent: {
-          500: "#6D28D9", // morado que combina con naranja
-          600: "#5B21B6",
-          700: "#4C1D95"
-        },
-        bg: {
-          50: "#F9FAFB",
-          100: "#F3F4F6",
-          200: "#E5E7EB"
-        },
-        textc: {
-          900: "#0F172A",
-          800: "#1F2937",
-          700: "#374151"
-        }
+        bg: { 50: "#f9f9f9", 100: "#f1f1f1", 200: "#e5e5e5" },
+        textc: { 900: "#000", 800: "#333", 700: "#444" },
+        state: { success: "#4ade80", warning: "#facc15", danger: "#f87171" },
       },
-      boxShadow: {
-        card: "0 20px 60px -15px rgba(0,0,0,.35)"
-      }
-    },
+      boxShadow: { xl: "0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)" },
+      borderRadius: { '3xl': '1.5rem' }
+    }
   },
   plugins: [],
 };

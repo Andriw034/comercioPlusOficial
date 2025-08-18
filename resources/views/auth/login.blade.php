@@ -3,100 +3,62 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iniciar Sesión - ComercioPlus</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="icon" href="/images/portada/comercio_plus_logo.png">
-    <style>
-        body {
-            background: linear-gradient(135deg, #fff7ed, #ffe0b2);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .wave {
-            position: absolute;
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(to right, #ffcc80, #ffb74d);
-            border-radius: 100% 50%;
-            transform: rotate(180deg);
-            bottom: 0;
-            z-index: 0;
-        }
-
-        .wave2 {
-            position: absolute;
-            width: 100%;
-            height: 250px;
-            background: linear-gradient(to right, #ffe0b2, #ffcc80);
-            border-radius: 100% 50%;
-            bottom: -80px;
-            z-index: 0;
-            opacity: 0.6;
-        }
-    </style>
+    <title>Iniciar sesión - ComercioPlus</title>
+    @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
-<body class="flex items-center justify-center min-h-screen px-4">
+<body class="bg-bg-50 text-textc-800">
+<div class="md:grid md:grid-cols-2 min-h-screen">
+    <div class="flex items-center justify-center bg-white">
+        <div class="w-full max-w-sm p-8 space-y-6">
+            <div class="flex items-center gap-2 mb-6">
+                <div class="h-10 w-10 rounded-xl" style="background:linear-gradient(135deg,#FFC1A3,#FF9F75);"></div>
+                <span class="font-semibold text-lg text-textc-900">ComercioPlus</span>
+            </div>
 
-    <div class="bg-white rounded-xl shadow-lg w-full max-w-sm p-5 space-y-4 z-10 relative">
-        <!-- Logo -->
-        <div class="flex justify-center mb-2">
-            <img src="/images/portada/comercio_plus_logo.png" alt="ComercioPlus" class="h-12">
+            @if(session('success'))
+                <div class="bg-state-success/20 text-state-success px-4 py-2 rounded-xl text-sm">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="bg-state-danger/20 text-state-danger px-4 py-2 rounded-xl text-sm">
+                    <ul class="list-disc pl-5">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('login') }}" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="text-sm text-textc-700">Correo electrónico</label>
+                    <input type="email" name="email" required class="mt-1 w-full rounded-xl border border-gray-200 bg-bg-100 px-4 py-2 focus:border-brand-300 focus:ring-brand-300" />
+                </div>
+                <div>
+                    <label class="text-sm text-textc-700">Contraseña</label>
+                    <input type="password" name="password" required class="mt-1 w-full rounded-xl border border-gray-200 bg-bg-100 px-4 py-2 focus:border-brand-300 focus:ring-brand-300" />
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" name="remember" class="rounded border-gray-300 text-brand-300 focus:ring-brand-300" />
+                        Recuérdame
+                    </label>
+                    <a href="{{ route('password.request') }}" class="text-brand-300 hover:underline">¿Olvidaste tu contraseña?</a>
+                </div>
+                <button type="submit" class="w-full bg-brand-300 text-white rounded-xl py-3 font-medium hover:opacity-90 transition">Iniciar sesión</button>
+                <p class="text-center text-sm text-textc-700">¿Aún no tienes cuenta? <a href="{{ route('register') }}" class="text-brand-300 hover:underline">Crear cuenta</a></p>
+            </form>
         </div>
-
-        <!-- Título -->
-        <h2 class="text-lg font-bold text-center text-gray-800">Iniciar Sesión</h2>
-
-        <!-- Éxito o error -->
-        @if (session('success'))
-            <div class="bg-green-100 text-green-800 p-2 rounded text-sm">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @if ($errors->any())
-            <div class="bg-red-100 text-red-700 p-2 rounded text-sm">
-                <ul class="list-disc pl-4">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <!-- Formulario -->
-        <form method="POST" action="{{ url('/login') }}" class="space-y-3">
-            @csrf
-
-            <input type="email" name="email" placeholder="Correo electrónico"
-                class="w-full p-2 border rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                required>
-
-            <input type="password" name="password" placeholder="Contraseña"
-                class="w-full p-2 border rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                required>
-
-            <button type="submit"
-                class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded-md text-sm transition">
-                Iniciar sesión
-            </button>
-
-            <div class="text-center">
-                <a href="{{ route('password.request') }}" class="text-sm text-orange-500 hover:underline">
-                    ¿Olvidaste tu contraseña?
-                </a>
-            </div>
-        </form>
-
-        <p class="text-xs text-center text-gray-600">
-            ¿No tienes cuenta?
-            <a href="{{ route('register') }}" class="text-orange-500 font-semibold hover:underline">Registrarse</a>
-        </p>
     </div>
-
-    <!-- Olas -->
-    <div class="wave2"></div>
-    <div class="wave"></div>
-
+    <div class="hidden md:flex items-center justify-center p-8 text-white bg-gradient-to-br from-brand-200 via-brand-300 to-brand-400">
+        <div class="max-w-md text-center space-y-6">
+            <h2 class="text-3xl font-bold">Empieza gratis y comparte tu catálogo hoy.</h2>
+            <a href="{{ route('register') }}" class="inline-block px-6 py-3 bg-white text-brand-300 rounded-xl font-medium shadow hover:opacity-90 transition">Crear cuenta</a>
+        </div>
+    </div>
+</div>
 </body>
 </html>
