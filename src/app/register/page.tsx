@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { UserRoleSchema } from "@/lib/schemas/user";
+import Image from "next/image";
 
 const formSchema = z.object({
   fullName: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -42,7 +43,7 @@ export default function RegisterPage() {
       fullName: "",
       email: "",
       password: "",
-      role: "Cliente",
+      role: "Comerciante",
     },
   });
 
@@ -62,26 +63,14 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full lg:grid lg:min-h-[calc(100vh-8rem)] lg:grid-cols-2">
-       <div className="hidden bg-muted lg:block">
-           <div className="w-full h-full bg-primary flex items-center justify-center text-center p-12">
-            <div className="space-y-4">
-                <h2 className="text-4xl font-extrabold text-primary-foreground">
-                Tu tienda de motos, a un clic de distancia.
-                </h2>
-                <p className="text-primary-foreground/80 text-lg">
-                Únete a la comunidad de ComercioPlus y lleva tu negocio al siguiente nivel.
-                </p>
-            </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto max-w-sm">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold">Crea tu cuenta</h1>
-            <p className="text-muted-foreground">Ingresa tus datos para registrarte.</p>
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-md space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold tracking-tight">Crea tu cuenta</h1>
+            <p className="mt-2 text-muted-foreground">Ingresa tus datos para registrarte.</p>
           </div>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="fullName"
@@ -126,7 +115,7 @@ export default function RegisterPage() {
                   name="role"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Rol</FormLabel>
+                      <FormLabel>Quiero usar la plataforma como</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -134,8 +123,8 @@ export default function RegisterPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Comerciante">Comerciante</SelectItem>
-                          <SelectItem value="Cliente">Cliente</SelectItem>
+                          <SelectItem value="Comerciante">Comerciante (Quiero vender)</SelectItem>
+                          <SelectItem value="Cliente">Cliente (Quiero comprar)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -147,13 +136,22 @@ export default function RegisterPage() {
                 </Button>
               </form>
             </Form>
-            <div className="mt-4 text-center text-sm">
+            <div className="mt-6 text-center text-sm">
               ¿Ya tienes una cuenta?{" "}
-              <Link href="/login" className="underline">
+              <Link href="/login" className="font-medium text-primary hover:text-primary/90 underline-offset-4 hover:underline">
                 Iniciar sesión
               </Link>
             </div>
         </div>
+      </div>
+       <div className="hidden bg-muted lg:block relative">
+           <Image
+            src="https://picsum.photos/1200/801"
+            alt="Motorcycle on a road"
+            fill
+            className="object-cover"
+            data-ai-hint="motorcycle road"
+           />
       </div>
     </div>
   );

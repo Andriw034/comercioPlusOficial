@@ -12,7 +12,7 @@ const config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1rem",
       screens: {
         "2xl": "1400px",
       },
@@ -59,8 +59,8 @@ const config = {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
       },
       keyframes: {
         "accordion-down": {
@@ -76,6 +76,12 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      boxShadow: {
+        'sm': '0 4px 16px rgba(17, 24, 39, 0.04)',
+        'DEFAULT': '0 4px 16px rgba(17, 24, 39, 0.06)',
+        'md': '0 6px 24px rgba(17, 24, 39, 0.08)',
+        'lg': '0 8px 32px rgba(17, 24, 39, 0.1)',
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],

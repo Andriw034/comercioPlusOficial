@@ -15,14 +15,14 @@ async function getStoreData(slug: string) {
     const store: Store = {
         id: "mock-store-id",
         userId: "mock-user-id",
-        name: "Tienda de Prueba",
-        slug: "tienda-de-prueba",
-        description: "Esta es una tienda de prueba.",
-        address: "Calle Falsa 123",
+        name: "Moto Repuestos Pro",
+        slug: "moto-repuestos-pro",
+        description: "Los mejores repuestos para tu moto. Calidad y servicio garantizado. Años de experiencia en el sector.",
+        address: "Av. Principal 123, Ciudad Capital",
         mainCategory: "Repuestos",
         logo: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-        cover: "https://picsum.photos/1200/300",
-        averageRating: 4.5,
+        cover: "https://picsum.photos/1600/400",
+        averageRating: 4.8,
         createdAt: new Date(),
         updatedAt: new Date(),
     };
@@ -57,8 +57,8 @@ export default async function StorePage({ params }: { params: { slug: string } }
 
 
   return (
-    <div className="bg-secondary/20">
-      <section className="border-b border-white/10">
+    <div className="bg-background">
+      <section className="border-b">
         <div className="relative h-48 md:h-64 w-full">
           {store.cover ? (
             <Image 
@@ -70,11 +70,11 @@ export default async function StorePage({ params }: { params: { slug: string } }
               priority
             />
           ) : <div className="w-full h-full bg-muted"></div>}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-black/20"></div>
         </div>
-        <div className="container -mt-20">
+        <div className="container -mt-16 sm:-mt-20">
           <div className="flex flex-col sm:flex-row items-end gap-4 relative z-10">
-            <div className="h-32 w-32 rounded-full bg-background p-1.5 flex-shrink-0 flex items-center justify-center border-4 border-background shadow-lg">
+            <div className="h-32 w-32 rounded-full bg-card p-1.5 flex-shrink-0 flex items-center justify-center border-4 border-background shadow-md">
               {store.logo ? (
                  <Image src={store.logo} width={128} height={128} alt={`Logo de ${store.name}`} className="rounded-full object-cover"/>
               ) : (
@@ -82,18 +82,18 @@ export default async function StorePage({ params }: { params: { slug: string } }
               )}
             </div>
             <div className="flex-grow py-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-bold font-headline">{store.name}</h1>
+                        <h1 className="text-3xl md:text-4xl font-bold">{store.name}</h1>
                         <p className="text-muted-foreground flex items-center gap-2 mt-1">
                           <MapPin className="w-4 h-4 text-primary" />
                           {store.address}
                         </p>
                     </div>
                     <div className="flex-shrink-0 mt-2 sm:mt-0">
-                        <div className="flex items-center gap-2 text-sm bg-card/80 backdrop-blur-sm px-4 py-2 rounded-full border border-border">
+                        <div className="flex items-center gap-2 text-sm bg-secondary backdrop-blur-sm px-3 py-1.5 rounded-full border">
                             <Star className="w-4 h-4 fill-primary text-primary" />
-                            <span className="font-semibold text-foreground">{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
+                            <span className="font-semibold text-secondary-foreground">{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
                             <span className="text-muted-foreground">(15 reseñas)</span>
                         </div>
                     </div>
@@ -107,10 +107,10 @@ export default async function StorePage({ params }: { params: { slug: string } }
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-grow">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input placeholder="Buscar en la tienda..." className="pl-12 rounded-full h-12 text-base" />
+            <Input placeholder="Buscar en la tienda..." className="pl-12 h-11" />
           </div>
           <Select>
-            <SelectTrigger className="w-full md:w-[200px] rounded-full h-12">
+            <SelectTrigger className="w-full md:w-[200px] h-11">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
@@ -119,7 +119,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
             </SelectContent>
           </Select>
           <Select>
-            <SelectTrigger className="w-full md:w-[200px] rounded-full h-12">
+            <SelectTrigger className="w-full md:w-[200px] h-11">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
@@ -134,7 +134,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.length > 0 ? (
             products.map(product => (
-                <Card key={product.id} className="overflow-hidden group bg-card border-border hover:border-primary/50 transition-colors duration-300">
+                <Card key={product.id} className="overflow-hidden group transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
                 <Link href={`/products/${product.id}`}>
                     <div className="aspect-square overflow-hidden bg-muted">
                     {product.image && (
@@ -144,19 +144,19 @@ export default async function StorePage({ params }: { params: { slug: string } }
                         height={400}
                         alt={product.name}
                         data-ai-hint="motorcycle part"
-                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                        className="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105"
                         />
                     )}
                     </div>
                 </Link>
                 <CardContent className="p-4">
                     <p className="text-muted-foreground text-sm">{product.category ?? product.categoryId}</p>
-                    <h3 className="font-semibold text-lg truncate">
-                         <Link href={`/products/${product.id}`}>{product.name}</Link>
+                    <h3 className="font-semibold text-lg truncate mt-1">
+                         <Link href={`/products/${product.id}`} className="hover:text-primary transition-colors">{product.name}</Link>
                     </h3>
                     <div className="flex items-center justify-between mt-4">
                     <p className="font-bold text-xl">${product.price.toLocaleString('es-CO')}</p>
-                    <Button size="sm" className="rounded-full">
+                    <Button size="sm">
                         Agregar
                     </Button>
                     </div>

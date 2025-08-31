@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 
 const formSchema = z.object({
@@ -45,24 +46,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full h-full lg:grid lg:min-h-[calc(100vh-8rem)] lg:grid-cols-2">
-      <div className="hidden bg-muted lg:block">
-           <div className="w-full h-full bg-primary flex items-center justify-center text-center p-12">
-            <h2 className="text-4xl font-extrabold text-primary-foreground">
-                Empieza gratis y comparte tu catálogo hoy.
-            </h2>
-        </div>
+    <div className="w-full h-full lg:grid lg:min-h-[calc(100vh-4rem)] lg:grid-cols-2">
+      <div className="hidden bg-muted lg:block relative">
+           <Image
+            src="https://picsum.photos/1200/800"
+            alt="Motorcycle parts"
+            fill
+            className="object-cover"
+            data-ai-hint="motorcycle workshop"
+           />
       </div>
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <h1 className="text-3xl font-bold">Iniciar sesión</h1>
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-md space-y-8">
+          <div className="space-y-2 text-center">
+            <h1 className="text-3xl font-bold tracking-tight">Iniciar sesión</h1>
             <p className="text-balance text-muted-foreground">
-              Ingresa tu correo para acceder a tu cuenta
+              Ingresa tu correo para acceder a tu panel de control.
             </p>
           </div>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="email"
@@ -96,9 +99,9 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-6 text-center text-sm">
             ¿Aún no tienes cuenta?{" "}
-            <Link href="/register" className="underline">
+            <Link href="/register" className="font-medium text-primary hover:text-primary/90 underline-offset-4 hover:underline">
               Crear cuenta
             </Link>
           </div>
