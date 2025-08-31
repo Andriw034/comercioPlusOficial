@@ -3,34 +3,60 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { placeholderProducts } from "@/lib/placeholder-data";
+import { db } from "@/lib/firebase";
+import type { Product } from "@/lib/schemas/product";
+import type { Store } from "@/lib/schemas/store";
+import type { Category } from "@/lib/schemas/category";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { Bike, ChevronDown, Search, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
-export default function StorePage({ params }: { params: { slug: string } }) {
-  const store = {
-    name: "Moto Repuestos Pro",
-    slug: "moto-repuestos-pro",
-    rating: 4.8,
-    reviews: 124,
-  };
+async function getStore(slug: string): Promise<Store | null> {
+    const storesRef = collection(db, "stores");
+    const q = query(storesRef, where("slug", "==", slug));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        return null;
+    }
+    const storeDoc = querySnapshot.docs[0];
+    return { id: storeDoc.id, ...storeDoc.data() } as Store;
+}
 
-  const products = placeholderProducts;
+async function getProducts(storeId: string): Promise<Product[]> {
+    const productsRef = collection(db, "products");
+    const q = query(productsRef, where("storeId", "==", storeId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+}
 
-  const categories = [
-    "Cascos", "Llantas", "Aceites y lubricantes", "Frenos", "Baterías", "Accesorios/Iluminación"
-  ];
+async function getCategories(): Promise<Category[]> {
+    const categoriesRef = collection(db, "categories");
+    const querySnapshot = await getDocs(categoriesRef);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+}
+
+
+export default async function StorePage({ params }: { params: { slug: string } }) {
+  const store = await getStore(params.slug);
+
+  if (!store) {
+    notFound();
+  }
+
+  const products = await getProducts(store.id);
+  const categories = await getCategories();
 
   return (
     <div>
       <header className="relative mb-8">
         <div className="h-40 md:h-56 w-full bg-gradient-to-r from-primary to-accent">
           <Image 
-            src="https://picsum.photos/1600/400" 
+            src={store.cover ?? "https://picsum.photos/1600/400"} 
             alt="Cover image" 
-            layout="fill" 
-            objectFit="cover"
+            fill
+            className="object-cover"
             data-ai-hint="motorcycle road"
           />
         </div>
@@ -38,14 +64,18 @@ export default function StorePage({ params }: { params: { slug: string } }) {
         <div className="container absolute inset-0 flex items-end p-4 md:p-8">
           <div className="flex items-center gap-4 bg-background/85 backdrop-blur px-4 py-3 rounded-2xl shadow-lg">
             <div className="h-16 w-16 rounded-lg bg-white p-1 flex items-center justify-center">
-              <Bike className="h-12 w-12 text-primary" />
+              {store.logo ? (
+                 <Image src={store.logo} width={64} height={64} alt={store.name} className="rounded-md object-cover"/>
+              ) : (
+                <Bike className="h-12 w-12 text-primary" />
+              )}
             </div>
             <div>
               <h1 className="text-xl md:text-3xl font-bold font-headline">{store.name}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span>{store.rating}</span>
-                <span>({store.reviews} reseñas)</span>
+                {/* TODO: Add reviews to store schema */}
+                <span>{store.averageRating}</span> 
               </div>
             </div>
           </div>
@@ -63,7 +93,7 @@ export default function StorePage({ params }: { params: { slug: string } }) {
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(cat => <SelectItem key={cat} value={cat.toLowerCase()}>{cat}</SelectItem>)}
+              {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select>
@@ -85,18 +115,19 @@ export default function StorePage({ params }: { params: { slug: string } }) {
               <Link href={`/products/${product.id}`}>
                 <div className="aspect-square overflow-hidden">
                   <Image
-                    src={product.image}
+                    src={product.image ?? "https://picsum.photos/400/400"}
                     width={400}
                     height={400}
                     alt={product.name}
-                    data-ai-hint={product.hint}
+                    data-ai-hint="motorcycle part"
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
               </Link>
               <CardContent className="p-4">
+                 {/* TODO: Get category name from categoryId */}
+                <p className="text-muted-foreground text-sm">{product.categoryId}</p>
                 <h3 className="font-semibold text-lg truncate">{product.name}</h3>
-                <p className="text-muted-foreground text-sm">{product.category}</p>
                 <div className="flex items-center justify-between mt-4">
                   <p className="font-bold text-xl">${product.price.toLocaleString('es-CO')}</p>
                   <Button size="sm" className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
