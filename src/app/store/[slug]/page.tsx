@@ -1,5 +1,6 @@
 
 
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -33,12 +34,15 @@ async function getProducts(storeId: string): Promise<Product[]> {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
 }
 
-async function getCategories(): Promise<Category[]> {
-    // TODO: This should probably get categories for a specific store in the future
-    const categoriesRef = collection(db, "categories");
-    const querySnapshot = await getDocs(categoriesRef);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-}
+// Static categories to avoid Firestore query errors if collection doesn't exist
+const categories: Category[] = [
+    { id: "cascos", name: "Cascos", slug: 'cascos' },
+    { id: "llantas", name: "Llantas", slug: 'llantas' },
+    { id: "aceites", name: "Aceites y lubricantes", slug: 'aceites' },
+    { id: "frenos", name: "Frenos", slug: 'frenos' },
+    { id: "baterias", name: "Baterías", slug: 'baterias' },
+    { id: "accesorios", name: "Accesorios", slug: 'accesorios' },
+];
 
 
 export default async function StorePage({ params }: { params: { slug: string } }) {
@@ -49,7 +53,6 @@ export default async function StorePage({ params }: { params: { slug: string } }
   }
 
   const products = await getProducts(store.id);
-  const categories = await getCategories();
   const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
 
 
