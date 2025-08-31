@@ -11,9 +11,9 @@ export function Footer() {
             <p>&copy; {new Date().getFullYear()} ComercioPlus. Todos los derechos reservados.</p>
           </div>
           <div className="flex gap-4">
-            <Link href="#" className="hover:text-primary transition-colors">Términos</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Privacidad</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Contacto</Link>
+            <Link href="/" className="hover:text-primary transition-colors">Términos</Link>
+            <Link href="/" className="hover:text-primary transition-colors">Privacidad</Link>
+            <Link href="/" className="hover:text-primary transition-colors">Contacto</Link>
           </div>
         </div>
       </div>
