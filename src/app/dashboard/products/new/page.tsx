@@ -201,7 +201,7 @@ export default function NewProductPage() {
                         />
                          <div className="space-y-2">
                             <FormLabel>Subir Imagen</FormLabel>
-                            <Input type="file" disabled />
+                            <Input type="file" />
                             <p className="text-sm text-muted-foreground">La subida de archivos se habilitará pronto.</p>
                         </div>
                     </div>
