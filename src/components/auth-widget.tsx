@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -20,10 +21,10 @@ import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/schemas/user';
 import type { Store } from '@/lib/schemas/store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 
 type UserState = {
-  data: Partial<User> | null;
+  data: User | null;
   appUser: AppUser | null;
   store: Store | null;
 } | null;
@@ -35,63 +36,50 @@ export function AuthWidget() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // We start in a loading state
     setLoading(true);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Fetch app-specific user data and store data from Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        const storeDocRef = doc(db, "stores", user.uid); // Assuming store ID is user ID
 
-    const mockUser: Partial<User> = {
-      uid: 'mock-user-id',
-      displayName: 'Comerciante Mock',
-      email: 'comerciante@example.com',
-      photoURL: `https://i.pravatar.cc/150?u=mock-user`,
-    };
-    const mockAppUser: AppUser = {
-      id: 'mock-user-id',
-      name: 'Comerciante Mock',
-      email: 'comerciante@example.com',
-      role: 'Comerciante',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      status: true,
-    };
-    const mockStore: Store = {
-      id: 'mock-user-id',
-      userId: 'mock-user-id',
-      name: 'Mi Tienda Mock',
-      slug: 'mi-tienda-mock',
-      averageRating: 4.5,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      mainCategory: "Repuestos",
-      status: 'active',
-      address: "Calle Falsa 123"
-    };
+        try {
+          const userDocSnap = await getDoc(userDocRef);
+          const storeDocSnap = await getDoc(storeDocRef);
 
-    // This timeout simulates the async nature of onAuthStateChanged
-    const timeout = setTimeout(() => {
-        // To simulate being logged in:
-        setUserState({ data: mockUser, appUser: mockAppUser, store: mockStore });
-        // To simulate being logged out:
-        // setUserState(null);
+          const appUser = userDocSnap.exists() ? userDocSnap.data() as AppUser : null;
+          const store = storeDocSnap.exists() ? storeDocSnap.data() as Store : null;
 
-        // We are no longer loading
-        setLoading(false);
-    }, 500);
+          setUserState({ data: user, appUser, store });
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          // Still set basic user data even if firestore fails
+          setUserState({ data: user, appUser: null, store: null });
+        }
+      } else {
+        setUserState(null);
+      }
+      setLoading(false);
+    });
 
-    return () => clearTimeout(timeout);
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
-    setLoading(true);
-    // MOCK LOGOUT
-    setTimeout(() => {
-        toast({
-            title: 'Has cerrado sesión (simulado)',
-            description: 'Vuelve pronto.',
-        });
-        setUserState(null);
-        router.push('/');
-        setLoading(false);
-    }, 300);
+    try {
+      await signOut(auth);
+      toast({
+        title: 'Has cerrado sesión',
+        description: 'Vuelve pronto.',
+      });
+      router.push('/');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo cerrar la sesión.',
+        variant: 'destructive',
+      });
+    }
   };
   
   const MyStoreLink = () => {
