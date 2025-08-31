@@ -1,38 +1,16 @@
 
-
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { db } from "@/lib/firebase";
 import type { Product } from "@/lib/schemas/product";
 import type { Store } from "@/lib/schemas/store";
 import type { Category } from "@/lib/schemas/category";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { Bike, ChevronDown, Search, Star } from "lucide-react";
+import { Bike, Search, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
-async function getStore(slug: string): Promise<Store | null> {
-    const storesRef = collection(db, "stores");
-    const q = query(storesRef, where("slug", "==", slug));
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
-        return null;
-    }
-    const storeDoc = querySnapshot.docs[0];
-    return { id: storeDoc.id, ...storeDoc.data() } as Store;
-}
-
-async function getProducts(storeId: string): Promise<Product[]> {
-    const productsRef = collection(db, "products");
-    const q = query(productsRef, where("storeId", "==", storeId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-}
+import { placeholderProducts } from "@/lib/placeholder-data";
 
 // Static categories to avoid Firestore query errors if collection doesn't exist
 const categories: Category[] = [
@@ -44,15 +22,46 @@ const categories: Category[] = [
     { id: "accesorios", name: "Accesorios", slug: 'accesorios' },
 ];
 
+const getMockStore = (slug: string): Store => ({
+    id: 'mock-store-id',
+    userId: 'mock-user-id',
+    name: `Tienda ${slug}`,
+    slug: slug,
+    description: 'Esta es una tienda de prueba con datos simulados para que puedas seguir desarrollando.',
+    address: 'Avenida Siempre Viva 123',
+    phone: '3001234567',
+    openingHours: 'L-V 8am-6pm, S 9am-2pm',
+    mainCategory: 'Repuestos',
+    logo: 'https://picsum.photos/104/104?random=logo',
+    cover: `https://picsum.photos/1280/320?random=${slug}`,
+    status: 'active',
+    averageRating: 4.7,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+});
+
+const getMockProducts = (): Product[] => {
+    return placeholderProducts.map(p => ({
+        ...p,
+        price: Number(p.price),
+        stock: Number(p.stock),
+        storeId: 'mock-store-id',
+        userId: 'mock-user-id',
+        offer: false,
+        averageRating: 5,
+        ratings: [],
+    })) as Product[];
+};
+
 
 export default async function StorePage({ params }: { params: { slug: string } }) {
-  const store = await getStore(params.slug);
+  const store = getMockStore(params.slug);
 
   if (!store) {
     notFound();
   }
 
-  const products = await getProducts(store.id);
+  const products = getMockProducts();
   const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
 
 

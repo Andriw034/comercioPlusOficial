@@ -4,8 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { type User } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -18,7 +17,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { doc, getDoc } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/schemas/user';
 import type { Store } from '@/lib/schemas/store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -29,59 +27,64 @@ type UserState = {
   store: Store | null;
 } | null;
 
+// MOCK IMPLEMENTATION TO AVOID NETWORK ERRORS
 export function AuthWidget() {
-  const [userState, setUserState] = useState<UserState>(null);
   const [loading, setLoading] = useState(true);
+  const [userState, setUserState] = useState<UserState>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDocRef = doc(db, "users", user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          const appUser = userDocSnap.exists() ? userDocSnap.data() as AppUser : null;
+    // Simulate fetching user data
+    setTimeout(() => {
+        const mockUser: Partial<User> = {
+            uid: 'mock-user-id',
+            displayName: 'Comerciante Mock',
+            email: 'comerciante@example.com',
+            photoURL: 'https://i.pravatar.cc/150?u=mock-user',
+        };
+        const mockAppUser: AppUser = {
+            id: 'mock-user-id',
+            name: 'Comerciante Mock',
+            email: 'comerciante@example.com',
+            role: 'Comerciante',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            status: true,
+        };
+        const mockStore: Store = {
+            id: 'mock-user-id',
+            userId: 'mock-user-id',
+            name: 'Mi Tienda Mock',
+            slug: 'mi-tienda-mock',
+            averageRating: 4.5,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            mainCategory: 'Repuestos',
+            status: 'active',
+            address: 'Calle Falsa 123'
+        };
 
-          let store: Store | null = null;
-          if (appUser?.role === 'Comerciante') {
-            const storeDocRef = doc(db, "stores", user.uid);
-            const storeDocSnap = await getDoc(storeDocRef);
-            store = storeDocSnap.exists() ? storeDocSnap.data() as Store : null;
-          }
-
-          setUserState({ data: user, appUser, store });
-        } catch (error) {
-            console.error("Failed to fetch user data", error);
-            // This might happen with the offline error, still set user data
-            setUserState({ data: user, appUser: null, store: null });
-        }
-      } else {
-        setUserState(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+        setUserState({
+            data: mockUser,
+            appUser: mockAppUser,
+            store: mockStore,
+        });
+        setLoading(false);
+    }, 500);
   }, []);
 
   const handleLogout = async () => {
-    try {
-        await signOut(auth); 
+    setLoading(true);
+    setTimeout(() => {
         toast({
-            title: 'Has cerrado sesión',
+            title: 'Has cerrado sesión (simulado)',
             description: 'Vuelve pronto.',
         });
         setUserState(null); 
+        setLoading(false);
         router.push('/');
-    } catch(error) {
-        console.error("Error signing out: ", error);
-        toast({
-            title: 'Error al cerrar sesión',
-            description: 'No se pudo cerrar la sesión. Inténtalo de nuevo.',
-            variant: 'destructive',
-        });
-    }
+    }, 300);
   };
   
   const MyStoreLink = () => {

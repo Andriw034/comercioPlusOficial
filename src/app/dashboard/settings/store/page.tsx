@@ -9,12 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db, storage } from "@/lib/firebase";
 import { StoreSchema, type Store } from "@/lib/schemas/store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { useAuthState } from "react-firebase-hooks/auth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Image from "next/image";
@@ -35,8 +31,26 @@ const StoreFormSchema = StoreSchema.omit({
 
 type StoreFormValues = z.infer<typeof StoreFormSchema>;
 
+const mockStore: Store = {
+    id: 'mock-store-id',
+    userId: 'mock-user-id',
+    name: 'Moto Repuestos Pro (Mock)',
+    slug: 'moto-repuestos-pro-mock',
+    description: 'La mejor tienda de repuestos de la ciudad. Datos de prueba.',
+    address: 'Avenida Siempre Viva 123',
+    phone: '3001234567',
+    openingHours: 'L-V 8am-6pm, S 9am-2pm',
+    mainCategory: 'Repuestos',
+    logo: 'https://picsum.photos/104/104?random=logo',
+    cover: 'https://picsum.photos/800/200?random=cover',
+    status: 'active',
+    averageRating: 4.7,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+};
+
+
 export default function StoreSettingsPage() {
-  const [user] = useAuthState(auth);
   const { toast } = useToast();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -59,20 +73,11 @@ export default function StoreSettingsPage() {
   });
 
   useEffect(() => {
-    if (user) {
-      const fetchStoreData = async () => {
-        const storeRef = doc(db, "stores", user.uid);
-        const storeSnap = await getDoc(storeRef);
-        if (storeSnap.exists()) {
-          const storeData = storeSnap.data() as Store;
-          form.reset(storeData);
-          if (storeData.logo) setExistingLogo(storeData.logo);
-          if (storeData.cover) setExistingCover(storeData.cover);
-        }
-      };
-      fetchStoreData();
-    }
-  }, [user, form]);
+    // Simulate fetching store data
+    form.reset(mockStore);
+    if (mockStore.logo) setExistingLogo(mockStore.logo);
+    if (mockStore.cover) setExistingCover(mockStore.cover);
+  }, [form]);
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -90,57 +95,17 @@ export default function StoreSettingsPage() {
     }
   };
 
-  const uploadImage = async (file: File, storeId: string, type: 'logo' | 'cover'): Promise<string> => {
-    const storageRef = ref(storage, `stores/${storeId}/${type}/${file.name}`);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef);
-  };
-
   const onSubmit = async (data: StoreFormValues) => {
-    if (!user) {
-      toast({
-        title: "No autenticado",
-        description: "Debes iniciar sesión para guardar los ajustes de la tienda.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      let logoUrl = existingLogo;
-      let coverUrl = existingCover;
-
-      if (logoFile) {
-        logoUrl = await uploadImage(logoFile, user.uid, 'logo');
-      }
-      if (coverFile) {
-        coverUrl = await uploadImage(coverFile, user.uid, 'cover');
-      }
-
-      const storeRef = doc(db, "stores", user.uid);
-      
-      await setDoc(storeRef, {
-        ...data,
-        id: user.uid,
-        userId: user.uid,
-        logo: logoUrl,
-        cover: coverUrl,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-
-      toast({
-        title: "¡Tienda actualizada!",
-        description: "Los datos de tu tienda se han guardado correctamente.",
-      });
-
-    } catch (error) {
-      console.error("Error saving store settings:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron guardar los ajustes de la tienda.",
-        variant: "destructive",
-      });
-    }
+    // Simulate saving data
+    form.formState.isSubmitting = true;
+    console.log("Submitting mock data:", data);
+    setTimeout(() => {
+        toast({
+            title: "¡Tienda actualizada! (Simulado)",
+            description: "Los datos de tu tienda se han guardado correctamente.",
+        });
+        form.formState.isSubmitting = false;
+    }, 1000);
   };
 
 
@@ -291,3 +256,4 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
+

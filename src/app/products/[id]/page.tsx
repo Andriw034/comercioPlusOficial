@@ -1,38 +1,47 @@
 
 import { Button } from "@/components/ui/button";
-import { db } from "@/lib/firebase";
-import { Product, ProductSchema } from "@/lib/schemas/product";
+import { Product } from "@/lib/schemas/product";
 import { Store } from "@/lib/schemas/store";
-import { doc, getDoc } from "firebase/firestore";
 import { ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { placeholderProducts } from "@/lib/placeholder-data";
 
 
 async function getProduct(id: string): Promise<{ product: Product, store: Store } | null> {
-    const productRef = doc(db, "products", id);
-    const productSnap = await getDoc(productRef);
+    const mockProduct = placeholderProducts.find(p => p.id === id);
+    if (!mockProduct) return null;
 
-    if (!productSnap.exists()) {
-        return null;
-    }
+    const product: Product = {
+        ...mockProduct,
+        price: Number(mockProduct.price),
+        stock: Number(mockProduct.stock),
+        storeId: 'mock-store-id',
+        userId: 'mock-user-id',
+        offer: false,
+        averageRating: 4.8,
+        ratings: [],
+    };
 
-    const product = { id: productSnap.id, ...productSnap.data() } as Product;
-    
-    const storeRef = doc(db, "stores", product.storeId);
-    const storeSnap = await getDoc(storeRef);
-
-    if (!storeSnap.exists()) {
-        return null;
-    }
-    const store = { id: storeSnap.id, ...storeSnap.data() } as Store;
+    const store: Store = {
+        id: 'mock-store-id',
+        userId: 'mock-user-id',
+        name: 'Tienda de Prueba',
+        slug: 'tienda-de-prueba',
+        mainCategory: "Repuestos",
+        status: "active",
+        address: "Calle Falsa 123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        averageRating: 4.7,
+    };
 
     return { product, store };
 }
 
 
-export default async function ProductDetailsPage({ params }: { params: { id: string } }) {
+export default async function ProductDetailsPage({ params }: { params: { id:string } }) {
 
     const data = await getProduct(params.id);
 

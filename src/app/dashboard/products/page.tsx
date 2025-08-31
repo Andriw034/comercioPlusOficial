@@ -2,9 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
 import type { Product } from "@/lib/schemas/product";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,35 +11,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { placeholderProducts } from "@/lib/placeholder-data";
 
 export default function ProductsPage() {
-    const [user, loadingUser] = useAuthState(auth);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchProducts = async () => {
-            if (user) {
-                setLoading(true);
-                try {
-                    const productsRef = collection(db, "products");
-                    const q = query(productsRef, where("userId", "==", user.uid));
-                    const querySnapshot = await getDocs(q);
-                    const userProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-                    setProducts(userProducts);
-                } catch (error) {
-                    console.error("Error fetching products:", error);
-                } finally {
-                    setLoading(false);
-                }
-            } else if (!loadingUser) {
-                // If there's no user and we are not in a loading state, stop loading.
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, [user, loadingUser]);
+        // Simulate fetching products
+        setLoading(true);
+        setTimeout(() => {
+            const typedPlaceholderProducts = placeholderProducts.map(p => ({
+                ...p,
+                price: Number(p.price),
+                stock: Number(p.stock),
+                storeId: 'mock-store-id',
+                userId: 'mock-user-id',
+                offer: false,
+                averageRating: 5,
+                ratings: [],
+            }));
+            setProducts(typedPlaceholderProducts as Product[]);
+            setLoading(false);
+        }, 1000);
+    }, []);
 
     return (
         <Card>
@@ -117,3 +109,4 @@ export default function ProductsPage() {
         </Card>
     );
 }
+
