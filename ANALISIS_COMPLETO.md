@@ -1060,7 +1060,7 @@ export default function StoreSettingsPage() {
     --popover-foreground: 220 10% 93%; /* #EAECEF */
     --primary: 18 100% 62%; /* #FF7A3D */
     --primary-foreground: 0 0% 100%;
-    --secondary: 216 11% 12%;
+    --secondary: 216 11% 12%; /* #1A1E23 */
     --secondary-foreground: 220 10% 93%;
     --muted: 215 13% 19%; /* #2A3036 */
     --muted-foreground: 211 10% 55%;
