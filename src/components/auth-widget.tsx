@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type User, onAuthStateChanged } from 'firebase/auth';
+import { type User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -28,7 +28,6 @@ type UserState = {
   store: Store | null;
 } | null;
 
-// MOCK IMPLEMENTATION TO AVOID NETWORK ERRORS
 export function AuthWidget() {
   const [loading, setLoading] = useState(true);
   const [userState, setUserState] = useState<UserState>(null);
@@ -36,55 +35,57 @@ export function AuthWidget() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate fetching user data
-    setTimeout(() => {
-        const mockUser: Partial<User> = {
-            uid: 'mock-user-id',
-            displayName: 'Comerciante Mock',
-            email: 'comerciante@example.com',
-            photoURL: 'https://i.pravatar.cc/150?u=mock-user',
-        };
-        const mockAppUser: AppUser = {
-            id: 'mock-user-id',
-            name: 'Comerciante Mock',
-            email: 'comerciante@example.com',
-            role: 'Comerciante',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            status: true,
-        };
-        const mockStore: Store = {
-            id: 'mock-user-id',
-            userId: 'mock-user-id',
-            name: 'Mi Tienda Mock',
-            slug: 'mi-tienda-mock',
-            averageRating: 4.5,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            mainCategory: 'Repuestos',
-            status: 'active',
-            address: 'Calle Falsa 123'
-        };
+    const mockUser: Partial<User> = {
+      uid: 'mock-user-id',
+      displayName: 'Comerciante Mock',
+      email: 'comerciante@example.com',
+      photoURL: `https://i.pravatar.cc/150?u=mock-user`,
+    };
+    const mockAppUser: AppUser = {
+      id: 'mock-user-id',
+      name: 'Comerciante Mock',
+      email: 'comerciante@example.com',
+      role: 'Comerciante',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      status: true,
+    };
+    const mockStore: Store = {
+      id: 'mock-user-id',
+      userId: 'mock-user-id',
+      name: 'Mi Tienda Mock',
+      slug: 'mi-tienda-mock',
+      averageRating: 4.5,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      mainCategory: "Repuestos",
+      status: 'active',
+      address: "Calle Falsa 123"
+    };
 
-        setUserState({
-            data: mockUser,
-            appUser: mockAppUser,
-            store: mockStore,
-        });
+    // Simulate auth state change after mount
+    const timeout = setTimeout(() => {
+        // To simulate being logged in:
+        setUserState({ data: mockUser, appUser: mockAppUser, store: mockStore });
+        // To simulate being logged out:
+        // setUserState(null);
         setLoading(false);
     }, 500);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const handleLogout = async () => {
     setLoading(true);
+    // MOCK LOGOUT
     setTimeout(() => {
         toast({
             title: 'Has cerrado sesión (simulado)',
             description: 'Vuelve pronto.',
         });
-        setUserState(null); 
-        setLoading(false);
+        setUserState(null);
         router.push('/');
+        setLoading(false);
     }, 300);
   };
   
