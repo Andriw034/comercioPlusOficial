@@ -30,11 +30,9 @@ const storage = getStorage(app);
 
 // Connect to emulators in development
 if (process.env.NODE_ENV === 'development') {
-    try {
-        connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-    } catch (error) {
-        console.warn("Firebase Auth Emulator not available.", error);
-    }
+    // Point to the emulators.
+    // This should be done after getAuth() and other Firebase services are initialized.
+    connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
 }
 
 
