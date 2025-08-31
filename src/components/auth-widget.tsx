@@ -24,22 +24,54 @@ import type { Store } from '@/lib/schemas/store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 type UserState = {
-  data: User | null;
+  data: Partial<User> | null;
   appUser: AppUser | null;
   store: Store | null;
 }
 
 export function AuthWidget() {
   const [userState, setUserState] = useState<UserState | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Set to false to use mock data
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
+    // --- START MOCK DATA ---
+    // This simulates a logged-in merchant to bypass the network error
+    const mockUser: Partial<User> = {
+        uid: 'mock-user-id',
+        displayName: 'Comerciante de Prueba',
+        email: 'test@example.com',
+        photoURL: '',
+    };
+    const mockAppUser: AppUser = {
+        id: 'mock-user-id',
+        name: 'Comerciante de Prueba',
+        email: 'test@example.com',
+        role: 'Comerciante',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        status: true,
+    };
+     const mockStore: Store = {
+        id: 'mock-user-id',
+        userId: 'mock-user-id',
+        name: 'Tienda de Prueba',
+        slug: 'tienda-de-prueba',
+        mainCategory: 'Repuestos',
+        address: 'Calle Falsa 123',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+    setUserState({ data: mockUser, appUser: mockAppUser, store: mockStore });
+    setLoading(false);
+    // --- END MOCK DATA ---
+
+    /*
+    // --- ORIGINAL FIREBASE CODE ---
+    setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // User is signed in, see docs for a list of available properties
-        // https://firebase.google.com/docs/reference/js/firebase.User
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
         const appUser = userDocSnap.exists() ? userDocSnap.data() as AppUser : null;
@@ -52,32 +84,26 @@ export function AuthWidget() {
         }
 
         setUserState({ data: user, appUser, store });
-
       } else {
-        // User is signed out
         setUserState(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
+    // --- END ORIGINAL FIREBASE CODE ---
+    */
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: '¡Hasta pronto!',
-        description: 'Has cerrado sesión correctamente.',
-      });
-      router.push('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast({
-        title: 'Error al cerrar sesión',
-        description: 'No se pudo cerrar la sesión. Por favor, inténtalo de nuevo.',
-        variant: 'destructive',
-      });
-    }
+    // In a real scenario, we would sign out from Firebase.
+    // For now, we'll just redirect.
+    // await signOut(auth); 
+    toast({
+        title: 'Cierre de sesión simulado',
+        description: 'Has cerrado sesión (simulación).',
+    });
+    setUserState(null); // Simulate logout
+    router.push('/');
   };
   
   const MyStoreLink = () => {
@@ -115,7 +141,7 @@ export function AuthWidget() {
 
   if (userState?.data) {
     const user = userState.data;
-    const userInitial = user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email!.charAt(0).toUpperCase();
+    const userInitial = user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email?.charAt(0).toUpperCase() ?? 'U');
     return (
         <div className='flex items-center gap-6'>
             <nav className="hidden md:flex items-center gap-6 text-sm">
