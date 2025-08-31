@@ -1,4 +1,3 @@
-
 "use client";
 
 import { createContext, useContext, ReactNode } from 'react';
@@ -31,5 +30,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -19,6 +18,7 @@ import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { getStoreByUserId, createOrUpdateStore } from "@/lib/services/store";
 import { uploadFile } from "@/lib/services/storage";
+import Link from "next/link";
 
 const StoreFormSchema = StoreSchema.omit({
   id: true,
@@ -112,16 +112,6 @@ export default function StoreSettingsPage() {
       return;
     }
 
-    form.control.register('name');
-    form.control.register('slug');
-    form.control.register('description');
-    form.control.register('address');
-    form.control.register('phone');
-    form.control.register('openingHours');
-    form.control.register('mainCategory');
-    form.control.register('logo');
-    form.control.register('cover');
-
     try {
       let logoUrl = store?.logo ?? null;
       if (logoFile) {
@@ -149,22 +139,12 @@ export default function StoreSettingsPage() {
     } catch (error) {
         console.error("Error saving store:", error);
         toast({ title: "Error", description: "No se pudo guardar la información de la tienda.", variant: "destructive" });
-    } finally {
-        form.control.unregister('name');
-        form.control.unregister('slug');
-        form.control.unregister('description');
-        form.control.unregister('address');
-        form.control.unregister('phone');
-        form.control.unregister('openingHours');
-        form.control.unregister('mainCategory');
-        form.control.unregister('logo');
-        form.control.unregister('cover');
     }
   };
 
   if (loading || authLoading) {
     return (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     )
@@ -172,7 +152,7 @@ export default function StoreSettingsPage() {
 
   if (!user) {
       return (
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
                 <CardTitle>Acceso denegado</CardTitle>
                 <CardDescription>Debes iniciar sesión para administrar tu tienda.</CardDescription>
                 <Button asChild>

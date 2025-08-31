@@ -722,16 +722,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Image from "next/image";
-import { Bike } from "lucide-react";
+import { Bike, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { getStoreByUserId, createOrUpdateStore } from "@/lib/services/store";
+import { uploadFile } from "@/lib/services/storage";
+import Link from "next/link";
 
-
-// We omit fields that are not in the form or are handled separately
 const StoreFormSchema = StoreSchema.omit({
   id: true,
   userId: true,
-  logo: true,
-  cover: true,
   status: true,
   averageRating: true,
   theme: true,
@@ -743,13 +743,17 @@ type StoreFormValues = z.infer<typeof StoreFormSchema>;
 
 export default function StoreSettingsPage() {
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  
+  const [store, setStore] = useState<Store | null>(null);
+  const [loading, setLoading] = useState(true);
+  
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [existingLogo, setExistingLogo] = useState<string | null>(null);
-  const [existingCover, setExistingCover] = useState<string | null>(null);
-
+  
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(StoreFormSchema),
     defaultValues: {
@@ -759,9 +763,41 @@ export default function StoreSettingsPage() {
       address: "",
       phone: "",
       openingHours: "",
-      mainCategory: "Repuestos", // Default category
+      mainCategory: "Repuestos",
+      logo: "",
+      cover: "",
     },
   });
+
+  useEffect(() => {
+    if (user) {
+      const fetchStoreData = async () => {
+        setLoading(true);
+        const storeData = await getStoreByUserId(user.uid);
+        if (storeData) {
+          setStore(storeData as Store);
+          form.reset({
+            name: storeData.name,
+            slug: storeData.slug,
+            description: storeData.description ?? "",
+            address: storeData.address,
+            phone: storeData.phone ?? "",
+            openingHours: storeData.openingHours ?? "",
+            mainCategory: storeData.mainCategory,
+            logo: storeData.logo ?? "",
+            cover: storeData.cover ?? "",
+          });
+          if (storeData.logo) setLogoPreview(storeData.logo);
+          if (storeData.cover) setCoverPreview(storeData.cover);
+        }
+        setLoading(false);
+      };
+      fetchStoreData();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [user, authLoading, form]);
+
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -780,11 +816,60 @@ export default function StoreSettingsPage() {
   };
 
   const onSubmit = async (data: StoreFormValues) => {
+    if (!user) {
+      toast({ title: "Error", description: "Debes iniciar sesión para guardar.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      let logoUrl = store?.logo ?? null;
+      if (logoFile) {
+        logoUrl = await uploadFile(logoFile, `stores/${user.uid}/logo`);
+      }
+
+      let coverUrl = store?.cover ?? null;
+      if (coverFile) {
+        coverUrl = await uploadFile(coverFile, `stores/${user.uid}/cover`);
+      }
+      
+      const storeDataToSave = {
+        ...data,
+        logo: logoUrl,
+        cover: coverUrl,
+      };
+
+      await createOrUpdateStore(user.uid, storeDataToSave);
+
       toast({
-        title: "¡Tienda actualizada! (Simulado)",
+        title: "¡Tienda actualizada!",
         description: "Los datos de tu tienda se han guardado correctamente.",
       });
+
+    } catch (error) {
+        console.error("Error saving store:", error);
+        toast({ title: "Error", description: "No se pudo guardar la información de la tienda.", variant: "destructive" });
+    }
   };
+
+  if (loading || authLoading) {
+    return (
+        <div className="flex items-center justify-center h-full p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
+
+  if (!user) {
+      return (
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
+                <CardTitle>Acceso denegado</CardTitle>
+                <CardDescription>Debes iniciar sesión para administrar tu tienda.</CardDescription>
+                <Button asChild>
+                    <Link href="/login">Ir a Iniciar Sesión</Link>
+                </Button>
+            </div>
+      )
+  }
 
 
   return (
@@ -884,11 +969,9 @@ export default function StoreSettingsPage() {
                         <div className="space-y-2">
                             <FormLabel>Logo</FormLabel>
                             <div className="flex items-center gap-4">
-                                <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                                <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center border">
                                     {logoPreview ? (
                                         <Image src={logoPreview} width={64} height={64} alt="Vista previa del logo" className="rounded-md object-cover h-16 w-16"/>
-                                    ) : existingLogo ? (
-                                        <Image src={existingLogo} width={64} height={64} alt="Logo actual" className="rounded-md object-cover h-16 w-16"/>
                                     ) : (
                                         <Bike className="h-10 w-10 text-muted-foreground" />
                                     )}
@@ -906,10 +989,8 @@ export default function StoreSettingsPage() {
                              <div className="flex items-center gap-4">
                                  {coverPreview ? (
                                     <Image src={coverPreview} width={200} height={100} alt="Vista previa de la portada" className="rounded-md object-cover h-24 w-48"/>
-                                ) : existingCover ? (
-                                    <Image src={existingCover} width={200} height={100} alt="Portada actual" className="rounded-md object-cover h-24 w-48"/>
                                 ) : (
-                                    <div className="h-24 w-48 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                                    <div className="h-24 w-48 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm border">
                                         Vista Previa
                                     </div>
                                 )}
@@ -922,6 +1003,7 @@ export default function StoreSettingsPage() {
                         </div>
 
                         <Button type="submit" disabled={form.formState.isSubmitting}>
+                            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {form.formState.isSubmitting ? "Guardando..." : "Guardar Cambios"}
                         </Button>
                     </form>
@@ -1016,6 +1098,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/lib/contexts/auth-context';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -1041,10 +1124,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-          <Toaster />
+          <AuthProvider>
+            <Header />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+            <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
@@ -1063,6 +1148,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -1076,6 +1162,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { auth } from "@/lib/firebase";
+import { Loader2 } from "lucide-react";
 
 
 const formSchema = z.object({
@@ -1095,12 +1183,25 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Simulate login
-    toast({
-        title: "¡Bienvenido de vuelta! (Simulado)",
-        description: "Has iniciado sesión correctamente.",
-    });
-    router.push("/dashboard");
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+          title: "¡Bienvenido de vuelta!",
+          description: "Has iniciado sesión correctamente.",
+      });
+      router.push("/dashboard");
+    } catch (error: any) {
+        console.error("Login Error:", error);
+        let description = "Ocurrió un error inesperado.";
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            description = "El correo electrónico o la contraseña son incorrectos.";
+        }
+        toast({
+            title: "Error al iniciar sesión",
+            description,
+            variant: "destructive",
+        });
+    }
   };
 
   return (
@@ -1153,6 +1254,7 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {form.formState.isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
               </Button>
             </form>
@@ -1366,6 +1468,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -1387,6 +1490,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { UserRoleSchema } from "@/lib/schemas/user";
 import Image from "next/image";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
+
 
 const formSchema = z.object({
   fullName: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -1409,16 +1516,43 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Simulate account creation
-    toast({
-        title: "¡Cuenta creada! (Simulado)",
-        description: "Tu cuenta ha sido creada exitosamente.",
-    });
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
 
-    if (values.role === 'Comerciante') {
-        router.push("/dashboard/settings/store");
-    } else {
-        router.push("/dashboard");
+        await updateProfile(user, { displayName: values.fullName });
+
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            name: values.fullName,
+            email: values.email,
+            role: values.role,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+        
+        toast({
+            title: "¡Cuenta creada!",
+            description: "Tu cuenta ha sido creada exitosamente.",
+        });
+
+        if (values.role === 'Comerciante') {
+            router.push("/dashboard/settings/store");
+        } else {
+            router.push("/dashboard");
+        }
+
+    } catch (error: any) {
+        console.error("Registration Error:", error);
+        let description = "Ocurrió un error inesperado.";
+        if (error.code === 'auth/email-already-in-use') {
+            description = "Este correo electrónico ya está en uso.";
+        }
+        toast({
+            title: "Error al crear la cuenta",
+            description,
+            variant: "destructive",
+        });
     }
   };
 
@@ -1493,6 +1627,7 @@ export default function RegisterPage() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {form.formState.isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
                 </Button>
               </form>
@@ -1710,17 +1845,71 @@ export default async function StorePage({ params }: { params: { slug: string } }
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { LayoutDashboard, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export function AuthWidget() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/');
+  };
+
+  if (loading) {
+    return <div className="h-8 w-24 rounded-md animate-pulse bg-muted" />;
+  }
+  
+  if (!user) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button asChild variant="ghost">
+          <Link href="/login">Entrar</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/register">Crear cuenta</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <Button asChild variant="ghost">
-        <Link href="/login">Entrar</Link>
-      </Button>
-      <Button asChild>
-        <Link href="/register">Crear cuenta</Link>
-      </Button>
-    </div>
+    <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.photoURL ?? undefined} alt={user.displayName ?? ""} />
+                    <AvatarFallback>{user.displayName?.charAt(0).toUpperCase() ?? 'U'}</AvatarFallback>
+                </Avatar>
+            </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+                <Link href="/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar sesión</span>
+            </DropdownMenuItem>
+        </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 ```
@@ -2014,6 +2203,11 @@ export function Header() {
             <Logo />
           </Link>
         </div>
+
+        <nav className="hidden md:flex items-center gap-4">
+            <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Dashboard</Link>
+            <Link href="/#stores" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Tiendas</Link>
+        </nav>
 
         <div className="flex items-center">
           <AuthWidget />
@@ -6220,6 +6414,44 @@ export { useToast, toast }
 ```
 
 ---
+## Fichero: `src/lib/contexts/auth-context.tsx`
+---
+```typescript
+"use client";
+
+import { createContext, useContext, ReactNode } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import type { User } from 'firebase/auth';
+
+interface AuthContextType {
+  user: User | null | undefined;
+  loading: boolean;
+  error: Error | undefined;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, loading, error] = useAuthState(auth);
+
+  return (
+    <AuthContext.Provider value={{ user, loading, error }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+```
+
+---
 ## Fichero: `src/lib/contexts/products-context.tsx`
 ---
 ```typescript
@@ -6560,6 +6792,125 @@ export const UserSchema = z.object({
 export type User = z.infer<typeof UserSchema>;
 export type UserRole = z.infer<typeof UserRoleSchema>;
 export type UserProfile = z.infer<typeof UserProfileSchema>;
+```
+
+---
+## Fichero: `src/lib/services/storage.ts`
+---
+```typescript
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+export async function uploadFile(file: File, path: string): Promise<string> {
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
+}
+```
+
+---
+## Fichero: `src/lib/services/store.ts`
+---
+```typescript
+import { db } from '@/lib/firebase';
+import { Store, StoreSchema } from '@/lib/schemas/store';
+import { collection, doc, getDoc, setDoc, serverTimestamp, getDocs, query, where, limit } from 'firebase/firestore';
+
+const storesCollection = collection(db, 'stores');
+
+// Helper para crear un ID de tienda seguro a partir del nombre
+const createSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+};
+  
+
+export async function createOrUpdateStore(userId: string, data: Partial<Omit<Store, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>): Promise<void> {
+    const storeRef = doc(db, 'stores', userId);
+    const storeSnap = await getDoc(storeRef);
+
+    const storeData = {
+        ...data,
+        slug: data.slug || createSlug(data.name || "nueva-tienda"),
+    };
+
+    if (storeSnap.exists()) {
+        // Update existing store
+        await setDoc(storeRef, { 
+            ...storeData, 
+            updatedAt: serverTimestamp() 
+        }, { merge: true });
+    } else {
+        // Create new store
+        const newStore: Omit<Store, 'id' | 'createdAt' | 'updatedAt'> = {
+            userId,
+            name: data.name || "Nueva Tienda",
+            slug: data.slug || createSlug(data.name || "nueva-tienda"),
+            logo: data.logo || null,
+            cover: data.cover || null,
+            description: data.description || "",
+            address: data.address || "",
+            phone: data.phone || null,
+            status: 'active',
+            openingHours: data.openingHours || null,
+            mainCategory: data.mainCategory || "Repuestos",
+            averageRating: 0,
+            theme: {
+                primaryColor: '#FFA14F',
+            },
+            ...data, // Include any other fields passed in
+        };
+        await setDoc(storeRef, {
+            ...newStore,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+    }
+}
+
+export async function getStoreByUserId(userId: string): Promise<Store | null> {
+    const storeRef = doc(db, 'stores', userId);
+    const storeSnap = await getDoc(storeRef);
+
+    if (!storeSnap.exists()) {
+        return null;
+    }
+
+    const data = storeSnap.data();
+    // Convert Firestore Timestamps to JS Dates
+    const storeData = {
+        id: storeSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate(),
+        updatedAt: data.updatedAt?.toDate(),
+    } as Store;
+
+    // Validate with Zod
+    return StoreSchema.parse(storeData);
+}
+
+export async function getStoreBySlug(slug: string): Promise<Store | null> {
+    const q = query(storesCollection, where("slug", "==", slug), limit(1));
+    const querySnapshot = await getDocs(q);
+  
+    if (querySnapshot.empty) {
+      return null;
+    }
+  
+    const storeDoc = querySnapshot.docs[0];
+    const data = storeDoc.data();
+    const storeData = {
+      id: storeDoc.id,
+      ...data,
+      createdAt: data.createdAt?.toDate(),
+      updatedAt: data.updatedAt?.toDate(),
+    } as Store;
+    
+    return StoreSchema.parse(storeData);
+}
 ```
 
 ---
