@@ -21,23 +21,24 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-const db = initializeFirestore(app, {
-  ignoreUndefinedProperties: true,
-});
 const auth = getAuth(app);
 const storage = getStorage(app);
 
+// Use getFirestore() to avoid multiple instances in Next.js server/client components
+const db = getFirestore(app);
 
-if (process.env.NODE_ENV === 'development') {
-    console.log("Development environment: Connecting to emulators");
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    // This check is important to run this code only in the browser
+    // and in development mode
+    console.log("Development environment (client-side): Connecting to emulators");
     try {
-        connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-        connectFirestoreEmulator(db, "127.0.0.1", 8080);
+        connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
+        connectFirestoreEmulator(db, "localhost", 8080);
     } catch (e) {
         console.error("Error connecting to emulators. Are they running?", e);
     }
+} else if (process.env.NODE_ENV === 'development') {
+    console.log("Development environment (server-side): Emulators will be connected on client.");
 }
-
 
 export { app, db, auth, storage };
