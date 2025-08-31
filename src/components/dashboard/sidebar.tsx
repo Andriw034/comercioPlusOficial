@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { Home, Package, Settings, ShoppingCart } from "lucide-react";
 import { Logo } from "../logo";

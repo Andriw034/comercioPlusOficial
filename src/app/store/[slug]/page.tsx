@@ -143,7 +143,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
                         width={400}
                         height={400}
                         alt={product.name}
-                        data-ai-hint={product.hint}
+                        data-ai-hint="motorcycle part"
                         className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                         />
                     )}

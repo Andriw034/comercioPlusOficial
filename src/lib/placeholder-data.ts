@@ -1,4 +1,3 @@
-
 export const placeholderProducts = [
   {
     id: "1",
