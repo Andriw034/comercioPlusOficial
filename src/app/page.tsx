@@ -9,7 +9,7 @@ export default function Home() {
       <section className="relative w-full h-[60vh] md:h-[80vh] flex items-center justify-center text-center text-white overflow-hidden">
         <Image
           src="https://picsum.photos/1920/1080"
-          layout="fill"
+          fill
           objectFit="cover"
           alt="Motorcycle parts hero image"
           data-ai-hint="motorcycle engine"
