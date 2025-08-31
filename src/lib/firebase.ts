@@ -3,6 +3,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -12,7 +13,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCdEMQ58CKB5f4-VnFq8RcYIZ__DJgqGis",
   authDomain: "comercio-plus.firebaseapp.com",
   projectId: "comercio-plus",
-  storageBucket: "comercio-plus.firebasestorage.app",
+  storageBucket: "comercio-plus.appspot.com",
   messagingSenderId: "655361811812",
   appId: "1:655361811812:web:bf1178f63ed9e8c4620671",
   measurementId: "G-8SYJPQVVZ4"
@@ -24,5 +25,6 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
-export { app, db, auth };
+export { app, db, auth, storage };

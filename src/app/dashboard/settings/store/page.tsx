@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AIThemeGenerator } from "@/components/dashboard/ai-theme-generator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +9,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { StoreSchema, type Store } from "@/lib/schemas/store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import Image from "next/image";
+import { Bike } from "lucide-react";
 
 // We omit fields that are not in the form or are handled separately
 const StoreFormSchema = StoreSchema.omit({
@@ -35,6 +38,12 @@ type StoreFormValues = z.infer<typeof StoreFormSchema>;
 export default function StoreSettingsPage() {
   const [user] = useAuthState(auth);
   const { toast } = useToast();
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [existingLogo, setExistingLogo] = useState<string | null>(null);
+  const [existingCover, setExistingCover] = useState<string | null>(null);
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(StoreFormSchema),
@@ -56,13 +65,36 @@ export default function StoreSettingsPage() {
         const storeSnap = await getDoc(storeRef);
         if (storeSnap.exists()) {
           const storeData = storeSnap.data() as Store;
-          // Use form.reset to populate the form with existing data
           form.reset(storeData);
+          if (storeData.logo) setExistingLogo(storeData.logo);
+          if (storeData.cover) setExistingCover(storeData.cover);
         }
       };
       fetchStoreData();
     }
   }, [user, form]);
+
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+    setPreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File, storeId: string, type: 'logo' | 'cover'): Promise<string> => {
+    const storageRef = ref(storage, `stores/${storeId}/${type}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  };
 
   const onSubmit = async (data: StoreFormValues) => {
     if (!user) {
@@ -75,15 +107,26 @@ export default function StoreSettingsPage() {
     }
 
     try {
-      // Use user's UID as the store's ID for a 1-to-1 relationship
+      let logoUrl = existingLogo;
+      let coverUrl = existingCover;
+
+      if (logoFile) {
+        logoUrl = await uploadImage(logoFile, user.uid, 'logo');
+      }
+      if (coverFile) {
+        coverUrl = await uploadImage(coverFile, user.uid, 'cover');
+      }
+
       const storeRef = doc(db, "stores", user.uid);
       
       await setDoc(storeRef, {
         ...data,
         id: user.uid,
         userId: user.uid,
+        logo: logoUrl,
+        cover: coverUrl,
         updatedAt: serverTimestamp(),
-      }, { merge: true }); // Use merge to avoid overwriting fields
+      }, { merge: true });
 
       toast({
         title: "¡Tienda actualizada!",
@@ -193,15 +236,45 @@ export default function StoreSettingsPage() {
                                 </FormItem>
                             )}
                         />
-                        {/* File inputs are handled separately */}
+                        
                         <div className="space-y-2">
                             <FormLabel>Logo</FormLabel>
-                            <Input type="file" disabled />
-                            <p className="text-sm text-muted-foreground">La subida de archivos se habilitará pronto.</p>
+                            <div className="flex items-center gap-4">
+                                <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                                    {logoPreview ? (
+                                        <Image src={logoPreview} width={64} height={64} alt="Vista previa del logo" className="rounded-md object-cover h-16 w-16"/>
+                                    ) : existingLogo ? (
+                                        <Image src={existingLogo} width={64} height={64} alt="Logo actual" className="rounded-md object-cover h-16 w-16"/>
+                                    ) : (
+                                        <Bike className="h-10 w-10 text-muted-foreground" />
+                                    )}
+                                </div>
+                                <Input 
+                                    type="file" 
+                                    accept="image/*"
+                                    onChange={(e) => handleFileChange(e, setLogoFile, setLogoPreview)}
+                                />
+                            </div>
                         </div>
+
                         <div className="space-y-2">
                             <FormLabel>Imagen de Portada</FormLabel>
-                            <Input type="file" disabled />
+                             <div className="flex items-center gap-4">
+                                 {coverPreview ? (
+                                    <Image src={coverPreview} width={200} height={100} alt="Vista previa de la portada" className="rounded-md object-cover h-24 w-48"/>
+                                ) : existingCover ? (
+                                    <Image src={existingCover} width={200} height={100} alt="Portada actual" className="rounded-md object-cover h-24 w-48"/>
+                                ) : (
+                                    <div className="h-24 w-48 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                                        Vista Previa
+                                    </div>
+                                )}
+                                <Input 
+                                    type="file" 
+                                    accept="image/*"
+                                    onChange={(e) => handleFileChange(e, setCoverFile, setCoverPreview)}
+                                />
+                             </div>
                         </div>
 
                         <Button type="submit" disabled={form.formState.isSubmitting}>
