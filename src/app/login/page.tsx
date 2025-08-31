@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-// import { signInWithEmailAndPassword } from "firebase/auth";
-// import { auth, db } from "@/lib/firebase";
-// import { doc, getDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-// import type { User } from "@/lib/schemas/user";
+import type { User } from "@/lib/schemas/user";
 
 
 const formSchema = z.object({
@@ -99,6 +99,13 @@ export default function LoginPage() {
 
   return (
     <div className="w-full h-full lg:grid lg:min-h-[calc(100vh-8rem)] lg:grid-cols-2">
+      <div className="hidden bg-muted lg:block">
+           <div className="w-full h-full bg-primary flex items-center justify-center text-center p-12">
+            <h2 className="text-4xl font-extrabold text-primary-foreground">
+                Empieza gratis y comparte tu catálogo hoy.
+            </h2>
+        </div>
+      </div>
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
@@ -147,7 +154,7 @@ export default function LoginPage() {
                 <Checkbox id="remember" />
                 <Label htmlFor="remember">Recuérdame</Label>
               </div>
-              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground" disabled={form.formState.isSubmitting}>
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
               </Button>
             </form>
@@ -158,13 +165,6 @@ export default function LoginPage() {
               Crear cuenta
             </Link>
           </div>
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:flex items-center justify-center rounded-l-3xl">
-        <div className="w-full h-full bg-gradient-to-br from-primary to-accent rounded-l-3xl flex items-center justify-center text-center p-12">
-            <h2 className="text-4xl font-extrabold text-primary-foreground">
-                Empieza gratis y comparte tu catálogo hoy.
-            </h2>
         </div>
       </div>
     </div>

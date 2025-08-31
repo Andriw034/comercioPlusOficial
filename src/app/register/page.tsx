@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-// import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-// import { auth, db } from "@/lib/firebase";
-// import { doc, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -123,6 +123,18 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full lg:grid lg:min-h-[calc(100vh-8rem)] lg:grid-cols-2">
+       <div className="hidden bg-muted lg:block">
+           <div className="w-full h-full bg-primary flex items-center justify-center text-center p-12">
+            <div className="space-y-4">
+                <h2 className="text-4xl font-extrabold text-primary-foreground">
+                Tu tienda de motos, a un clic de distancia.
+                </h2>
+                <p className="text-primary-foreground/80 text-lg">
+                Únete a la comunidad de ComercioPlus y lleva tu negocio al siguiente nivel.
+                </p>
+            </div>
+        </div>
+      </div>
       <div className="flex items-center justify-center py-12">
         <Card className="mx-auto max-w-sm border-0 shadow-none sm:border sm:shadow-sm">
           <CardHeader>
@@ -192,7 +204,7 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground" disabled={form.formState.isSubmitting}>
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
                 </Button>
               </form>
@@ -205,18 +217,6 @@ export default function RegisterPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-      <div className="hidden bg-muted lg:flex items-center justify-center rounded-l-3xl">
-        <div className="w-full h-full bg-gradient-to-br from-primary to-accent rounded-l-3xl flex items-center justify-center text-center p-12">
-          <div className="space-y-4">
-            <h2 className="text-4xl font-extrabold text-primary-foreground">
-              Tu tienda de motos, a un clic de distancia.
-            </h2>
-            <p className="text-primary-foreground/80 text-lg">
-              Únete a la comunidad de ComercioPlus y lleva tu negocio al siguiente nivel.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

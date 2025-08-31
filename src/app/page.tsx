@@ -9,25 +9,25 @@ export default function Home() {
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
       <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-background">
         <div className="container px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
+          <div className="grid gap-6 lg:grid-cols-2 lg:gap-16 items-center">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
-                <h1 className="text-3xl font-extrabold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                  Empieza gratis y comparte tu <span className="text-primary">catálogo</span> hoy.
+                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
+                  La plataforma para tu tienda de motos
                 </h1>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Publica tus productos, gestiona pedidos y comparte tu tienda en minutos. La plataforma definitiva para comerciantes de motos y repuestos.
+                  Crea tu catálogo, gestiona tu inventario y llega a más clientes. Todo en un solo lugar.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Button asChild size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg hover:shadow-xl transition-shadow">
+                <Button asChild size="lg" className="shadow-lg hover:shadow-xl transition-shadow">
                   <Link href="/register">
-                    Crear cuenta
+                    Crear Tienda Gratis
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg">
                   <Link href="/login">
-                    Iniciar sesión
+                    Iniciar Sesión
                   </Link>
                 </Button>
               </div>
@@ -38,50 +38,44 @@ export default function Home() {
               height="400"
               alt="Hero"
               data-ai-hint="motorcycle parts"
-              className="mx-auto aspect-video overflow-hidden rounded-3xl object-cover sm:w-full lg:order-last"
+              className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full"
             />
           </div>
         </div>
       </section>
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-secondary">
+      <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">Beneficios Clave</div>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Tu negocio de motos, online y sin complicaciones</h2>
+              <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Beneficios Clave</div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Tu negocio, a toda velocidad</h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Te damos las herramientas para que tu tienda de repuestos destaque en el mundo digital.
+                Diseñado para que gestionar tu tienda de repuestos sea más fácil que nunca.
               </p>
             </div>
           </div>
-          <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-3 lg:gap-12">
-            <Card className="h-full">
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <div className="bg-primary/10 p-4 rounded-full">
-                  <Zap className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold font-headline">Publica rápido</h3>
-                <p className="text-muted-foreground">Crea tu tienda y sube tu catálogo de productos en cuestión de minutos.</p>
-              </CardContent>
-            </Card>
-            <Card className="h-full">
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <div className="bg-primary/10 p-4 rounded-full">
-                  <Store className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold font-headline">Gestión simple</h3>
-                <p className="text-muted-foreground">Administra tu inventario, precios y pedidos desde un panel de control intuitivo.</p>
-              </CardContent>
-            </Card>
-            <Card className="h-full">
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <div className="bg-primary/10 p-4 rounded-full">
-                  <Truck className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold font-headline">Catálogo online</h3>
-                <p className="text-muted-foreground">Llega a más clientes con una tienda online profesional y atractiva.</p>
-              </CardContent>
-            </Card>
+          <div className="mx-auto grid max-w-5xl items-start gap-8 py-12 lg:grid-cols-3 lg:gap-12">
+            <div className="grid gap-1 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <Zap className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold font-headline">Publicación Rápida</h3>
+              <p className="text-muted-foreground">Crea tu tienda y sube tu catálogo de productos en cuestión de minutos.</p>
+            </div>
+            <div className="grid gap-1 text-center">
+               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <Store className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold font-headline">Gestión Simple</h3>
+              <p className="text-muted-foreground">Administra tu inventario y pedidos desde un panel de control intuitivo.</p>
+            </div>
+            <div className="grid gap-1 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <Truck className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold font-headline">Catálogo Atractivo</h3>
+              <p className="text-muted-foreground">Llega a más clientes con una tienda online profesional y fácil de compartir.</p>
+            </div>
           </div>
         </div>
       </section>

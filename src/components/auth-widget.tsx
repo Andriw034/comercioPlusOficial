@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type User } from 'firebase/auth';
+import { type User, onAuthStateChanged } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/schemas/user';
 import type { Store } from '@/lib/schemas/store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { auth } from '@/lib/firebase';
 
 type UserState = {
   data: Partial<User> | null;
@@ -91,14 +92,14 @@ export function AuthWidget() {
     if (userState?.appUser?.role === 'Comerciante') {
         if (userState.store?.slug) {
             return (
-                <Link href={`/store/${userState.store.slug}`} className="font-medium text-muted-foreground hover:text-primary transition-colors">Mi Tienda</Link>
+                <Link href={`/store/${userState.store.slug}`} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Mi Tienda</Link>
             );
         }
         return (
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger>
-                        <span className="font-medium text-muted-foreground/50 cursor-not-allowed">Mi Tienda</span>
+                        <span className="text-sm font-medium text-muted-foreground/50 cursor-not-allowed">Mi Tienda</span>
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Completa el registro de tu tienda para verla.</p>
@@ -113,8 +114,8 @@ export function AuthWidget() {
   if (loading) {
     return (
         <div className='flex items-center gap-4'>
-            <Skeleton className="h-6 w-20" />
-            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-10 w-10 rounded-full" />
         </div>
     );
   }
@@ -123,10 +124,10 @@ export function AuthWidget() {
     const user = userState.data;
     const userInitial = user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email?.charAt(0).toUpperCase() ?? 'U');
     return (
-        <div className='flex items-center gap-6'>
-            <nav className="hidden md:flex items-center gap-6 text-sm">
+        <div className='flex items-center gap-4'>
+            <nav className="hidden md:flex items-center gap-6">
                 <MyStoreLink />
-                <Link href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
+                <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
             </nav>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -164,14 +165,11 @@ export function AuthWidget() {
   }
 
   return (
-    <div className="flex items-center gap-3">
-        <nav className="hidden md:flex items-center gap-6 text-sm mr-3">
-            <Link href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
-        </nav>
+    <div className="flex items-center gap-2">
       <Button asChild variant="ghost">
         <Link href="/login">Entrar</Link>
       </Button>
-      <Button asChild className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
+      <Button asChild>
         <Link href="/register">Crear cuenta</Link>
       </Button>
     </div>

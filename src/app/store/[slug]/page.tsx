@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Product } from "@/lib/schemas/product";
 import type { Store } from "@/lib/schemas/store";
 import type { Category } from "@/lib/schemas/category";
-import { Bike, Search, Star } from "lucide-react";
+import { Bike, Search, Star, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -67,8 +67,8 @@ export default async function StorePage({ params }: { params: { slug: string } }
 
   return (
     <div>
-      <header className="relative mb-16">
-        <div className="h-48 md:h-64 w-full bg-gradient-to-r from-primary/20 to-accent/20">
+      <section className="border-b">
+        <div className="relative h-48 md:h-64 w-full">
           {store.cover && (
             <Image 
               src={store.cover} 
@@ -79,22 +79,25 @@ export default async function StorePage({ params }: { params: { slug: string } }
               priority
             />
           )}
+          <div className="absolute inset-0 bg-black/40"></div>
         </div>
-        <div className="absolute inset-0 bg-black/30"></div>
-        <div className="container absolute -bottom-14 left-1/2 -translate-x-1/2">
-           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="h-28 w-28 rounded-full bg-white p-2 flex-shrink-0 flex items-center justify-center border-4 border-background shadow-lg -mt-12 sm:mt-0">
+        <div className="container -mt-16">
+          <div className="flex flex-col sm:flex-row items-end gap-4 relative z-10">
+            <div className="h-28 w-28 rounded-md bg-background p-1.5 flex-shrink-0 flex items-center justify-center border shadow-md">
               {store.logo ? (
-                 <Image src={store.logo} width={104} height={104} alt={`Logo de ${store.name}`} className="rounded-full object-cover"/>
+                 <Image src={store.logo} width={104} height={104} alt={`Logo de ${store.name}`} className="rounded-sm object-cover"/>
               ) : (
                 <Bike className="h-16 w-16 text-primary" />
               )}
             </div>
-            <div className="flex-grow bg-card/80 backdrop-blur-sm p-4 rounded-xl shadow-md w-full">
-                <div className="flex flex-col sm:flex-row justify-between items-center">
+            <div className="flex-grow py-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold font-headline">{store.name}</h1>
-                        <p className="text-muted-foreground text-sm md:text-base truncate max-w-prose">{store.description}</p>
+                        <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
+                          <MapPin className="w-4 h-4" />
+                          {store.address}
+                        </p>
                     </div>
                     <div className="flex-shrink-0 mt-2 sm:mt-0">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/50 px-3 py-1.5 rounded-full border">
@@ -107,9 +110,9 @@ export default async function StorePage({ params }: { params: { slug: string } }
             </div>
           </div>
         </div>
-      </header>
+      </section>
 
-      <main className="container pt-12">
+      <main className="container pt-8 pb-16">
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -162,7 +165,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
                     </h3>
                     <div className="flex items-center justify-between mt-4">
                     <p className="font-bold text-xl">${product.price.toLocaleString('es-CO')}</p>
-                    <Button size="sm" className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
+                    <Button size="sm">
                         Agregar
                     </Button>
                     </div>
