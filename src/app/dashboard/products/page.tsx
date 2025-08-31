@@ -12,29 +12,41 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { placeholderProducts } from "@/lib/placeholder-data";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 export default function ProductsPage() {
+    const [user] = useAuthState(auth);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate fetching products
-        setLoading(true);
-        setTimeout(() => {
-            const typedPlaceholderProducts = placeholderProducts.map(p => ({
-                ...p,
-                price: Number(p.price),
-                stock: Number(p.stock),
-                storeId: 'mock-store-id',
-                userId: 'mock-user-id',
-                offer: false,
-                averageRating: 5,
-                ratings: [],
-            }));
-            setProducts(typedPlaceholderProducts as Product[]);
-            setLoading(false);
-        }, 1000);
-    }, []);
+        const fetchProducts = async () => {
+            if (!user) {
+                // If no user, maybe show placeholder or empty state after a delay
+                setTimeout(() => {
+                  setProducts(placeholderProducts as Product[]); // show placeholders for demo
+                  setLoading(false);
+                }, 1000);
+                return;
+            }
+            setLoading(true);
+            try {
+                const q = query(collection(db, "products"), where("userId", "==", user.uid));
+                const querySnapshot = await getDocs(q);
+                const userProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
+                setProducts(userProducts);
+            } catch (error) {
+                console.error("Error fetching products:", error);
+                // Optionally set some error state to show in the UI
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, [user]);
 
     return (
         <Card>
@@ -109,4 +121,3 @@ export default function ProductsPage() {
         </Card>
     );
 }
-

@@ -29,7 +29,8 @@ const db = initializeFirestore(app, {
   localCache: undefined,
 });
 
-if (process.env.NODE_ENV === 'development') {
+// We only want to connect to the emulators in a development environment
+if (typeof window !== "undefined" && window.location.hostname === "localhost") {
     console.log('Development environment: Connecting to emulators');
     try {
         connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
@@ -38,5 +39,6 @@ if (process.env.NODE_ENV === 'development') {
         console.error("Error connecting to emulators:", error);
     }
 }
+
 
 export { app, db, auth, storage };

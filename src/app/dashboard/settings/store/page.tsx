@@ -16,6 +16,9 @@ import { z } from "zod";
 import Image from "next/image";
 import { Bike } from "lucide-react";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 // We omit fields that are not in the form or are handled separately
 const StoreFormSchema = StoreSchema.omit({
@@ -32,26 +35,8 @@ const StoreFormSchema = StoreSchema.omit({
 
 type StoreFormValues = z.infer<typeof StoreFormSchema>;
 
-const mockStore: Store = {
-    id: 'mock-store-id',
-    userId: 'mock-user-id',
-    name: 'Moto Repuestos Pro (Mock)',
-    slug: 'moto-repuestos-pro-mock',
-    description: 'La mejor tienda de repuestos de la ciudad. Datos de prueba.',
-    address: 'Avenida Siempre Viva 123',
-    phone: '3001234567',
-    openingHours: 'L-V 8am-6pm, S 9am-2pm',
-    mainCategory: 'Repuestos',
-    logo: 'https://picsum.photos/104/104?random=logo',
-    cover: 'https://picsum.photos/800/200?random=cover',
-    status: 'active',
-    averageRating: 4.7,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-};
-
-
 export default function StoreSettingsPage() {
+  const [user] = useAuthState(auth);
   const { toast } = useToast();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -74,11 +59,20 @@ export default function StoreSettingsPage() {
   });
 
   useEffect(() => {
-    // Simulate fetching store data
-    form.reset(mockStore);
-    if (mockStore.logo) setExistingLogo(mockStore.logo);
-    if (mockStore.cover) setExistingCover(mockStore.cover);
-  }, [form]);
+    const fetchStoreData = async () => {
+      if (user) {
+        const storeRef = doc(db, "stores", user.uid);
+        const storeSnap = await getDoc(storeRef);
+        if (storeSnap.exists()) {
+          const storeData = storeSnap.data() as Store;
+          form.reset(storeData);
+          if (storeData.logo) setExistingLogo(storeData.logo);
+          if (storeData.cover) setExistingCover(storeData.cover);
+        }
+      }
+    };
+    fetchStoreData();
+  }, [user, form]);
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -97,16 +91,33 @@ export default function StoreSettingsPage() {
   };
 
   const onSubmit = async (data: StoreFormValues) => {
-    // Simulate saving data
-    form.formState.isSubmitting = true;
-    console.log("Submitting mock data:", data);
-    setTimeout(() => {
-        toast({
-            title: "¡Tienda actualizada! (Simulado)",
-            description: "Los datos de tu tienda se han guardado correctamente.",
-        });
-        form.formState.isSubmitting = false;
-    }, 1000);
+    if (!user) {
+      toast({ title: "Error", description: "Debes iniciar sesión.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const storeRef = doc(db, "stores", user.uid);
+      const storeData = {
+        userId: user.uid,
+        ...data,
+        // In a real app, you would upload logoFile and coverFile to storage
+        // and get the URLs to save here. For now, we'll just save the form data.
+        logo: existingLogo, // placeholder
+        cover: existingCover, // placeholder
+        updatedAt: serverTimestamp(),
+      };
+      
+      await setDoc(storeRef, storeData, { merge: true });
+
+      toast({
+        title: "¡Tienda actualizada!",
+        description: "Los datos de tu tienda se han guardado correctamente.",
+      });
+    } catch (error) {
+      console.error("Error updating store:", error);
+      toast({ title: "Error", description: "No se pudo actualizar la tienda.", variant: "destructive" });
+    }
   };
 
 
@@ -258,4 +269,3 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
-

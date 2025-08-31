@@ -36,7 +36,6 @@ export function AuthWidget() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Fetch app-specific user data and store data from Firestore

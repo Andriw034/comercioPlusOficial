@@ -6,36 +6,29 @@ import { ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { placeholderProducts } from "@/lib/placeholder-data";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 
 async function getProduct(id: string): Promise<{ product: Product, store: Store } | null> {
-    const mockProduct = placeholderProducts.find(p => p.id === id);
-    if (!mockProduct) return null;
+    const productRef = doc(db, "products", id);
+    const productSnap = await getDoc(productRef);
 
-    const product: Product = {
-        ...mockProduct,
-        price: Number(mockProduct.price),
-        stock: Number(mockProduct.stock),
-        storeId: 'mock-store-id',
-        userId: 'mock-user-id',
-        offer: false,
-        averageRating: 4.8,
-        ratings: [],
-    };
+    if (!productSnap.exists()) {
+      return null;
+    }
 
-    const store: Store = {
-        id: 'mock-store-id',
-        userId: 'mock-user-id',
-        name: 'Tienda de Prueba',
-        slug: 'tienda-de-prueba',
-        mainCategory: "Repuestos",
-        status: "active",
-        address: "Calle Falsa 123",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        averageRating: 4.7,
-    };
+    const product = { id: productSnap.id, ...productSnap.data() } as Product;
+
+    const storeRef = doc(db, "stores", product.storeId);
+    const storeSnap = await getDoc(storeRef);
+
+    if (!storeSnap.exists()) {
+        // Handle case where store might not exist, though it should
+        return null;
+    }
+
+    const store = { id: storeSnap.id, ...storeSnap.data() } as Store;
 
     return { product, store };
 }

@@ -10,58 +10,47 @@ import { Bike, Search, Star, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { placeholderProducts } from "@/lib/placeholder-data";
+import { collection, getDocs, query, where, limit, getDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-// Static categories to avoid Firestore query errors if collection doesn't exist
-const categories: Category[] = [
-    { id: "cascos", name: "Cascos", slug: 'cascos' },
-    { id: "llantas", name: "Llantas", slug: 'llantas' },
-    { id: "aceites", name: "Aceites y lubricantes", slug: 'aceites' },
-    { id: "frenos", name: "Frenos", slug: 'frenos' },
-    { id: "baterias", name: "Baterías", slug: 'baterias' },
-    { id: "accesorios", name: "Accesorios", slug: 'accesorios' },
-];
+async function getStoreData(slug: string) {
+    const storesRef = collection(db, "stores");
+    const q = query(storesRef, where("slug", "==", slug), limit(1));
+    const querySnapshot = await getDocs(q);
 
-const getMockStore = (slug: string): Store => ({
-    id: 'mock-store-id',
-    userId: 'mock-user-id',
-    name: `Tienda ${slug}`,
-    slug: slug,
-    description: 'Esta es una tienda de prueba con datos simulados para que puedas seguir desarrollando.',
-    address: 'Avenida Siempre Viva 123',
-    phone: '3001234567',
-    openingHours: 'L-V 8am-6pm, S 9am-2pm',
-    mainCategory: 'Repuestos',
-    logo: 'https://picsum.photos/104/104?random=logo',
-    cover: `https://picsum.photos/1280/320?random=${slug}`,
-    status: 'active',
-    averageRating: 4.7,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-});
+    if (querySnapshot.empty) {
+        return null;
+    }
 
-const getMockProducts = (): Product[] => {
-    return placeholderProducts.map(p => ({
-        ...p,
-        price: Number(p.price),
-        stock: Number(p.stock),
-        storeId: 'mock-store-id',
-        userId: 'mock-user-id',
-        offer: false,
-        averageRating: 5,
-        ratings: [],
-    })) as Product[];
-};
+    const storeDoc = querySnapshot.docs[0];
+    const store = { id: storeDoc.id, ...storeDoc.data() } as Store;
 
+    const productsRef = collection(db, "products");
+    const productsQuery = query(productsRef, where("storeId", "==", store.id));
+    const productsSnapshot = await getDocs(productsQuery);
+    const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
+
+    // In a real app, you would fetch categories from their own collection
+    const categories: Category[] = [
+        { id: "cascos", name: "Cascos", slug: 'cascos' },
+        { id: "llantas", name: "Llantas", slug: 'llantas' },
+        { id: "aceites", name: "Aceites y lubricantes", slug: 'aceites' },
+        { id: "frenos", name: "Frenos", slug: 'frenos' },
+        { id: "baterias", name: "Baterías", slug: 'baterias' },
+        { id: "accesorios", name: "Accesorios", slug: 'accesorios' },
+    ];
+    
+    return { store, products, categories };
+}
 
 export default async function StorePage({ params }: { params: { slug: string } }) {
-  const store = getMockStore(params.slug);
+  const data = await getStoreData(params.slug);
 
-  if (!store) {
+  if (!data) {
     notFound();
   }
 
-  const products = getMockProducts();
+  const { store, products, categories } = data;
   const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
 
 
@@ -69,7 +58,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
     <div className="bg-secondary/20">
       <section className="border-b border-white/10">
         <div className="relative h-48 md:h-64 w-full">
-          {store.cover && (
+          {store.cover ? (
             <Image 
               src={store.cover} 
               alt={`Portada de ${store.name}`}
@@ -78,7 +67,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
               data-ai-hint="motorcycle road"
               priority
             />
-          )}
+          ) : <div className="w-full h-full bg-muted"></div>}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent"></div>
         </div>
         <div className="container -mt-20">
