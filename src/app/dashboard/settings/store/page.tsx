@@ -188,7 +188,6 @@ export default function StoreSettingsPage() {
                                     type="file" 
                                     accept="image/*"
                                     onChange={(e) => handleFileChange(e, setLogoFile, setLogoPreview)}
-                                    disabled
                                 />
                             </div>
                         </div>
@@ -209,7 +208,6 @@ export default function StoreSettingsPage() {
                                     type="file" 
                                     accept="image/*"
                                     onChange={(e) => handleFileChange(e, setCoverFile, setCoverPreview)}
-                                    disabled
                                 />
                              </div>
                         </div>
