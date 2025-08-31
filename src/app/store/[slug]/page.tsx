@@ -53,38 +53,44 @@ export default async function StorePage({ params }: { params: { slug: string } }
 
   return (
     <div>
-      <header className="relative mb-8">
-        <div className="h-40 md:h-56 w-full bg-gradient-to-r from-primary to-accent">
-          <Image 
-            src={store.cover ?? "https://picsum.photos/1600/400"} 
-            alt="Cover image" 
-            fill
-            className="object-cover"
-            data-ai-hint="motorcycle road"
-          />
+      <header className="relative mb-12">
+        <div className="h-48 md:h-64 w-full bg-gradient-to-r from-primary to-accent">
+          {store.cover && (
+            <Image 
+              src={store.cover} 
+              alt={`Portada de ${store.name}`}
+              fill
+              className="object-cover"
+              data-ai-hint="motorcycle road"
+              priority
+            />
+          )}
         </div>
-        <div className="absolute inset-0 bg-black/30"></div>
-        <div className="container absolute inset-0 flex items-end p-4 md:p-8">
-          <div className="flex items-center gap-4 bg-background/85 backdrop-blur px-4 py-3 rounded-2xl shadow-lg">
-            <div className="h-16 w-16 rounded-lg bg-white p-1 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="container absolute -bottom-10 left-1/2 -translate-x-1/2">
+           <div className="flex items-center gap-6 bg-card p-4 rounded-2xl shadow-lg w-full">
+            <div className="h-20 w-20 rounded-xl bg-white p-1 flex-shrink-0 flex items-center justify-center border shadow-md">
               {store.logo ? (
-                 <Image src={store.logo} width={64} height={64} alt={store.name} className="rounded-md object-cover"/>
+                 <Image src={store.logo} width={80} height={80} alt={`Logo de ${store.name}`} className="rounded-lg object-cover"/>
               ) : (
                 <Bike className="h-12 w-12 text-primary" />
               )}
             </div>
-            <div>
-              <h1 className="text-xl md:text-3xl font-bold font-headline">{store.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span>{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
-              </div>
+            <div className="flex-grow">
+              <h1 className="text-2xl md:text-4xl font-bold font-headline">{store.name}</h1>
+              <p className="text-muted-foreground text-sm md:text-base truncate max-w-prose">{store.description}</p>
+            </div>
+            <div className="flex-shrink-0">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background px-3 py-1.5 rounded-full border">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-semibold">{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
+                </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="container">
+      <div className="container pt-12">
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -115,15 +121,17 @@ export default async function StorePage({ params }: { params: { slug: string } }
           {products.map(product => (
             <Card key={product.id} className="overflow-hidden group">
               <Link href={`/products/${product.id}`}>
-                <div className="aspect-square overflow-hidden">
-                  <Image
-                    src={product.image ?? "https://picsum.photos/400/400"}
-                    width={400}
-                    height={400}
-                    alt={product.name}
-                    data-ai-hint="motorcycle part"
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                  />
+                <div className="aspect-square overflow-hidden bg-muted">
+                  {product.image && (
+                    <Image
+                      src={product.image}
+                      width={400}
+                      height={400}
+                      alt={product.name}
+                      data-ai-hint="motorcycle part"
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
+                  )}
                 </div>
               </Link>
               <CardContent className="p-4">
