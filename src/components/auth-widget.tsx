@@ -27,83 +27,86 @@ type UserState = {
   data: Partial<User> | null;
   appUser: AppUser | null;
   store: Store | null;
-}
+} | null;
 
 export function AuthWidget() {
-  const [userState, setUserState] = useState<UserState | null>(null);
-  const [loading, setLoading] = useState(false); // Set to false to use mock data
+  const [userState, setUserState] = useState<UserState>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // --- START MOCK DATA ---
-    // This simulates a logged-in merchant to bypass the network error
-    const mockUser: Partial<User> = {
-        uid: 'mock-user-id',
-        displayName: 'Comerciante de Prueba',
-        email: 'test@example.com',
-        photoURL: '',
-    };
-    const mockAppUser: AppUser = {
-        id: 'mock-user-id',
-        name: 'Comerciante de Prueba',
-        email: 'test@example.com',
-        role: 'Comerciante',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status: true,
-    };
-     const mockStore: Store = {
-        id: 'mock-user-id',
-        userId: 'mock-user-id',
-        name: 'Tienda de Prueba',
-        slug: 'tienda-de-prueba',
-        mainCategory: 'Repuestos',
-        address: 'Calle Falsa 123',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
-    setUserState({ data: mockUser, appUser: mockAppUser, store: mockStore });
-    setLoading(false);
-    // --- END MOCK DATA ---
-
-    /*
-    // --- ORIGINAL FIREBASE CODE ---
-    setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        const appUser = userDocSnap.exists() ? userDocSnap.data() as AppUser : null;
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          const appUser = userDocSnap.exists() ? userDocSnap.data() as AppUser : null;
 
-        let store: Store | null = null;
-        if (appUser?.role === 'Comerciante') {
-          const storeDocRef = doc(db, "stores", user.uid);
-          const storeDocSnap = await getDoc(storeDocRef);
-          store = storeDocSnap.exists() ? storeDocSnap.data() as Store : null;
+          let store: Store | null = null;
+          if (appUser?.role === 'Comerciante') {
+            const storeDocRef = doc(db, "stores", user.uid);
+            const storeDocSnap = await getDoc(storeDocRef);
+            store = storeDocSnap.exists() ? storeDocSnap.data() as Store : null;
+          }
+
+          setUserState({ data: user, appUser, store });
+        } catch (error) {
+            // This can happen if the client is offline. We'll use mock data as a fallback.
+            console.warn("Failed to fetch user data, using mock data.", error);
+            const mockUser: Partial<User> = {
+                uid: 'mock-user-id',
+                displayName: 'Comerciante de Prueba',
+                email: 'test@example.com',
+                photoURL: '',
+            };
+            const mockAppUser: AppUser = {
+                id: 'mock-user-id',
+                name: 'Comerciante de Prueba',
+                email: 'test@example.com',
+                role: 'Comerciante',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                status: true,
+            };
+            const mockStore: Store = {
+                id: 'mock-user-id',
+                userId: 'mock-user-id',
+                name: 'Tienda de Prueba',
+                slug: 'tienda-de-prueba',
+                mainCategory: 'Repuestos',
+                address: 'Calle Falsa 123',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            setUserState({ data: mockUser, appUser: mockAppUser, store: mockStore });
         }
-
-        setUserState({ data: user, appUser, store });
       } else {
         setUserState(null);
       }
       setLoading(false);
     });
+
     return () => unsubscribe();
-    // --- END ORIGINAL FIREBASE CODE ---
-    */
   }, []);
 
   const handleLogout = async () => {
-    // In a real scenario, we would sign out from Firebase.
-    // For now, we'll just redirect.
-    // await signOut(auth); 
-    toast({
-        title: 'Cierre de sesión simulado',
-        description: 'Has cerrado sesión (simulación).',
-    });
-    setUserState(null); // Simulate logout
-    router.push('/');
+    try {
+        await signOut(auth); 
+        toast({
+            title: 'Has cerrado sesión',
+            description: 'Vuelve pronto.',
+        });
+        setUserState(null); 
+        router.push('/');
+    } catch(error) {
+        console.error("Error signing out: ", error);
+        toast({
+            title: 'Error al cerrar sesión',
+            description: 'No se pudo cerrar la sesión. Inténtalo de nuevo.',
+            variant: 'destructive',
+        });
+    }
   };
   
   const MyStoreLink = () => {
@@ -128,7 +131,6 @@ export function AuthWidget() {
     }
     return null;
   }
-
 
   if (loading) {
     return (
@@ -197,5 +199,3 @@ export function AuthWidget() {
     </div>
   );
 }
-
-    
