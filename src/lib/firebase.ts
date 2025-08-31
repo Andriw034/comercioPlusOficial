@@ -1,8 +1,9 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { config } from 'dotenv';
 
 config();
@@ -22,6 +23,20 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const storage = getStorage(app);
-const db = getFirestore(app);
+// Use initializeFirestore instead of getFirestore for better SSR compatibility
+const db = initializeFirestore(app, {
+  // Disable persistence on the server
+  localCache: undefined,
+});
+
+if (process.env.NODE_ENV === 'development') {
+    console.log('Development environment: Connecting to emulators');
+    try {
+        connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+        connectFirestoreEmulator(db, "127.0.0.1", 8080);
+    } catch (error) {
+        console.error("Error connecting to emulators:", error);
+    }
+}
 
 export { app, db, auth, storage };
