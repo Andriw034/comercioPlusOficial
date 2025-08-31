@@ -1,5 +1,7 @@
+
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,6 +14,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Image from "next/image";
+import { Image as ImageIcon } from "lucide-react";
 
 
 const ProductFormSchema = ProductSchema.omit({
@@ -30,7 +34,6 @@ const ProductFormSchema = ProductSchema.omit({
 
 type ProductFormValues = z.infer<typeof ProductFormSchema>;
 
-// TODO: Load categories from Firestore
 const categories = [
     { id: "cascos", name: "Cascos" },
     { id: "llantas", name: "Llantas" },
@@ -43,6 +46,7 @@ const categories = [
 export default function NewProductPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(ProductFormSchema),
@@ -57,6 +61,22 @@ export default function NewProductPage() {
     },
     mode: "onChange",
   });
+  
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setImagePreview(reader.result as string);
+            form.setValue("image", reader.result as string, { shouldValidate: true });
+        };
+        reader.readAsDataURL(file);
+    } else {
+        setImagePreview(null);
+        form.setValue("image", "", { shouldValidate: true });
+    }
+  };
+
 
   const onSubmit = async (data: ProductFormValues) => {
     toast({
@@ -75,7 +95,7 @@ export default function NewProductPage() {
         </CardHeader>
         <CardContent>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="grid md:grid-cols-2 gap-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid md:grid-cols-2 gap-x-8 gap-y-6">
                     <div className="space-y-4">
                         <FormField
                             control={form.control}
@@ -154,24 +174,38 @@ export default function NewProductPage() {
                             )}
                         />
 
-                        <FormField
+                        <div className="space-y-2">
+                          <FormLabel>Imagen del Producto</FormLabel>
+                           <div className="flex items-center gap-4">
+                              <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center border">
+                                  {imagePreview ? (
+                                      <Image src={imagePreview} width={96} height={96} alt="Vista previa del producto" className="rounded-md object-cover h-24 w-24"/>
+                                  ) : (
+                                      <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                                  )}
+                              </div>
+                              <Input 
+                                  type="file" 
+                                  accept="image/*"
+                                  onChange={handleImageChange}
+                              />
+                           </div>
+                           <p className="text-sm text-muted-foreground">La subida se simula, pero la previsualización funciona.</p>
+                       </div>
+
+                       <FormField
                             control={form.control}
                             name="image"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="hidden">
                                     <FormLabel>URL de la Imagen</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="https://ejemplo.com/imagen.jpg" {...field} />
+                                        <Input {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                         <div className="space-y-2">
-                            <FormLabel>Subir Imagen</FormLabel>
-                            <Input type="file" disabled/>
-                            <p className="text-sm text-muted-foreground">La subida de archivos se habilitará pronto.</p>
-                        </div>
                     </div>
                     <div className="md:col-span-2">
                         <Button type="submit" disabled={form.formState.isSubmitting}>
