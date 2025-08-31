@@ -3,6 +3,9 @@ import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { initializeFirestore } from "firebase/firestore";
+import { config } from 'dotenv';
+
+config();
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
