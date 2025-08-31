@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Image from "next/image";
 import { Bike } from "lucide-react";
+import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 
 // We omit fields that are not in the form or are handled separately
 const StoreFormSchema = StoreSchema.omit({
@@ -113,6 +114,7 @@ export default function StoreSettingsPage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Ajustes de la Tienda</h2>
+        <ThemeToggle />
       </div>
       <div className="grid gap-8 md:grid-cols-2">
         <Card>
