@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { type User as FirebaseUser } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -51,13 +50,12 @@ const mockStore: Store = {
 export function AuthWidget() {
   const [loading, setLoading] = useState(true);
   const [userState, setUserState] = useState<UserState>(null);
-  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate auth state for UI development
-    setLoading(true);
-    setTimeout(() => {
+    // This now runs only on the client, after the initial render.
+    // This avoids the hydration mismatch error.
+    const timer = setTimeout(() => {
       setUserState({
         data: mockUser,
         appUser: { role: 'Comerciante' } as AppUser,
@@ -65,6 +63,8 @@ export function AuthWidget() {
       });
       setLoading(false);
     }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleLogout = async () => {
@@ -72,17 +72,11 @@ export function AuthWidget() {
       title: 'Has cerrado sesión (simulado)',
       description: 'En una app real, esto cerraría tu sesión.',
     });
-    // To "log in" again, the user would just refresh the page in this mocked state.
-    setUserState(null);
     setLoading(true);
+    setUserState(null);
     setTimeout(() => {
-        setUserState({
-            data: mockUser,
-            appUser: { role: 'Comerciante' } as AppUser,
-            store: mockStore,
-          });
         setLoading(false)
-    }, 1000); // Simulate loading state
+    }, 500);
   };
   
   const MyStoreLink = () => {
@@ -108,6 +102,7 @@ export function AuthWidget() {
     return null;
   }
 
+  // During initial render and loading state, show skeletons
   if (loading) {
     return (
         <div className='flex items-center gap-4'>
@@ -117,6 +112,7 @@ export function AuthWidget() {
     );
   }
 
+  // After loading, if user is "logged in" (mocked)
   if (userState?.data) {
     const user = userState.data;
     const userInitial = user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email?.charAt(0).toUpperCase() ?? 'U');
@@ -160,6 +156,7 @@ export function AuthWidget() {
     );
   }
 
+  // After loading, if no user is logged in
   return (
     <div className="flex items-center gap-2">
       <Button asChild variant="ghost">
