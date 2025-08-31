@@ -78,8 +78,8 @@ export default function StoreSettingsPage() {
             logo: storeData.logo ?? "",
             cover: storeData.cover ?? "",
           });
-          setLogoPreview(storeData.logo);
-          setCoverPreview(storeData.cover);
+          if (storeData.logo) setLogoPreview(storeData.logo);
+          if (storeData.cover) setCoverPreview(storeData.cover);
         }
         setLoading(false);
       };
@@ -112,7 +112,15 @@ export default function StoreSettingsPage() {
       return;
     }
 
-    form.formState.isSubmitting = true;
+    form.control.register('name');
+    form.control.register('slug');
+    form.control.register('description');
+    form.control.register('address');
+    form.control.register('phone');
+    form.control.register('openingHours');
+    form.control.register('mainCategory');
+    form.control.register('logo');
+    form.control.register('cover');
 
     try {
       let logoUrl = store?.logo ?? null;
@@ -142,7 +150,15 @@ export default function StoreSettingsPage() {
         console.error("Error saving store:", error);
         toast({ title: "Error", description: "No se pudo guardar la información de la tienda.", variant: "destructive" });
     } finally {
-        form.formState.isSubmitting = false;
+        form.control.unregister('name');
+        form.control.unregister('slug');
+        form.control.unregister('description');
+        form.control.unregister('address');
+        form.control.unregister('phone');
+        form.control.unregister('openingHours');
+        form.control.unregister('mainCategory');
+        form.control.unregister('logo');
+        form.control.unregister('cover');
     }
   };
 
@@ -160,7 +176,7 @@ export default function StoreSettingsPage() {
                 <CardTitle>Acceso denegado</CardTitle>
                 <CardDescription>Debes iniciar sesión para administrar tu tienda.</CardDescription>
                 <Button asChild>
-                    <a href="/login">Ir a Iniciar Sesión</a>
+                    <Link href="/login">Ir a Iniciar Sesión</Link>
                 </Button>
             </div>
       )
@@ -312,5 +328,3 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
-
-    
