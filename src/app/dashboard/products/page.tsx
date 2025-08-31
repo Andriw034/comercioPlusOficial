@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { placeholderProducts } from "@/lib/placeholder-data";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -23,15 +22,13 @@ export default function ProductsPage() {
 
     useEffect(() => {
         const fetchProducts = async () => {
+            setLoading(true);
             if (!user) {
-                // If no user, maybe show placeholder or empty state after a delay
-                setTimeout(() => {
-                  setProducts(placeholderProducts as Product[]); // show placeholders for demo
-                  setLoading(false);
-                }, 1000);
+                // Delay setting loading to false if user is not logged in yet
+                // to avoid flashing the "no products" message.
+                setTimeout(() => setLoading(false), 1000);
                 return;
             }
-            setLoading(true);
             try {
                 const q = query(collection(db, "products"), where("userId", "==", user.uid));
                 const querySnapshot = await getDocs(q);

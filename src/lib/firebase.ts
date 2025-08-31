@@ -4,9 +4,6 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
-import { config } from 'dotenv';
-
-config();
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -30,13 +27,16 @@ const db = initializeFirestore(app, {
 });
 
 // We only want to connect to the emulators in a development environment
-if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-    console.log('Development environment: Connecting to emulators');
-    try {
-        connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-        connectFirestoreEmulator(db, "127.0.0.1", 8080);
-    } catch (error) {
-        console.error("Error connecting to emulators:", error);
+if (process.env.NODE_ENV === 'development') {
+    // Check if we're running in the browser to avoid server-side connection attempts
+    if (typeof window !== "undefined") {
+        try {
+            connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+            connectFirestoreEmulator(db, "127.0.0.1", 8080);
+            console.log('Successfully connected to Firebase emulators');
+        } catch (error) {
+            console.error("Error connecting to Firebase emulators:", error);
+        }
     }
 }
 
