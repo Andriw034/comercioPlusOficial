@@ -1,8 +1,9 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { initializeFirestore } from "firebase/firestore";
+import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { config } from 'dotenv';
 
 config();
@@ -29,13 +30,14 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 
 // Connect to emulators in development
-if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+if (process.env.NODE_ENV === 'development') {
     // Point to the emulators.
     // This should be done after getAuth() and other Firebase services are initialized.
     try {
         connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+        connectFirestoreEmulator(db, '127.0.0.1', 8080);
     } catch (error) {
-        console.error("Error connecting to Firebase Auth Emulator:", error);
+        console.error("Error connecting to Firebase Emulators:", error);
     }
 }
 
