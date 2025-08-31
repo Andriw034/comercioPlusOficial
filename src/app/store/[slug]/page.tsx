@@ -70,7 +70,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
               priority
             />
           ) : <div className="w-full h-full bg-muted"></div>}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-black/20"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-black/20"></div>
         </div>
         <div className="container -mt-16 sm:-mt-20">
           <div className="flex flex-col sm:flex-row items-end gap-4 relative z-10">
@@ -107,10 +107,10 @@ export default async function StorePage({ params }: { params: { slug: string } }
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-grow">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input placeholder="Buscar en la tienda..." className="pl-12 h-11" />
+            <Input placeholder="Buscar en la tienda..." className="pl-12 h-11 bg-card" />
           </div>
           <Select>
-            <SelectTrigger className="w-full md:w-[200px] h-11">
+            <SelectTrigger className="w-full md:w-[200px] h-11 bg-card">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
@@ -119,7 +119,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
             </SelectContent>
           </Select>
           <Select>
-            <SelectTrigger className="w-full md:w-[200px] h-11">
+            <SelectTrigger className="w-full md:w-[200px] h-11 bg-card">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
@@ -134,9 +134,9 @@ export default async function StorePage({ params }: { params: { slug: string } }
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.length > 0 ? (
             products.map(product => (
-                <Card key={product.id} className="overflow-hidden group transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+                <Card key={product.id} className="overflow-hidden group transition-all duration-200 hover:shadow-md hover:-translate-y-1">
                 <Link href={`/products/${product.id}`}>
-                    <div className="aspect-square overflow-hidden bg-muted">
+                    <div className="aspect-square overflow-hidden bg-card">
                     {product.image && (
                         <Image
                         src={product.image}

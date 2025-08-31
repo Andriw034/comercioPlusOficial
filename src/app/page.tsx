@@ -19,7 +19,7 @@ export default function Home() {
           />
         </div>
         <div className="relative z-10 container px-4 md:px-6 space-y-8">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold">
             La Plataforma Para Tu Tienda de Repuestos
           </h1>
           <p className="max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground">
@@ -44,7 +44,7 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
             <div className="inline-block rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground">Nuestra Promesa</div>
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Tu Negocio, a Toda Velocidad</h2>
+            <h2 className="text-3xl font-bold sm:text-5xl">Tu Negocio, a Toda Velocidad</h2>
             <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed">
               Diseñado para que gestionar tu tienda de repuestos sea más fácil que nunca.
             </p>

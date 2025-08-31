@@ -43,7 +43,7 @@ export default async function ProductDetailsPage({ params }: { params: { id:stri
     return (
         <div className="container mx-auto max-w-6xl py-12">
             <div className="grid md:grid-cols-2 gap-12 items-start">
-                <div className="bg-muted rounded-2xl p-4">
+                <div className="bg-card rounded-2xl p-4 border shadow-sm">
                     <Image 
                         src={product.image ?? "https://picsum.photos/600/600"}
                         width={600}
@@ -58,7 +58,7 @@ export default async function ProductDetailsPage({ params }: { params: { id:stri
                         <p className="text-sm text-muted-foreground">
                             Vendido por <Link href={`/store/${store.slug}`} className="text-primary hover:underline font-medium">{store.name}</Link>
                         </p>
-                        <h1 className="text-4xl font-extrabold tracking-tight mt-1">{product.name}</h1>
+                        <h1 className="text-4xl font-extrabold mt-1">{product.name}</h1>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -77,15 +77,15 @@ export default async function ProductDetailsPage({ params }: { params: { id:stri
                     <p className="text-muted-foreground leading-relaxed">{product.description ?? 'No hay descripción para este producto.'}</p>
                     
                     <div className="flex items-center gap-4">
-                        <Button size="lg" className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg hover:shadow-xl transition-shadow">
+                        <Button size="lg" className="w-full shadow-lg hover:shadow-xl transition-shadow">
                             <ShoppingCart className="mr-2" />
                             Agregar al carrito
                         </Button>
                     </div>
 
                     <div className="border-t pt-4 text-sm text-muted-foreground">
-                        <p><span className="font-semibold">Categoría:</span> {product.category}</p>
-                        <p><span className="font-semibold">Unidades disponibles:</span> {product.stock}</p>
+                        <p><span className="font-semibold text-foreground">Categoría:</span> {product.category}</p>
+                        <p><span className="font-semibold text-foreground">Unidades disponibles:</span> {product.stock}</p>
                     </div>
                 </div>
             </div>

@@ -77,10 +77,10 @@ const config = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       boxShadow: {
-        'sm': '0 4px 16px rgba(17, 24, 39, 0.04)',
-        'DEFAULT': '0 4px 16px rgba(17, 24, 39, 0.06)',
-        'md': '0 6px 24px rgba(17, 24, 39, 0.08)',
-        'lg': '0 8px 32px rgba(17, 24, 39, 0.1)',
+        'sm': '0 4px 16px rgba(10, 12, 16, 0.06)',
+        'DEFAULT': '0 4px 16px rgba(10, 12, 16, 0.06)',
+        'md': '0 6px 24px rgba(10, 12, 16, 0.08)',
+        'lg': '0 8px 32px rgba(10, 12, 16, 0.08)',
       }
     },
   },

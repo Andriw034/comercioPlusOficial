@@ -66,7 +66,7 @@ export default function RegisterPage() {
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-md space-y-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Crea tu cuenta</h1>
+            <h1 className="text-3xl font-bold">Crea tu cuenta</h1>
             <p className="mt-2 text-muted-foreground">Ingresa tus datos para registrarte.</p>
           </div>
             <Form {...form}>
@@ -136,7 +136,7 @@ export default function RegisterPage() {
                 </Button>
               </form>
             </Form>
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-6 text-center text-sm text-muted-foreground">
               ¿Ya tienes una cuenta?{" "}
               <Link href="/login" className="font-medium text-primary hover:text-primary/90 underline-offset-4 hover:underline">
                 Iniciar sesión
@@ -149,7 +149,7 @@ export default function RegisterPage() {
             src="https://picsum.photos/1200/801"
             alt="Motorcycle on a road"
             fill
-            className="object-cover"
+            className="object-cover opacity-20"
             data-ai-hint="motorcycle road"
            />
       </div>

@@ -52,14 +52,14 @@ export default function LoginPage() {
             src="https://picsum.photos/1200/800"
             alt="Motorcycle parts"
             fill
-            className="object-cover"
+            className="object-cover opacity-20"
             data-ai-hint="motorcycle workshop"
            />
       </div>
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-md space-y-8">
           <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Iniciar sesión</h1>
+            <h1 className="text-3xl font-bold">Iniciar sesión</h1>
             <p className="text-balance text-muted-foreground">
               Ingresa tu correo para acceder a tu panel de control.
             </p>
@@ -99,7 +99,7 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-6 text-center text-sm text-muted-foreground">
             ¿Aún no tienes cuenta?{" "}
             <Link href="/register" className="font-medium text-primary hover:text-primary/90 underline-offset-4 hover:underline">
               Crear cuenta
