@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { placeholderProducts } from "@/lib/placeholder-data";
-import type { Product } from "@/lib/schemas/product";
 import type { Store } from "@/lib/schemas/store";
 import type { Category } from "@/lib/schemas/category";
 import { Bike, Search, Star, MapPin } from "lucide-react";

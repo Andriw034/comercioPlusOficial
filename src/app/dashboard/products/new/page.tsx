@@ -7,11 +7,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db } from "@/lib/firebase";
 import { ProductSchema } from "@/lib/schemas/product";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { useAuthState } from "react-firebase-hooks/auth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
@@ -41,7 +38,6 @@ const categories = [
 ];
 
 export default function NewProductPage() {
-  const [user] = useAuthState(auth);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -59,44 +55,12 @@ export default function NewProductPage() {
   });
 
   const onSubmit = async (data: ProductFormValues) => {
-    if (!user) {
-      toast({
-        title: "No autenticado",
-        description: "Debes iniciar sesión para crear un producto.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const productsRef = collection(db, "products");
-      await addDoc(productsRef, {
-        ...data,
-        price: Number(data.price),
-        stock: Number(data.stock),
-        userId: user.uid,
-        storeId: user.uid, // Assuming storeId is the same as userId
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        averageRating: 0,
-        ratings: [],
-      });
-
-      toast({
-        title: "¡Producto creado!",
+    toast({
+        title: "¡Producto creado! (Simulado)",
         description: "Tu nuevo producto ha sido guardado correctamente.",
       });
       
-      router.push("/dashboard/products");
-
-    } catch (error) {
-      console.error("Error creating product:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear el producto.",
-        variant: "destructive",
-      });
-    }
+    router.push("/dashboard/products");
   };
 
   return (

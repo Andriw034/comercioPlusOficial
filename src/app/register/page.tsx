@@ -6,18 +6,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -58,53 +48,16 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      );
-      const user = userCredential.user;
-      
-      await updateProfile(user, {
-        displayName: values.fullName,
-      });
+    // Simulate account creation
+    toast({
+        title: "¡Cuenta creada! (Simulado)",
+        description: "Tu cuenta ha sido creada exitosamente.",
+    });
 
-      // Save user role and other info in Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        id: user.uid,
-        name: values.fullName,
-        email: values.email,
-        role: values.role,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        status: true,
-      });
-      
-      toast({
-        title: "¡Cuenta creada!",
-        description: "Tu cuenta ha sido creada exitosamente. Ahora, configura tu tienda.",
-      });
-
-      if (values.role === 'Comerciante') {
+    if (values.role === 'Comerciante') {
         router.push("/dashboard/settings/store");
-      } else {
+    } else {
         router.push("/dashboard");
-      }
-
-    } catch (error: any) {
-      console.error("Error creating account:", error);
-      let description = "Ocurrió un error inesperado. Por favor, intenta de nuevo.";
-      if (error.code === 'auth/email-already-in-use') {
-        description = "Este correo electrónico ya está en uso. Por favor, intenta con otro.";
-      } else if (error.code === 'auth/api-key-not-valid') {
-        description = "La clave de API de Firebase no es válida. Por favor, revisa tu configuración.";
-      }
-      toast({
-        title: "Error al crear la cuenta",
-        description: description,
-        variant: "destructive",
-      });
     }
   };
 
@@ -123,12 +76,11 @@ export default function RegisterPage() {
         </div>
       </div>
       <div className="flex items-center justify-center py-12">
-        <Card className="mx-auto max-w-sm border-0 shadow-none sm:border sm:shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">Crea tu cuenta</CardTitle>
-            <CardDescription>Ingresa tus datos para registrarte.</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="mx-auto max-w-sm">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold">Crea tu cuenta</h1>
+            <p className="text-muted-foreground">Ingresa tus datos para registrarte.</p>
+          </div>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
                 <FormField
@@ -202,8 +154,7 @@ export default function RegisterPage() {
                 Iniciar sesión
               </Link>
             </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );

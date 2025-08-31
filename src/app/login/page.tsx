@@ -6,18 +6,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -28,7 +18,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { User } from "@/lib/schemas/user";
 
 
 const formSchema = z.object({
@@ -48,43 +37,12 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
-
-      // Fetch user role from Firestore
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      toast({
-        title: "¡Bienvenido de vuelta!",
+    // Simulate login
+    toast({
+        title: "¡Bienvenido de vuelta! (Simulado)",
         description: "Has iniciado sesión correctamente.",
-      });
-
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data() as User;
-        if (userData.role === 'Comerciante') {
-          router.push("/dashboard/products");
-        } else {
-          router.push("/dashboard");
-        }
-      } else {
-        // Fallback if user document doesn't exist for some reason
-        router.push("/dashboard");
-      }
-
-    } catch (error: any) {
-      console.error("Error signing in:", error);
-      let description = "Ocurrió un error inesperado. Por favor, intenta de nuevo.";
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        description = "Las credenciales son incorrectas. Verifica tu correo y contraseña.";
-      }
-      toast({
-        title: "Error al iniciar sesión",
-        description,
-        variant: "destructive",
-      });
-    }
+    });
+    router.push("/dashboard");
   };
 
   return (

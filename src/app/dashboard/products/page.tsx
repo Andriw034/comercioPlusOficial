@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import type { Product } from "@/lib/schemas/product";
 import { placeholderProducts } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

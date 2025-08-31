@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { placeholderProducts } from "@/lib/placeholder-data";
-import { Product } from "@/lib/schemas/product";
 import { Store } from "@/lib/schemas/store";
 import { ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
