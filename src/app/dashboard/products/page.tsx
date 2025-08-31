@@ -21,7 +21,7 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        async function getProductsForStore() {
+        const fetchProducts = async () => {
             if (user) {
                 try {
                     const productsRef = collection(db, "products");
@@ -34,13 +34,14 @@ export default function ProductsPage() {
                 } finally {
                     setLoading(false);
                 }
-            } else if (!loadingUser) {
-                // If there's no user and we're not loading the user anymore
+            } else {
                 setLoading(false);
             }
-        }
+        };
 
-        getProductsForStore();
+        if (!loadingUser) {
+            fetchProducts();
+        }
     }, [user, loadingUser]);
 
     return (
