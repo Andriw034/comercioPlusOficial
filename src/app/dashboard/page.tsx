@@ -59,7 +59,7 @@ export default function DashboardPage() {
                 Crear Producto
             </Link>
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" disabled>
             <Link href="#">Ver Pedidos</Link>
         </Button>
         <Button asChild variant="outline">

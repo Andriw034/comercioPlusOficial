@@ -35,6 +35,9 @@ export function AuthWidget() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // We start in a loading state
+    setLoading(true);
+
     const mockUser: Partial<User> = {
       uid: 'mock-user-id',
       displayName: 'Comerciante Mock',
@@ -63,12 +66,14 @@ export function AuthWidget() {
       address: "Calle Falsa 123"
     };
 
-    // Simulate auth state change after mount
+    // This timeout simulates the async nature of onAuthStateChanged
     const timeout = setTimeout(() => {
         // To simulate being logged in:
         setUserState({ data: mockUser, appUser: mockAppUser, store: mockStore });
         // To simulate being logged out:
         // setUserState(null);
+
+        // We are no longer loading
         setLoading(false);
     }, 500);
 
@@ -128,7 +133,6 @@ export function AuthWidget() {
         <div className='flex items-center gap-4'>
             <nav className="hidden md:flex items-center gap-6">
                 <MyStoreLink />
-                <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
             </nav>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
