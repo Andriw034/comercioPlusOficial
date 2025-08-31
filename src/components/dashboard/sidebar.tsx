@@ -21,13 +21,12 @@ export function DashboardSidebar() {
               <Home className="h-4 w-4" />
               Inicio
             </Link>
-            <Link
-              href="#"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-primary/10"
+            <span
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground/50 transition-all cursor-not-allowed"
             >
               <ShoppingCart className="h-4 w-4" />
               Órdenes
-            </Link>
+            </span>
             <Link
               href="/dashboard/products"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-primary/10"
