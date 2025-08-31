@@ -92,6 +92,8 @@ export default function RegisterPage() {
       let description = "Ocurrió un error inesperado. Por favor, intenta de nuevo.";
       if (error.code === 'auth/email-already-in-use') {
         description = "Este correo electrónico ya está en uso. Por favor, intenta con otro.";
+      } else if (error.code === 'auth/api-key-not-valid') {
+        description = "La clave de API de Firebase no es válida. Por favor, revisa tu configuración.";
       }
       toast({
         title: "Error al crear la cuenta",
