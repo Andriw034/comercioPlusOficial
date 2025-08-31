@@ -7,7 +7,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +70,16 @@ export default function RegisterPage() {
         displayName: values.fullName,
       });
 
-      // TODO: Save user role in Firestore database
+      // Save user role and other info in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        id: user.uid,
+        name: values.fullName,
+        email: values.email,
+        role: values.role,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        status: true,
+      });
       
       toast({
         title: "¡Cuenta creada!",
@@ -79,9 +89,13 @@ export default function RegisterPage() {
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Error creating account:", error);
+      let description = "Ocurrió un error inesperado. Por favor, intenta de nuevo.";
+      if (error.code === 'auth/email-already-in-use') {
+        description = "Este correo electrónico ya está en uso. Por favor, intenta con otro.";
+      }
       toast({
         title: "Error al crear la cuenta",
-        description: error.message,
+        description: description,
         variant: "destructive",
       });
     }
