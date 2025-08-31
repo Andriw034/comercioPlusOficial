@@ -15,7 +15,8 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
-import { Image as ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-react";
+import { useProducts } from "@/lib/contexts/products-context";
 
 
 const ProductFormSchema = ProductSchema.omit({
@@ -46,6 +47,7 @@ const categories = [
 export default function NewProductPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const { addProduct } = useProducts();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<ProductFormValues>({
@@ -79,8 +81,9 @@ export default function NewProductPage() {
 
 
   const onSubmit = async (data: ProductFormValues) => {
+    addProduct(data);
     toast({
-        title: "¡Producto creado! (Simulado)",
+        title: "¡Producto creado!",
         description: "Tu nuevo producto ha sido guardado correctamente.",
       });
       
@@ -190,7 +193,7 @@ export default function NewProductPage() {
                                   onChange={handleImageChange}
                               />
                            </div>
-                           <p className="text-sm text-muted-foreground">La subida se simula, pero la previsualización funciona.</p>
+                           <p className="text-sm text-muted-foreground">Sube una imagen para tu producto.</p>
                        </div>
 
                        <FormField

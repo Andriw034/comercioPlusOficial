@@ -1,7 +1,7 @@
+
 "use client";
 
 import { useState } from "react";
-import { placeholderProducts } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
@@ -10,11 +10,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useProducts } from "@/lib/contexts/products-context";
 
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState<any[]>(placeholderProducts);
+    const { products } = useProducts();
     const [loading, setLoading] = useState(false);
+
+    // Mapeo de IDs de categoría a nombres para mostrar
+    const categoryNames: { [key: string]: string } = {
+        "cascos": "Cascos",
+        "llantas": "Llantas",
+        "aceites": "Aceites y lubricantes",
+        "frenos": "Frenos",
+        "baterias": "Baterías",
+        "accesorios": "Accesorios",
+    };
 
     return (
         <Card>
@@ -71,7 +82,7 @@ export default function ProductsPage() {
                                     </TableCell>
                                     <TableCell className="font-medium">{product.name}</TableCell>
                                     <TableCell>
-                                        <Badge variant="outline">{product.category}</Badge>
+                                        <Badge variant="outline">{categoryNames[product.categoryId] ?? product.category ?? 'Sin categoría'}</Badge>
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
                                     <TableCell className="text-right">${product.price.toLocaleString('es-CO')}</TableCell>
