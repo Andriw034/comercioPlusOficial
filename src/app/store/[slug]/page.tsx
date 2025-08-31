@@ -66,8 +66,8 @@ export default async function StorePage({ params }: { params: { slug: string } }
 
 
   return (
-    <div>
-      <section className="border-b">
+    <div className="bg-secondary/20">
+      <section className="border-b border-white/10">
         <div className="relative h-48 md:h-64 w-full">
           {store.cover && (
             <Image 
@@ -79,13 +79,13 @@ export default async function StorePage({ params }: { params: { slug: string } }
               priority
             />
           )}
-          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent"></div>
         </div>
-        <div className="container -mt-16">
+        <div className="container -mt-20">
           <div className="flex flex-col sm:flex-row items-end gap-4 relative z-10">
-            <div className="h-28 w-28 rounded-md bg-background p-1.5 flex-shrink-0 flex items-center justify-center border shadow-md">
+            <div className="h-32 w-32 rounded-full bg-background p-1.5 flex-shrink-0 flex items-center justify-center border-4 border-background shadow-lg">
               {store.logo ? (
-                 <Image src={store.logo} width={104} height={104} alt={`Logo de ${store.name}`} className="rounded-sm object-cover"/>
+                 <Image src={store.logo} width={128} height={128} alt={`Logo de ${store.name}`} className="rounded-full object-cover"/>
               ) : (
                 <Bike className="h-16 w-16 text-primary" />
               )}
@@ -93,17 +93,17 @@ export default async function StorePage({ params }: { params: { slug: string } }
             <div className="flex-grow py-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold font-headline">{store.name}</h1>
-                        <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
-                          <MapPin className="w-4 h-4" />
+                        <h1 className="text-3xl md:text-4xl font-bold font-headline">{store.name}</h1>
+                        <p className="text-muted-foreground flex items-center gap-2 mt-1">
+                          <MapPin className="w-4 h-4 text-primary" />
                           {store.address}
                         </p>
                     </div>
                     <div className="flex-shrink-0 mt-2 sm:mt-0">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/50 px-3 py-1.5 rounded-full border">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-semibold">{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
-                            <span className="text-xs">(0 reseñas)</span>
+                        <div className="flex items-center gap-2 text-sm bg-card/80 backdrop-blur-sm px-4 py-2 rounded-full border border-border">
+                            <Star className="w-4 h-4 fill-primary text-primary" />
+                            <span className="font-semibold text-foreground">{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
+                            <span className="text-muted-foreground">(0 reseñas)</span>
                         </div>
                     </div>
                 </div>
@@ -115,11 +115,11 @@ export default async function StorePage({ params }: { params: { slug: string } }
       <main className="container pt-8 pb-16">
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input placeholder="Buscar en la tienda..." className="pl-10" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input placeholder="Buscar en la tienda..." className="pl-12 rounded-full h-12 text-base" />
           </div>
           <Select>
-            <SelectTrigger className="w-full md:w-[200px]">
+            <SelectTrigger className="w-full md:w-[200px] rounded-full h-12">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
@@ -128,7 +128,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
             </SelectContent>
           </Select>
           <Select>
-            <SelectTrigger className="w-full md:w-[200px]">
+            <SelectTrigger className="w-full md:w-[200px] rounded-full h-12">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
@@ -143,7 +143,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.length > 0 ? (
             products.map(product => (
-                <Card key={product.id} className="overflow-hidden group">
+                <Card key={product.id} className="overflow-hidden group bg-card border-border hover:border-primary/50 transition-colors duration-300">
                 <Link href={`/products/${product.id}`}>
                     <div className="aspect-square overflow-hidden bg-muted">
                     {product.image && (
@@ -153,7 +153,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
                         height={400}
                         alt={product.name}
                         data-ai-hint="motorcycle part"
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                         />
                     )}
                     </div>
@@ -165,7 +165,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
                     </h3>
                     <div className="flex items-center justify-between mt-4">
                     <p className="font-bold text-xl">${product.price.toLocaleString('es-CO')}</p>
-                    <Button size="sm">
+                    <Button size="sm" className="rounded-full">
                         Agregar
                     </Button>
                     </div>
