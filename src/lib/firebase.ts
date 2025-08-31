@@ -1,16 +1,12 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { initializeFirestore } from "firebase/firestore";
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCdEMQ58CKB5f4-VnFq8RcYIZ__DJgqGis",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: "comercio-plus.firebaseapp.com",
   projectId: "comercio-plus",
   storageBucket: "comercio-plus.appspot.com",
@@ -23,11 +19,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
-// Use initializeFirestore instead of getFirestore to avoid "client offline" errors in Next.js SSR
 const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
 });
 const auth = getAuth(app);
 const storage = getStorage(app);
+
+// Connect to emulators in development
+if (process.env.NODE_ENV === 'development') {
+    try {
+        connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+    } catch (error) {
+        console.warn("Firebase Auth Emulator not available.", error);
+    }
+}
+
 
 export { app, db, auth, storage };
