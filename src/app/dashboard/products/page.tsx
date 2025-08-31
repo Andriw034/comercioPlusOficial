@@ -23,6 +23,7 @@ export default function ProductsPage() {
     useEffect(() => {
         const fetchProducts = async () => {
             if (user) {
+                setLoading(true);
                 try {
                     const productsRef = collection(db, "products");
                     const q = query(productsRef, where("userId", "==", user.uid));
@@ -34,14 +35,13 @@ export default function ProductsPage() {
                 } finally {
                     setLoading(false);
                 }
-            } else {
+            } else if (!loadingUser) {
+                // If there's no user and we are not in a loading state, stop loading.
                 setLoading(false);
             }
         };
 
-        if (!loadingUser) {
-            fetchProducts();
-        }
+        fetchProducts();
     }, [user, loadingUser]);
 
     return (
