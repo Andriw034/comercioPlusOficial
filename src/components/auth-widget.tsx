@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -56,6 +55,7 @@ export function AuthWidget() {
     // This now runs only on the client, after the initial render.
     // This avoids the hydration mismatch error.
     const timer = setTimeout(() => {
+      // To test the "logged out" state, comment out the following line
       setUserState({
         data: mockUser,
         appUser: { role: 'Comerciante' } as AppUser,

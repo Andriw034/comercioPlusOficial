@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -67,6 +66,7 @@ export default function ProductsPage() {
                                             height="64"
                                             src={product.image ?? "https://picsum.photos/64/64"}
                                             width="64"
+                                            data-ai-hint={product.hint}
                                         />
                                     </TableCell>
                                     <TableCell className="font-medium">{product.name}</TableCell>
