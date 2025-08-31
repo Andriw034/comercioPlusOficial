@@ -1,4 +1,5 @@
 
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -144,7 +145,9 @@ export default async function StorePage({ params }: { params: { slug: string } }
                 </Link>
                 <CardContent className="p-4">
                     <p className="text-muted-foreground text-sm">{categoryMap.get(product.categoryId) ?? product.categoryId}</p>
-                    <h3 className="font-semibold text-lg truncate">{product.name}</h3>
+                    <h3 className="font-semibold text-lg truncate">
+                         <Link href={`/products/${product.id}`}>{product.name}</Link>
+                    </h3>
                     <div className="flex items-center justify-between mt-4">
                     <p className="font-bold text-xl">${product.price.toLocaleString('es-CO')}</p>
                     <Button size="sm" className="bg-gradient-to-r from-primary to-accent text-primary-foreground">

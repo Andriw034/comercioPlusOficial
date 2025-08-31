@@ -23,8 +23,8 @@ export const ProductSchema = z.object({
   offer: z.boolean().default(false),
   averageRating: z.number().min(0).max(5).default(0),
   ratings: z.array(RatingSchema).default([]),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
 export type Product = z.infer<typeof ProductSchema>;
