@@ -53,6 +53,7 @@ export function AuthWidget() {
           setUserState({ data: user, appUser, store });
         } catch (error) {
             console.error("Failed to fetch user data", error);
+            // This might happen with the offline error, still set user data
             setUserState({ data: user, appUser: null, store: null });
         }
       } else {
