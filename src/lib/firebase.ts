@@ -11,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCdEMQ58CKB5f4-VnFq8RcYIZ__DJgqGis",
   authDomain: "comercio-plus.firebaseapp.com",
   projectId: "comercio-plus",
-  storageBucket: "comercio-plus.appspot.com",
+  storageBucket: "comercio-plus.firebasestorage.app",
   messagingSenderId: "655361811812",
   appId: "1:655361811812:web:bf1178f63ed9e8c4620671",
   measurementId: "G-8SYJPQVVZ4"
