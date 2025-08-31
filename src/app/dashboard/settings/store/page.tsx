@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect } from "react";
 import { AIThemeGenerator } from "@/components/dashboard/ai-theme-generator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/lib/firebase";
-import { StoreSchema } from "@/lib/schemas/store";
+import { StoreSchema, type Store } from "@/lib/schemas/store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,7 +33,7 @@ const StoreFormSchema = StoreSchema.omit({
 type StoreFormValues = z.infer<typeof StoreFormSchema>;
 
 export default function StoreSettingsPage() {
-  const [user, loading] = useAuthState(auth);
+  const [user] = useAuthState(auth);
   const { toast } = useToast();
 
   const form = useForm<StoreFormValues>({
@@ -46,8 +47,22 @@ export default function StoreSettingsPage() {
       openingHours: "",
       mainCategory: "Repuestos", // Default category
     },
-    // TODO: Load existing store data if it exists
   });
+
+  useEffect(() => {
+    if (user) {
+      const fetchStoreData = async () => {
+        const storeRef = doc(db, "stores", user.uid);
+        const storeSnap = await getDoc(storeRef);
+        if (storeSnap.exists()) {
+          const storeData = storeSnap.data() as Store;
+          // Use form.reset to populate the form with existing data
+          form.reset(storeData);
+        }
+      };
+      fetchStoreData();
+    }
+  }, [user, form]);
 
   const onSubmit = async (data: StoreFormValues) => {
     if (!user) {
@@ -64,14 +79,11 @@ export default function StoreSettingsPage() {
       const storeRef = doc(db, "stores", user.uid);
       
       await setDoc(storeRef, {
+        ...data,
         id: user.uid,
         userId: user.uid,
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status: 'active',
-        averageRating: 0,
-      }, { merge: true }); // Use merge to avoid overwriting fields not in the form
+        updatedAt: serverTimestamp(),
+      }, { merge: true }); // Use merge to avoid overwriting fields
 
       toast({
         title: "¡Tienda actualizada!",

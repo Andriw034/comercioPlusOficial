@@ -83,10 +83,15 @@ export default function RegisterPage() {
       
       toast({
         title: "¡Cuenta creada!",
-        description: "Tu cuenta ha sido creada exitosamente.",
+        description: "Tu cuenta ha sido creada exitosamente. Ahora, configura tu tienda.",
       });
 
-      router.push("/dashboard");
+      if (values.role === 'Comerciante') {
+        router.push("/dashboard/settings/store");
+      } else {
+        router.push("/dashboard");
+      }
+
     } catch (error: any) {
       console.error("Error creating account:", error);
       let description = "Ocurrió un error inesperado. Por favor, intenta de nuevo.";
