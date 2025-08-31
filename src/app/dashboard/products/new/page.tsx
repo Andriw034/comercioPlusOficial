@@ -137,7 +137,7 @@ export default function NewProductPage() {
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecciona una categoría" />
-                                    </SelectTrigger>
+                                    </Trigger>
                                     </FormControl>
                                     <SelectContent>
                                     {categories.map(cat => (
@@ -165,7 +165,7 @@ export default function NewProductPage() {
                         />
                          <div className="space-y-2">
                             <FormLabel>Subir Imagen</FormLabel>
-                            <Input type="file" />
+                            <Input type="file" disabled/>
                             <p className="text-sm text-muted-foreground">La subida de archivos se habilitará pronto.</p>
                         </div>
                     </div>
