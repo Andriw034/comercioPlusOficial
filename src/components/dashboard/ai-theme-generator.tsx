@@ -1,7 +1,7 @@
+
 "use client";
 
 import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
 import { generateShopTheme, GenerateShopThemeOutput } from "@/ai/flows/generate-shop-theme";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,30 +10,25 @@ import { Label } from "@/components/ui/label";
 import { Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const initialState = {
+const initialState: GenerateShopThemeOutput = {
   primaryColor: "#FF6A2E",
   secondaryColor: "#FF9156",
   backgroundColor: "#FFF7F2",
   textColor: "#0F172A",
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full">
-      <Wand2 className="mr-2 h-4 w-4" />
-      {pending ? "Generando..." : "Generar Tema con IA"}
-    </Button>
-  );
-}
-
 export function AIThemeGenerator() {
   const [colors, setColors] = useState<GenerateShopThemeOutput>(initialState);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [shopName, setShopName] = useState("Moto Repuestos Pro");
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setPreview: (url: string | null) => void) => {
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setPreview: (url: string | null) => void
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -46,9 +41,7 @@ export function AIThemeGenerator() {
     }
   };
 
-  const handleGenerateTheme = async (formData: FormData) => {
-    const shopName = formData.get("shopName") as string;
-    
+  const handleGenerateTheme = async () => {
     if (!logoPreview || !coverPreview || !shopName) {
       toast({
         title: "Faltan datos",
@@ -57,6 +50,8 @@ export function AIThemeGenerator() {
       });
       return;
     }
+
+    setLoading(true);
 
     try {
       const result = await generateShopTheme({
@@ -70,12 +65,14 @@ export function AIThemeGenerator() {
         description: "La paleta de colores ha sido actualizada.",
       });
     } catch (error) {
-      console.error(error);
+      console.error("Error generating theme:", error);
       toast({
         title: "Error al generar el tema",
         description: "Hubo un problema con la IA. Inténtalo de nuevo.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,10 +83,10 @@ export function AIThemeGenerator() {
         <CardDescription>Genera una paleta de colores para tu tienda usando IA, basada en tu logo y portada.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form action={handleGenerateTheme} className="space-y-4">
+        <div className="space-y-4">
           <div>
             <Label htmlFor="shopNameForAI">Nombre de la Tienda</Label>
-            <Input id="shopNameForAI" name="shopName" defaultValue="Moto Repuestos Pro" required />
+            <Input id="shopNameForAI" name="shopName" value={shopName} onChange={(e) => setShopName(e.target.value)} required />
           </div>
           <div>
             <Label htmlFor="logoForAI">Logo</Label>
@@ -99,8 +96,11 @@ export function AIThemeGenerator() {
             <Label htmlFor="coverForAI">Imagen de Portada</Label>
             <Input id="coverForAI" name="cover" type="file" accept="image/*" required onChange={(e) => handleFileChange(e, setCoverPreview)} />
           </div>
-          <SubmitButton />
-        </form>
+          <Button onClick={handleGenerateTheme} disabled={loading} className="w-full">
+            <Wand2 className="mr-2 h-4 w-4" />
+            {loading ? "Generando..." : "Generar Tema con IA"}
+          </Button>
+        </div>
 
         <div className="space-y-4 pt-4 border-t">
             <h4 className="font-semibold">Paleta de Colores</h4>
@@ -127,7 +127,7 @@ export function AIThemeGenerator() {
             <p className="text-sm opacity-80">Una descripción breve del producto.</p>
             <Button 
               className="mt-4"
-              style={{ backgroundColor: colors.primaryColor, color: colors.secondaryColor }}
+              style={{ backgroundColor: colors.primaryColor, color: colors.textColor }}
             >
               Botón Principal
             </Button>
