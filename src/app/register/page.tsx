@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +28,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { UserRoleSchema } from "@/lib/schemas/user";
 import Image from "next/image";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
+
 
 const formSchema = z.object({
   fullName: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -48,16 +54,43 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Simulate account creation
-    toast({
-        title: "¡Cuenta creada! (Simulado)",
-        description: "Tu cuenta ha sido creada exitosamente.",
-    });
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
 
-    if (values.role === 'Comerciante') {
-        router.push("/dashboard/settings/store");
-    } else {
-        router.push("/dashboard");
+        await updateProfile(user, { displayName: values.fullName });
+
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            name: values.fullName,
+            email: values.email,
+            role: values.role,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+        
+        toast({
+            title: "¡Cuenta creada!",
+            description: "Tu cuenta ha sido creada exitosamente.",
+        });
+
+        if (values.role === 'Comerciante') {
+            router.push("/dashboard/settings/store");
+        } else {
+            router.push("/dashboard");
+        }
+
+    } catch (error: any) {
+        console.error("Registration Error:", error);
+        let description = "Ocurrió un error inesperado.";
+        if (error.code === 'auth/email-already-in-use') {
+            description = "Este correo electrónico ya está en uso.";
+        }
+        toast({
+            title: "Error al crear la cuenta",
+            description,
+            variant: "destructive",
+        });
     }
   };
 
@@ -132,6 +165,7 @@ export default function RegisterPage() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {form.formState.isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
                 </Button>
               </form>
@@ -156,3 +190,5 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+    

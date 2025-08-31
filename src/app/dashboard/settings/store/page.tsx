@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,16 +14,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Image from "next/image";
-import { Bike } from "lucide-react";
+import { Bike, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { getStoreByUserId, createOrUpdateStore } from "@/lib/services/store";
+import { uploadFile } from "@/lib/services/storage";
 
-
-// We omit fields that are not in the form or are handled separately
 const StoreFormSchema = StoreSchema.omit({
   id: true,
   userId: true,
-  logo: true,
-  cover: true,
   status: true,
   averageRating: true,
   theme: true,
@@ -34,13 +34,17 @@ type StoreFormValues = z.infer<typeof StoreFormSchema>;
 
 export default function StoreSettingsPage() {
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  
+  const [store, setStore] = useState<Store | null>(null);
+  const [loading, setLoading] = useState(true);
+  
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [existingLogo, setExistingLogo] = useState<string | null>(null);
-  const [existingCover, setExistingCover] = useState<string | null>(null);
-
+  
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(StoreFormSchema),
     defaultValues: {
@@ -50,9 +54,41 @@ export default function StoreSettingsPage() {
       address: "",
       phone: "",
       openingHours: "",
-      mainCategory: "Repuestos", // Default category
+      mainCategory: "Repuestos",
+      logo: "",
+      cover: "",
     },
   });
+
+  useEffect(() => {
+    if (user) {
+      const fetchStoreData = async () => {
+        setLoading(true);
+        const storeData = await getStoreByUserId(user.uid);
+        if (storeData) {
+          setStore(storeData as Store);
+          form.reset({
+            name: storeData.name,
+            slug: storeData.slug,
+            description: storeData.description ?? "",
+            address: storeData.address,
+            phone: storeData.phone ?? "",
+            openingHours: storeData.openingHours ?? "",
+            mainCategory: storeData.mainCategory,
+            logo: storeData.logo ?? "",
+            cover: storeData.cover ?? "",
+          });
+          setLogoPreview(storeData.logo);
+          setCoverPreview(storeData.cover);
+        }
+        setLoading(false);
+      };
+      fetchStoreData();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [user, authLoading, form]);
+
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -71,11 +107,64 @@ export default function StoreSettingsPage() {
   };
 
   const onSubmit = async (data: StoreFormValues) => {
+    if (!user) {
+      toast({ title: "Error", description: "Debes iniciar sesión para guardar.", variant: "destructive" });
+      return;
+    }
+
+    form.formState.isSubmitting = true;
+
+    try {
+      let logoUrl = store?.logo ?? null;
+      if (logoFile) {
+        logoUrl = await uploadFile(logoFile, `stores/${user.uid}/logo`);
+      }
+
+      let coverUrl = store?.cover ?? null;
+      if (coverFile) {
+        coverUrl = await uploadFile(coverFile, `stores/${user.uid}/cover`);
+      }
+      
+      const storeDataToSave = {
+        ...data,
+        logo: logoUrl,
+        cover: coverUrl,
+      };
+
+      await createOrUpdateStore(user.uid, storeDataToSave);
+
       toast({
-        title: "¡Tienda actualizada! (Simulado)",
+        title: "¡Tienda actualizada!",
         description: "Los datos de tu tienda se han guardado correctamente.",
       });
+
+    } catch (error) {
+        console.error("Error saving store:", error);
+        toast({ title: "Error", description: "No se pudo guardar la información de la tienda.", variant: "destructive" });
+    } finally {
+        form.formState.isSubmitting = false;
+    }
   };
+
+  if (loading || authLoading) {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
+
+  if (!user) {
+      return (
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+                <CardTitle>Acceso denegado</CardTitle>
+                <CardDescription>Debes iniciar sesión para administrar tu tienda.</CardDescription>
+                <Button asChild>
+                    <a href="/login">Ir a Iniciar Sesión</a>
+                </Button>
+            </div>
+      )
+  }
 
 
   return (
@@ -175,11 +264,9 @@ export default function StoreSettingsPage() {
                         <div className="space-y-2">
                             <FormLabel>Logo</FormLabel>
                             <div className="flex items-center gap-4">
-                                <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                                <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center border">
                                     {logoPreview ? (
                                         <Image src={logoPreview} width={64} height={64} alt="Vista previa del logo" className="rounded-md object-cover h-16 w-16"/>
-                                    ) : existingLogo ? (
-                                        <Image src={existingLogo} width={64} height={64} alt="Logo actual" className="rounded-md object-cover h-16 w-16"/>
                                     ) : (
                                         <Bike className="h-10 w-10 text-muted-foreground" />
                                     )}
@@ -197,10 +284,8 @@ export default function StoreSettingsPage() {
                              <div className="flex items-center gap-4">
                                  {coverPreview ? (
                                     <Image src={coverPreview} width={200} height={100} alt="Vista previa de la portada" className="rounded-md object-cover h-24 w-48"/>
-                                ) : existingCover ? (
-                                    <Image src={existingCover} width={200} height={100} alt="Portada actual" className="rounded-md object-cover h-24 w-48"/>
                                 ) : (
-                                    <div className="h-24 w-48 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                                    <div className="h-24 w-48 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm border">
                                         Vista Previa
                                     </div>
                                 )}
@@ -213,6 +298,7 @@ export default function StoreSettingsPage() {
                         </div>
 
                         <Button type="submit" disabled={form.formState.isSubmitting}>
+                            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {form.formState.isSubmitting ? "Guardando..." : "Guardar Cambios"}
                         </Button>
                     </form>
@@ -226,3 +312,5 @@ export default function StoreSettingsPage() {
     </div>
   );
 }
+
+    

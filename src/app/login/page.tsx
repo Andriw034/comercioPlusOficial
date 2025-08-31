@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +20,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { auth } from "@/lib/firebase";
+import { Loader2 } from "lucide-react";
 
 
 const formSchema = z.object({
@@ -37,12 +41,25 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Simulate login
-    toast({
-        title: "¡Bienvenido de vuelta! (Simulado)",
-        description: "Has iniciado sesión correctamente.",
-    });
-    router.push("/dashboard");
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+          title: "¡Bienvenido de vuelta!",
+          description: "Has iniciado sesión correctamente.",
+      });
+      router.push("/dashboard");
+    } catch (error: any) {
+        console.error("Login Error:", error);
+        let description = "Ocurrió un error inesperado.";
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            description = "El correo electrónico o la contraseña son incorrectos.";
+        }
+        toast({
+            title: "Error al iniciar sesión",
+            description,
+            variant: "destructive",
+        });
+    }
   };
 
   return (
@@ -95,6 +112,7 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {form.formState.isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
               </Button>
             </form>
@@ -110,3 +128,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

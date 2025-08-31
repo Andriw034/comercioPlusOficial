@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { Logo } from "./logo";
 import { AuthWidget } from "./auth-widget";
@@ -12,6 +13,11 @@ export function Header() {
           </Link>
         </div>
 
+        <nav className="hidden md:flex items-center gap-4">
+            <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Dashboard</Link>
+            <Link href="/#stores" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Tiendas</Link>
+        </nav>
+
         <div className="flex items-center">
           <AuthWidget />
         </div>
@@ -19,3 +25,5 @@ export function Header() {
     </header>
   );
 }
+
+    
