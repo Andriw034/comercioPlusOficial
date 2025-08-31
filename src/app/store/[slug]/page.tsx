@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -47,6 +48,8 @@ export default async function StorePage({ params }: { params: { slug: string } }
 
   const products = await getProducts(store.id);
   const categories = await getCategories();
+  const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
+
 
   return (
     <div>
@@ -74,8 +77,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
               <h1 className="text-xl md:text-3xl font-bold font-headline">{store.name}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                {/* TODO: Add reviews to store schema */}
-                <span>{store.averageRating}</span> 
+                <span>{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
               </div>
             </div>
           </div>
@@ -125,8 +127,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
                 </div>
               </Link>
               <CardContent className="p-4">
-                 {/* TODO: Get category name from categoryId */}
-                <p className="text-muted-foreground text-sm">{product.categoryId}</p>
+                <p className="text-muted-foreground text-sm">{categoryMap.get(product.categoryId) ?? product.categoryId}</p>
                 <h3 className="font-semibold text-lg truncate">{product.name}</h3>
                 <div className="flex items-center justify-between mt-4">
                   <p className="font-bold text-xl">${product.price.toLocaleString('es-CO')}</p>
