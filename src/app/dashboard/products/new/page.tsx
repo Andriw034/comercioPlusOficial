@@ -22,7 +22,11 @@ const ProductFormSchema = ProductSchema.omit({
   ratings: true,
   createdAt: true,
   updatedAt: true,
-});
+}).transform((data) => ({
+  ...data,
+  description: data.description ?? "",
+  image: data.image ?? "",
+}));
 
 type ProductFormValues = z.infer<typeof ProductFormSchema>;
 
@@ -51,6 +55,7 @@ export default function NewProductPage() {
       categoryId: "",
       offer: false,
     },
+    mode: "onChange",
   });
 
   const onSubmit = async (data: ProductFormValues) => {
@@ -136,7 +141,7 @@ export default function NewProductPage() {
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecciona una categoría" />
-                                    </Trigger>
+                                    </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
                                     {categories.map(cat => (
