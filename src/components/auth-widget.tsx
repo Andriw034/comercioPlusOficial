@@ -52,34 +52,8 @@ export function AuthWidget() {
 
           setUserState({ data: user, appUser, store });
         } catch (error) {
-            // This can happen if the client is offline. We'll use mock data as a fallback.
-            console.warn("Failed to fetch user data, using mock data.", error);
-            const mockUser: Partial<User> = {
-                uid: 'mock-user-id',
-                displayName: 'Comerciante de Prueba',
-                email: 'test@example.com',
-                photoURL: '',
-            };
-            const mockAppUser: AppUser = {
-                id: 'mock-user-id',
-                name: 'Comerciante de Prueba',
-                email: 'test@example.com',
-                role: 'Comerciante',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                status: true,
-            };
-            const mockStore: Store = {
-                id: 'mock-user-id',
-                userId: 'mock-user-id',
-                name: 'Tienda de Prueba',
-                slug: 'tienda-de-prueba',
-                mainCategory: 'Repuestos',
-                address: 'Calle Falsa 123',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            };
-            setUserState({ data: mockUser, appUser: mockAppUser, store: mockStore });
+            console.error("Failed to fetch user data", error);
+            setUserState({ data: user, appUser: null, store: null });
         }
       } else {
         setUserState(null);
