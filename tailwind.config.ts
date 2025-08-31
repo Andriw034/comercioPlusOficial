@@ -19,8 +19,8 @@ const config = {
     },
     extend: {
        fontFamily: {
-        body: ['"Geist Sans"', 'sans-serif'],
-        headline: ['"Geist Sans"', 'sans-serif'],
+        body: ["var(--font-inter)", "sans-serif"],
+        headline: ["var(--font-inter)", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

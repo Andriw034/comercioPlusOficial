@@ -1,15 +1,14 @@
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 
-const geist = Geist({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-geist',
-  weight: ['400', '600', '700', '800'],
+  variable: '--font-inter',
 });
 
 export const metadata: Metadata = {
@@ -24,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${geist.variable} font-body antialiased min-h-screen flex flex-col`}>
+      <body className={`${inter.variable} font-body antialiased min-h-screen flex flex-col`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
