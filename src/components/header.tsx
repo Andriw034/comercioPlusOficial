@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Logo } from "./logo";
+import { AuthWidget } from "./auth-widget";
 
 export function Header() {
   return (
@@ -16,13 +17,8 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
-          <Button asChild variant="ghost">
-            <Link href="/login">Entrar</Link>
-          </Button>
-          <Button asChild className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
-            <Link href="/register">Crear cuenta</Link>
-          </Button>
+        <div className="flex items-center gap-3">
+          <AuthWidget />
         </div>
       </div>
     </header>
