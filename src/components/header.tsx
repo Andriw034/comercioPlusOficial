@@ -11,12 +11,9 @@ export function Header() {
           <Link href="/" className="flex items-center gap-2">
             <Logo />
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            {/* The AuthWidget will now handle the logic for this link */}
-          </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <AuthWidget />
         </div>
       </div>

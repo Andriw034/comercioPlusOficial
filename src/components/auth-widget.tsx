@@ -80,24 +80,27 @@ export function AuthWidget() {
     }
   };
   
-  const CatalogLink = () => {
-    if (userState?.appUser?.role === 'Comerciante' && userState.store?.slug) {
+  const MyStoreLink = () => {
+    if (userState?.appUser?.role === 'Comerciante') {
+        if (userState.store?.slug) {
+            return (
+                <Link href={`/store/${userState.store.slug}`} className="font-medium text-muted-foreground hover:text-primary transition-colors">Mi Tienda</Link>
+            );
+        }
         return (
-            <Link href={`/store/${userState.store.slug}`} className="font-medium text-muted-foreground hover:text-primary transition-colors">Mi Tienda</Link>
-        );
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <span className="font-medium text-muted-foreground/50 cursor-not-allowed">Mi Tienda</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Completa el registro de tu tienda para verla.</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )
     }
-    return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger>
-                    <span className="font-medium text-muted-foreground/50 cursor-not-allowed">Catálogo</span>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Inicia sesión como comerciante para ver tu tienda</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
+    return null;
   }
 
 
@@ -116,7 +119,7 @@ export function AuthWidget() {
     return (
         <div className='flex items-center gap-6'>
             <nav className="hidden md:flex items-center gap-6 text-sm">
-                <CatalogLink />
+                <MyStoreLink />
                 <Link href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
             </nav>
             <DropdownMenu>
@@ -157,7 +160,6 @@ export function AuthWidget() {
   return (
     <div className="flex items-center gap-3">
         <nav className="hidden md:flex items-center gap-6 text-sm mr-3">
-            <CatalogLink />
             <Link href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
         </nav>
       <Button asChild variant="ghost">
