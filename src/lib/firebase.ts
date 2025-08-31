@@ -8,12 +8,13 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCdEMQ58CKB5f4-VnFq8RcYIZ__DJgqGis",
+  authDomain: "comercio-plus.firebaseapp.com",
+  projectId: "comercio-plus",
+  storageBucket: "comercio-plus.appspot.com",
+  messagingSenderId: "655361811812",
+  appId: "1:655361811812:web:bf1178f63ed9e8c4620671",
+  measurementId: "G-8SYJPQVVZ4"
 };
 
 // Initialize Firebase
