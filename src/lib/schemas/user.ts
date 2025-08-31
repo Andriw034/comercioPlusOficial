@@ -7,7 +7,7 @@ export const UserRoleSchema = z.enum([
 ]);
 
 export const UserProfileSchema = z.object({
-  username: z.string(),
+  username: z.string().optional(),
   image: z.string().url().optional().nullable(),
   birthdate: z.date().optional().nullable(),
   otherInfo: z.string().optional().nullable(),
