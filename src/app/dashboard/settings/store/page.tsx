@@ -16,9 +16,7 @@ import { z } from "zod";
 import Image from "next/image";
 import { Bike } from "lucide-react";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+
 
 // We omit fields that are not in the form or are handled separately
 const StoreFormSchema = StoreSchema.omit({
@@ -36,7 +34,6 @@ const StoreFormSchema = StoreSchema.omit({
 type StoreFormValues = z.infer<typeof StoreFormSchema>;
 
 export default function StoreSettingsPage() {
-  const [user] = useAuthState(auth);
   const { toast } = useToast();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -58,22 +55,6 @@ export default function StoreSettingsPage() {
     },
   });
 
-  useEffect(() => {
-    const fetchStoreData = async () => {
-      if (user) {
-        const storeRef = doc(db, "stores", user.uid);
-        const storeSnap = await getDoc(storeRef);
-        if (storeSnap.exists()) {
-          const storeData = storeSnap.data() as Store;
-          form.reset(storeData);
-          if (storeData.logo) setExistingLogo(storeData.logo);
-          if (storeData.cover) setExistingCover(storeData.cover);
-        }
-      }
-    };
-    fetchStoreData();
-  }, [user, form]);
-
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     setFile: React.Dispatch<React.SetStateAction<File | null>>,
@@ -91,33 +72,10 @@ export default function StoreSettingsPage() {
   };
 
   const onSubmit = async (data: StoreFormValues) => {
-    if (!user) {
-      toast({ title: "Error", description: "Debes iniciar sesión.", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const storeRef = doc(db, "stores", user.uid);
-      const storeData = {
-        userId: user.uid,
-        ...data,
-        // In a real app, you would upload logoFile and coverFile to storage
-        // and get the URLs to save here. For now, we'll just save the form data.
-        logo: existingLogo, // placeholder
-        cover: existingCover, // placeholder
-        updatedAt: serverTimestamp(),
-      };
-      
-      await setDoc(storeRef, storeData, { merge: true });
-
       toast({
-        title: "¡Tienda actualizada!",
+        title: "¡Tienda actualizada! (Simulado)",
         description: "Los datos de tu tienda se han guardado correctamente.",
       });
-    } catch (error) {
-      console.error("Error updating store:", error);
-      toast({ title: "Error", description: "No se pudo actualizar la tienda.", variant: "destructive" });
-    }
   };
 
 

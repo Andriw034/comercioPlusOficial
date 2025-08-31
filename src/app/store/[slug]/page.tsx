@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { placeholderProducts } from "@/lib/placeholder-data";
 import type { Product } from "@/lib/schemas/product";
 import type { Store } from "@/lib/schemas/store";
 import type { Category } from "@/lib/schemas/category";
@@ -10,27 +11,30 @@ import { Bike, Search, Star, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { collection, getDocs, query, where, limit, getDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+
 
 async function getStoreData(slug: string) {
-    const storesRef = collection(db, "stores");
-    const q = query(storesRef, where("slug", "==", slug), limit(1));
-    const querySnapshot = await getDocs(q);
+    const store: Store = {
+        id: "mock-store-id",
+        userId: "mock-user-id",
+        name: "Tienda de Prueba",
+        slug: "tienda-de-prueba",
+        description: "Esta es una tienda de prueba.",
+        address: "Calle Falsa 123",
+        mainCategory: "Repuestos",
+        logo: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
+        cover: "https://picsum.photos/1200/300",
+        averageRating: 4.5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
 
-    if (querySnapshot.empty) {
+    if (slug !== store.slug) {
         return null;
     }
 
-    const storeDoc = querySnapshot.docs[0];
-    const store = { id: storeDoc.id, ...storeDoc.data() } as Store;
+    const products = placeholderProducts;
 
-    const productsRef = collection(db, "products");
-    const productsQuery = query(productsRef, where("storeId", "==", store.id));
-    const productsSnapshot = await getDocs(productsQuery);
-    const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
-
-    // In a real app, you would fetch categories from their own collection
     const categories: Category[] = [
         { id: "cascos", name: "Cascos", slug: 'cascos' },
         { id: "llantas", name: "Llantas", slug: 'llantas' },
@@ -92,7 +96,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
                         <div className="flex items-center gap-2 text-sm bg-card/80 backdrop-blur-sm px-4 py-2 rounded-full border border-border">
                             <Star className="w-4 h-4 fill-primary text-primary" />
                             <span className="font-semibold text-foreground">{store.averageRating?.toFixed(1) ?? 'N/A'}</span> 
-                            <span className="text-muted-foreground">(0 reseñas)</span>
+                            <span className="text-muted-foreground">(15 reseñas)</span>
                         </div>
                     </div>
                 </div>
@@ -148,7 +152,7 @@ export default async function StorePage({ params }: { params: { slug: string } }
                     </div>
                 </Link>
                 <CardContent className="p-4">
-                    <p className="text-muted-foreground text-sm">{categoryMap.get(product.categoryId) ?? product.categoryId}</p>
+                    <p className="text-muted-foreground text-sm">{product.category ?? product.categoryId}</p>
                     <h3 className="font-semibold text-lg truncate">
                          <Link href={`/products/${product.id}`}>{product.name}</Link>
                     </h3>

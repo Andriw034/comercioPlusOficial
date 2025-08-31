@@ -3,7 +3,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage } from "firebase/storage";
-import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { initializeFirestore, connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -20,22 +20,22 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const storage = getStorage(app);
-// Use initializeFirestore instead of getFirestore for better SSR compatibility
-const db = initializeFirestore(app, {
-  // Disable persistence on the server
-  localCache: undefined,
-});
+const db = typeof window !== 'undefined' ? getFirestore(app) : initializeFirestore(app, { localCache: undefined });
 
 // We only want to connect to the emulators in a development environment
 if (process.env.NODE_ENV === 'development') {
     // Check if we're running in the browser to avoid server-side connection attempts
     if (typeof window !== "undefined") {
-        try {
-            connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-            connectFirestoreEmulator(db, "127.0.0.1", 8080);
-            console.log('Successfully connected to Firebase emulators');
-        } catch (error) {
-            console.error("Error connecting to Firebase emulators:", error);
+        // Check if emulators are already connected to avoid errors
+        // @ts-ignore
+        if (!auth.emulatorConfig) {
+            try {
+                connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+                connectFirestoreEmulator(db, "127.0.0.1", 8080);
+                console.log('Successfully connected to Firebase emulators');
+            } catch (error) {
+                console.error("Error connecting to Firebase emulators:", error);
+            }
         }
     }
 }

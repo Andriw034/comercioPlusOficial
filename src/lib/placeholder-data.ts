@@ -1,3 +1,4 @@
+
 export const placeholderProducts = [
   {
     id: "1",
@@ -6,6 +7,7 @@ export const placeholderProducts = [
     price: 350000,
     stock: 15,
     image: "https://picsum.photos/400/400?random=1",
+    description: "Casco de alta gama con certificación DOT y ECE. Interior desmontable y lavable, visera anti-rayones y sistema de ventilación avanzado.",
     hint: "motorcycle helmet",
   },
   {
@@ -15,6 +17,7 @@ export const placeholderProducts = [
     price: 450000,
     stock: 8,
     image: "https://picsum.photos/400/400?random=2",
+    description: "Juego de llantas deportivas para un agarre excepcional en seco y mojado. Compuesto dual para mayor durabilidad y rendimiento.",
     hint: "motorcycle tire",
   },
   {
@@ -24,6 +27,7 @@ export const placeholderProducts = [
     price: 85000,
     stock: 30,
     image: "https://picsum.photos/400/400?random=3",
+    description: "Aceite 100% sintético con tecnología Éster para una protección superior del motor y la caja de cambios. Cumple con JASO MA2.",
     hint: "motor oil",
   },
   {
@@ -33,6 +37,7 @@ export const placeholderProducts = [
     price: 120000,
     stock: 25,
     image: "https://picsum.photos/400/400?random=4",
+    description: "Pastillas de freno sinterizadas de alto rendimiento para una frenada potente y consistente en todas las condiciones.",
     hint: "brake pads",
   },
   {
@@ -42,6 +47,7 @@ export const placeholderProducts = [
     price: 280000,
     stock: 12,
     image: "https://picsum.photos/400/400?random=5",
+    description: "Batería sellada de AGM sin mantenimiento. Alta potencia de arranque y resistencia a las vibraciones.",
     hint: "motorcycle battery",
   },
   {
@@ -51,6 +57,7 @@ export const placeholderProducts = [
     price: 180000,
     stock: 40,
     image: "https://picsum.photos/400/400?random=6",
+    description: "Juego de exploradoras LED de alta intensidad con carcasa de aluminio resistente al agua. Incluye arnés de instalación.",
     hint: "motorcycle lights",
   },
     {
@@ -60,6 +67,7 @@ export const placeholderProducts = [
     price: 650000,
     stock: 10,
     image: "https://picsum.photos/400/400?random=7",
+    description: "Chaqueta textil con protecciones certificadas en hombros, codos y espalda. Forro térmico desmontable.",
     hint: "motorcycle jacket",
   },
   {
@@ -69,6 +77,7 @@ export const placeholderProducts = [
     price: 150000,
     stock: 50,
     image: "https://picsum.photos/400/400?random=8",
+    description: "Guantes de cuero de caña corta con protecciones en los nudillos y palma reforzada. Compatibles con pantallas táctiles.",
     hint: "motorcycle gloves",
   },
 ];

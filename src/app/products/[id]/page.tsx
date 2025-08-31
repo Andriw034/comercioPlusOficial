@@ -1,36 +1,34 @@
 
 import { Button } from "@/components/ui/button";
+import { placeholderProducts } from "@/lib/placeholder-data";
 import { Product } from "@/lib/schemas/product";
 import { Store } from "@/lib/schemas/store";
 import { ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 
-async function getProduct(id: string): Promise<{ product: Product, store: Store } | null> {
-    const productRef = doc(db, "products", id);
-    const productSnap = await getDoc(productRef);
+const mockStore: Store = {
+    id: "mock-store-id",
+    userId: "mock-user-id",
+    name: "Tienda de Prueba",
+    slug: "tienda-de-prueba",
+    description: "Esta es una tienda de prueba.",
+    address: "Calle Falsa 123",
+    mainCategory: "Repuestos",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+};
 
-    if (!productSnap.exists()) {
+async function getProduct(id: string): Promise<{ product: any, store: Store } | null> {
+    const product = placeholderProducts.find(p => p.id === id);
+
+    if (!product) {
       return null;
     }
-
-    const product = { id: productSnap.id, ...productSnap.data() } as Product;
-
-    const storeRef = doc(db, "stores", product.storeId);
-    const storeSnap = await getDoc(storeRef);
-
-    if (!storeSnap.exists()) {
-        // Handle case where store might not exist, though it should
-        return null;
-    }
-
-    const store = { id: storeSnap.id, ...storeSnap.data() } as Store;
-
-    return { product, store };
+    
+    return { product, store: mockStore };
 }
 
 
@@ -78,7 +76,7 @@ export default async function ProductDetailsPage({ params }: { params: { id:stri
 
                     <p className="text-3xl font-bold">${product.price.toLocaleString('es-CO')}</p>
                     
-                    <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+                    <p className="text-muted-foreground leading-relaxed">{product.description ?? 'No hay descripción para este producto.'}</p>
                     
                     <div className="flex items-center gap-4">
                         <Button size="lg" className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg hover:shadow-xl transition-shadow">
@@ -88,7 +86,7 @@ export default async function ProductDetailsPage({ params }: { params: { id:stri
                     </div>
 
                     <div className="border-t pt-4 text-sm text-muted-foreground">
-                        <p><span className="font-semibold">Categoría:</span> {product.categoryId}</p>
+                        <p><span className="font-semibold">Categoría:</span> {product.category}</p>
                         <p><span className="font-semibold">Unidades disponibles:</span> {product.stock}</p>
                     </div>
                 </div>

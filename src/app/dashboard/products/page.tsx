@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Product } from "@/lib/schemas/product";
+import { placeholderProducts } from "@/lib/placeholder-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
@@ -11,39 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+
 
 export default function ProductsPage() {
-    const [user] = useAuthState(auth);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            if (!user) {
-                // Delay setting loading to false if user is not logged in yet
-                // to avoid flashing the "no products" message.
-                setTimeout(() => setLoading(false), 1000);
-                return;
-            }
-            try {
-                const q = query(collection(db, "products"), where("userId", "==", user.uid));
-                const querySnapshot = await getDocs(q);
-                const userProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
-                setProducts(userProducts);
-            } catch (error) {
-                console.error("Error fetching products:", error);
-                // Optionally set some error state to show in the UI
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, [user]);
+    const [products, setProducts] = useState<any[]>(placeholderProducts);
+    const [loading, setLoading] = useState(false);
 
     return (
         <Card>
@@ -99,7 +72,7 @@ export default function ProductsPage() {
                                     </TableCell>
                                     <TableCell className="font-medium">{product.name}</TableCell>
                                     <TableCell>
-                                        <Badge variant="outline">{product.categoryId}</Badge>
+                                        <Badge variant="outline">{product.category}</Badge>
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
                                     <TableCell className="text-right">${product.price.toLocaleString('es-CO')}</TableCell>
