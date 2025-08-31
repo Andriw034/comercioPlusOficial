@@ -12,7 +12,7 @@ export function Header() {
             <Logo />
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/store/moto-repuestos-pro" className="font-medium text-muted-foreground hover:text-primary transition-colors">Catálogo</Link>
+            <Link href="/products" className="font-medium text-muted-foreground hover:text-primary transition-colors">Catálogo</Link>
             <Link href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
           </nav>
         </div>
