@@ -1,3 +1,4 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
@@ -8,7 +9,7 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "REEMPLAZA_ESTO_CON_TU_API_KEY_REAL",
+  apiKey: "AIzaSyCdEMQ58CKB5f4-VnFq8RcYIZ__DJgqGis",
   authDomain: "comercio-plus.firebaseapp.com",
   projectId: "comercio-plus",
   storageBucket: "comercio-plus.firebasestorage.app",
