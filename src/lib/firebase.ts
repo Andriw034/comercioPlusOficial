@@ -8,7 +8,7 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCdEMQ58CKB5f4-VnFq8RcYIZ__DJgqGis",
+  apiKey: "REEMPLAZA_ESTO_CON_TU_API_KEY_REAL",
   authDomain: "comercio-plus.firebaseapp.com",
   projectId: "comercio-plus",
   storageBucket: "comercio-plus.firebasestorage.app",
