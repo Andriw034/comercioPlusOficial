@@ -1,83 +1,170 @@
+"use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { db } from "@/lib/firebase";
-import { Product } from "@/lib/schemas/product";
-import { collection, getDocs, query } from "firebase/firestore";
-import Image from "next/image";
-import Link from "next/link";
-import { unstable_noStore as noStore } from 'next/cache';
-import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Skeleton } from './ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { doc, getDoc } from 'firebase/firestore';
+import type { User as AppUser } from '@/lib/schemas/user';
+import type { Store } from '@/lib/schemas/store';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
-async function getAllProducts(): Promise<Product[]> {
-    noStore();
-    const productsRef = collection(db, "products");
-    const q = query(productsRef);
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+type UserState = {
+  data: User | null;
+  appUser: AppUser | null;
+  store: Store | null;
 }
 
-export default async function ProductsPage() {
-    const products = await getAllProducts();
+export function AuthWidget() {
+  const [userState, setUserState] = useState<UserState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { toast } = useToast();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // User is signed in, see docs for a list of available properties
+        // https://firebase.google.com/docs/reference/js/firebase.User
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        const appUser = userDocSnap.exists() ? userDocSnap.data() as AppUser : null;
+
+        let store: Store | null = null;
+        if (appUser?.role === 'Comerciante') {
+          const storeDocRef = doc(db, "stores", user.uid);
+          const storeDocSnap = await getDoc(storeDocRef);
+          store = storeDocSnap.exists() ? storeDocSnap.data() as Store : null;
+        }
+
+        setUserState({ data: user, appUser, store });
+
+      } else {
+        // User is signed out
+        setUserState(null);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: '¡Hasta pronto!',
+        description: 'Has cerrado sesión correctamente.',
+      });
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: 'Error al cerrar sesión',
+        description: 'No se pudo cerrar la sesión. Por favor, inténtalo de nuevo.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const CatalogLink = () => {
+    if (userState?.appUser?.role === 'Comerciante' && userState.store?.slug) {
+        return (
+            <Link href={`/store/${userState.store.slug}`} className="font-medium text-muted-foreground hover:text-primary transition-colors">Mi Tienda</Link>
+        );
+    }
     return (
-        <div className="container py-12">
-            <div className="mb-8">
-                <h1 className="text-4xl font-extrabold tracking-tight">Catálogo de Productos</h1>
-                <p className="text-muted-foreground mt-2">Explora todos los productos de nuestras tiendas.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.length > 0 ? (
-                    products.map(product => (
-                        <Card key={product.id} className="overflow-hidden group">
-                            <Link href={`/products/${product.id}`}>
-                                <div className="aspect-square overflow-hidden bg-muted">
-                                    <Image
-                                        src={product.image ?? `https://picsum.photos/400/400?random=${product.id}`}
-                                        width={400}
-                                        height={400}
-                                        alt={product.name}
-                                        data-ai-hint="motorcycle part"
-                                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                </div>
-                            </Link>
-                            <CardContent className="p-4">
-                                <h3 className="font-semibold text-lg truncate">
-                                    <Link href={`/products/${product.id}`}>{product.name}</Link>
-                                </h3>
-                                <p className="text-muted-foreground text-sm">{product.categoryId}</p>
-                                <div className="flex items-center justify-between mt-4">
-                                    <p className="font-bold text-xl">${product.price.toLocaleString('es-CO')}</p>
-                                    <Button size="sm" asChild>
-                                        <Link href={`/products/${product.id}`}>Ver</Link>
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                ) : (
-                    Array.from({ length: 8 }).map((_, i) => (
-                        <Card key={i}>
-                             <Skeleton className="w-full h-48" />
-                             <CardContent className="p-4 space-y-2">
-                                <Skeleton className="w-3/4 h-6" />
-                                <Skeleton className="w-1/2 h-4" />
-                                <div className="flex justify-between items-center pt-2">
-                                    <Skeleton className="w-1/3 h-8" />
-                                    <Skeleton className="w-1/4 h-8" />
-                                </div>
-                             </CardContent>
-                        </Card>
-                    ))
-                )}
-                 {products.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-muted-foreground">
-                        <p>No hay productos en el catálogo todavía.</p>
-                    </div>
-                 )}
-            </div>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger>
+                    <span className="font-medium text-muted-foreground/50 cursor-not-allowed">Catálogo</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Inicia sesión como comerciante para ver tu tienda</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+  }
+
+
+  if (loading) {
+    return (
+        <div className='flex items-center gap-4'>
+            <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-10 w-28" />
         </div>
     );
+  }
+
+  if (userState?.data) {
+    const user = userState.data;
+    const userInitial = user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email!.charAt(0).toUpperCase();
+    return (
+        <div className='flex items-center gap-6'>
+            <nav className="hidden md:flex items-center gap-6 text-sm">
+                <CatalogLink />
+                <Link href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
+            </nav>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
+                    <AvatarFallback>{userInitial}</AvatarFallback>
+                    </Avatar>
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                    </p>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings/store">Ajustes</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                    Cerrar sesión
+                </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+        <nav className="hidden md:flex items-center gap-6 text-sm mr-3">
+            <CatalogLink />
+            <Link href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Ayuda</Link>
+        </nav>
+      <Button asChild variant="ghost">
+        <Link href="/login">Entrar</Link>
+      </Button>
+      <Button asChild className="bg-gradient-to-r from-primary to-accent text-primary-foreground">
+        <Link href="/register">Crear cuenta</Link>
+      </Button>
+    </div>
+  );
 }
