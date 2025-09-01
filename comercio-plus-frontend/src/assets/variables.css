@@ -1,0 +1,18 @@
+:root{
+  --cp-primary:#FF6A2E;      /* naranja intenso */
+  --cp-primary-2:#FF9156;    /* naranja claro */
+  --cp-primary-3:#E2551B;
+  --cp-ink:#0F172A;          /* texto principal */
+  --cp-ink-2:#64748B;        /* texto secundario */
+  --cp-card:#FFFFFF;
+  --cp-bg:#FFF7F2;
+  --cp-border:#E5E7EB;
+  --cp-shadow:0 18px 34px rgba(15,23,42,.10);
+}
+/* utilidades base */
+.btn{ @apply rounded-[14px] font-semibold px-4 py-3; }
+.btn-primary{ color:#fff; background:linear-gradient(90deg,var(--cp-primary),var(--cp-primary-2)); box-shadow:0 10px 20px rgba(255,106,46,.25); }
+.btn-primary:hover{ filter:brightness(.98); }
+.btn-secondary{ color:var(--cp-primary); background:#fff; border:1px solid var(--cp-primary); }
+.input{ background:#F4F5F7; border:1px solid var(--cp-border); border-radius:12px; padding:.7rem .9rem; outline:none; width:100%; }
+.input:focus{ border-color:var(--cp-primary); box-shadow:0 0 0 3px rgba(255,106,46,.15); }
