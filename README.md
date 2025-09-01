@@ -1,5 +1,5 @@
-# Firebase Studio
+# Comercio Plus
 
-This is a NextJS starter in Firebase Studio.
+Plataforma de e-commerce para tiendas de repuestos de motos.
 
-To get started, take a look at src/app/page.tsx.
+Para comenzar, echa un vistazo a src/app/page.tsx.

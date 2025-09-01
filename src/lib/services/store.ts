@@ -1,4 +1,3 @@
-
 import { db } from '@/lib/firebase';
 import { Store, StoreSchema } from '@/lib/schemas/store';
 import { collection, doc, getDoc, setDoc, serverTimestamp, getDocs, query, where, limit } from 'firebase/firestore';
@@ -18,15 +17,20 @@ export async function createOrUpdateStore(userId: string, data: Partial<Omit<Sto
     const storeRef = doc(db, 'stores', userId);
     const storeSnap = await getDoc(storeRef);
 
+    const storeData = {
+        ...data,
+        slug: data.slug || createSlug(data.name || "nueva-tienda"),
+    };
+
     if (storeSnap.exists()) {
         // Update existing store
         await setDoc(storeRef, { 
-            ...data, 
+            ...storeData, 
             updatedAt: serverTimestamp() 
         }, { merge: true });
     } else {
         // Create new store
-        const newStore: Omit<Store, 'id'> = {
+        const newStore: Omit<Store, 'id' | 'createdAt' | 'updatedAt'> = {
             userId,
             name: data.name || "Nueva Tienda",
             slug: data.slug || createSlug(data.name || "nueva-tienda"),
@@ -41,12 +45,14 @@ export async function createOrUpdateStore(userId: string, data: Partial<Omit<Sto
             averageRating: 0,
             theme: {
                 primaryColor: '#FFA14F',
-                backgroundColor: '#FFFFFF',
             },
-            createdAt: serverTimestamp() as any, // Firestore will replace this
-            updatedAt: serverTimestamp() as any, // Firestore will replace this
+            ...data, // Include any other fields passed in
         };
-        await setDoc(storeRef, newStore);
+        await setDoc(storeRef, {
+            ...newStore,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
     }
 }
 
@@ -61,14 +67,21 @@ export async function getStoreByUserId(userId: string): Promise<Store | null> {
     const data = storeSnap.data();
     // Convert Firestore Timestamps to JS Dates
     const storeData = {
-        ...data,
         id: storeSnap.id,
+        ...data,
         createdAt: data.createdAt?.toDate(),
         updatedAt: data.updatedAt?.toDate(),
     } as Store;
 
-    // Validate with Zod
-    return StoreSchema.parse(storeData);
+    try {
+        // Validate with Zod
+        return StoreSchema.parse(storeData);
+    } catch (error) {
+        console.error("Zod validation error for store:", error);
+        // Retornar null o un objeto parcial si la validación falla
+        // podría ser una opción, pero por ahora retornamos null para ser estrictos.
+        return null;
+    }
 }
 
 export async function getStoreBySlug(slug: string): Promise<Store | null> {
@@ -82,13 +95,16 @@ export async function getStoreBySlug(slug: string): Promise<Store | null> {
     const storeDoc = querySnapshot.docs[0];
     const data = storeDoc.data();
     const storeData = {
-      ...data,
       id: storeDoc.id,
+      ...data,
       createdAt: data.createdAt?.toDate(),
       updatedAt: data.updatedAt?.toDate(),
     } as Store;
     
-    return StoreSchema.parse(storeData);
+    try {
+        return StoreSchema.parse(storeData);
+    } catch (error) {
+        console.error("Zod validation error for store:", error);
+        return null;
+    }
 }
-
-    

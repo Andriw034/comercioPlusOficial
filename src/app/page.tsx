@@ -11,7 +11,6 @@ export default function Home() {
           <Image
             src="https://picsum.photos/1920/1080"
             fill
-            objectFit="cover"
             alt="Motorcycle parts hero image"
             data-ai-hint="motorcycle engine"
             className="opacity-5"
@@ -26,20 +25,20 @@ export default function Home() {
             Crea tu catálogo online, llega a más clientes y gestiona tu negocio de motos. Todo en un solo lugar.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-             <Button asChild size="lg" className="px-10 py-6 text-lg font-semibold">
-                  <Link href="/register">
-                    Crea tu Tienda Gratis
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="px-10 py-6 text-lg font-semibold">
-                  <Link href="/dashboard">
-                    Ir al Panel
-                  </Link>
-                </Button>
+            <Button asChild size="lg" className="px-10 py-6 text-lg font-semibold">
+              <Link href="/register">
+                Crea tu Tienda Gratis
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="px-10 py-6 text-lg font-semibold">
+              <Link href="/dashboard">
+                Ir al Panel
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
-      
+
       <section className="w-full py-16 md:py-24 lg:py-32 bg-card border-y">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
@@ -58,7 +57,7 @@ export default function Home() {
               <p className="text-muted-foreground">Crea tu tienda y sube tu catálogo de productos en cuestión de minutos.</p>
             </div>
             <div className="grid gap-2 text-center p-6">
-               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-secondary mb-4 text-primary">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-secondary mb-4 text-primary">
                 <Store className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold">Gestión Simple</h3>

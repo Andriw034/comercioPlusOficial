@@ -2,6 +2,7 @@
 {
   "name": "comercio-plus",
   "version": "0.1.0",
+  "description": "Plataforma de e-commerce para tiendas de repuestos de motos",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -57,7 +57,7 @@ export function AuthWidget() {
             <DropdownMenuItem asChild>
                 <Link href="/dashboard">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Dashboard</span>
+                    <span>Panel</span>
                 </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
