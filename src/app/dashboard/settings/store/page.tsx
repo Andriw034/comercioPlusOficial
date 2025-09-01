@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -64,30 +65,40 @@ export default function StoreSettingsPage() {
     if (user) {
       const fetchStoreData = async () => {
         setLoading(true);
-        const storeData = await getStoreByUserId(user.uid);
-        if (storeData) {
-          setStore(storeData as Store);
-          form.reset({
-            name: storeData.name,
-            slug: storeData.slug,
-            description: storeData.description ?? "",
-            address: storeData.address,
-            phone: storeData.phone ?? "",
-            openingHours: storeData.openingHours ?? "",
-            mainCategory: storeData.mainCategory,
-            logo: storeData.logo ?? "",
-            cover: storeData.cover ?? "",
+        try {
+          const storeData = await getStoreByUserId(user.uid);
+          if (storeData) {
+            setStore(storeData as Store);
+            form.reset({
+              name: storeData.name,
+              slug: storeData.slug,
+              description: storeData.description ?? "",
+              address: storeData.address,
+              phone: storeData.phone ?? "",
+              openingHours: storeData.openingHours ?? "",
+              mainCategory: storeData.mainCategory,
+              logo: storeData.logo ?? "",
+              cover: storeData.cover ?? "",
+            });
+            if (storeData.logo) setLogoPreview(storeData.logo);
+            if (storeData.cover) setCoverPreview(storeData.cover);
+          }
+        } catch (error) {
+          console.error("Failed to fetch store data:", error);
+          toast({
+            title: "Error al cargar la tienda",
+            description: "No se pudieron obtener los datos de la tienda.",
+            variant: "destructive",
           });
-          if (storeData.logo) setLogoPreview(storeData.logo);
-          if (storeData.cover) setCoverPreview(storeData.cover);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       };
       fetchStoreData();
     } else if (!authLoading) {
       setLoading(false);
     }
-  }, [user, authLoading, form]);
+  }, [user, authLoading, form, toast]);
 
 
   const handleFileChange = (
