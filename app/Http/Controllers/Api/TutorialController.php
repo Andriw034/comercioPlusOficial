@@ -13,11 +13,22 @@ class TutorialController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $tutorial = Tutorial::all();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Listado de tutoriales',
+=======
+         $tutorial = Tutorial::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Listado de productos',
+>>>>>>> 691c95be (comentario)
             'data' => $tutorial,
         ]);
     }
@@ -27,7 +38,11 @@ class TutorialController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -35,6 +50,7 @@ class TutorialController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'language' => 'required|string|max:255',
             'content' => 'required|string',
@@ -46,6 +62,9 @@ class TutorialController extends Controller
             'message' => 'Tutorial creado correctamente.',
             'data' => $tutorial,
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -53,6 +72,7 @@ class TutorialController extends Controller
      */
     public function show(string $id)
     {
+<<<<<<< HEAD
         $tutorial = Tutorial::find($id);
 
         if (!$tutorial) {
@@ -60,6 +80,9 @@ class TutorialController extends Controller
         }
 
         return response()->json($tutorial);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -67,7 +90,11 @@ class TutorialController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -75,6 +102,7 @@ class TutorialController extends Controller
      */
     public function update(Request $request, string $id)
     {
+<<<<<<< HEAD
         $tutorial = Tutorial::find($id);
 
         if (!$tutorial) {
@@ -92,6 +120,9 @@ class TutorialController extends Controller
             'message' => 'Tutorial actualizado correctamente.',
             'data' => $tutorial,
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -99,6 +130,7 @@ class TutorialController extends Controller
      */
     public function destroy(string $id)
     {
+<<<<<<< HEAD
         $tutorial = Tutorial::find($id);
 
         if (!$tutorial) {
@@ -110,5 +142,8 @@ class TutorialController extends Controller
         return response()->json([
             'message' => 'Tutorial eliminado correctamente.',
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

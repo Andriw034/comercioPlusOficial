@@ -13,11 +13,23 @@ class SaleController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $sale = Sale::with('user', 'product')->get();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Listado de ventas',
+=======
+       
+       $sale = Sale::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Listado de productos',
+>>>>>>> 691c95be (comentario)
             'data' => $sale,
         ]);
     }

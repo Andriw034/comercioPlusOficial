@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+<<<<<<< HEAD
 use Illuminate\Support\Str;
+=======
+>>>>>>> 691c95be (comentario)
 
 class CategoryController extends Controller
 {
@@ -14,12 +17,24 @@ class CategoryController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $category = Category::with('products', 'parent', 'children')->get();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Categories retrieved successfully',
             'data' => $category,
+=======
+              $category = Category::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' =>  'Categories retrieved successfully',
+            'data' =>  $category,
+>>>>>>> 691c95be (comentario)
         ]);
     }
 
@@ -28,7 +43,11 @@ class CategoryController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -36,6 +55,7 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -58,6 +78,9 @@ class CategoryController extends Controller
             'message' => 'Categoría creada correctamente.',
             'data' => $category,
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -65,6 +88,7 @@ class CategoryController extends Controller
      */
     public function show(string $id)
     {
+<<<<<<< HEAD
         $category = Category::find($id);
 
         if (!$category) {
@@ -72,6 +96,9 @@ class CategoryController extends Controller
         }
 
         return response()->json($category);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -79,7 +106,11 @@ class CategoryController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -87,6 +118,7 @@ class CategoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
+<<<<<<< HEAD
         $category = Category::find($id);
 
         if (!$category) {
@@ -110,6 +142,9 @@ class CategoryController extends Controller
             'message' => 'Categoría actualizada correctamente.',
             'data' => $category,
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -117,6 +152,7 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
+<<<<<<< HEAD
         $category = Category::find($id);
 
         if (!$category) {
@@ -133,5 +169,8 @@ class CategoryController extends Controller
         return response()->json([
             'message' => 'Categoría eliminada correctamente.',
         ], 204);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

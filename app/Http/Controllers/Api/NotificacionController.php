@@ -13,11 +13,22 @@ class NotificacionController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $Notification = Notification::with('user')->get();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Notificaciones',
+=======
+              $Notification = Notification::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+              'message' => 'Notificaciones',
+>>>>>>> 691c95be (comentario)
             'data' => $Notification,
         ]);
     }
@@ -27,7 +38,11 @@ class NotificacionController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -35,6 +50,7 @@ class NotificacionController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'message' => 'required|string',
@@ -47,6 +63,9 @@ class NotificacionController extends Controller
             'message' => 'Notificación creada correctamente.',
             'data' => $notification,
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -54,6 +73,7 @@ class NotificacionController extends Controller
      */
     public function show(string $id)
     {
+<<<<<<< HEAD
         $notification = Notification::find($id);
 
         if (!$notification) {
@@ -61,6 +81,9 @@ class NotificacionController extends Controller
         }
 
         return response()->json($notification);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -68,7 +91,11 @@ class NotificacionController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -76,6 +103,7 @@ class NotificacionController extends Controller
      */
     public function update(Request $request, string $id)
     {
+<<<<<<< HEAD
         $notification = Notification::find($id);
 
         if (!$notification) {
@@ -94,6 +122,9 @@ class NotificacionController extends Controller
             'message' => 'Notificación actualizada correctamente.',
             'data' => $notification,
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -101,6 +132,7 @@ class NotificacionController extends Controller
      */
     public function destroy(string $id)
     {
+<<<<<<< HEAD
         $notification = Notification::find($id);
 
         if (!$notification) {
@@ -112,5 +144,8 @@ class NotificacionController extends Controller
         return response()->json([
             'message' => 'Notificación eliminada correctamente.',
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

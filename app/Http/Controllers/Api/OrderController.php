@@ -13,11 +13,22 @@ class OrderController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $orden = Order::with('user', 'ordenproducts')->get();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Lista de ordenes',
+=======
+        $orden = Order::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+           'message' => 'Lista de ordenes',
+>>>>>>> 691c95be (comentario)
             'data' => $orden,
         ]);
     }
@@ -27,7 +38,11 @@ class OrderController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -35,6 +50,7 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'date' => 'required|date',
@@ -47,6 +63,9 @@ class OrderController extends Controller
             'message' => 'Orden creada correctamente.',
             'data' => $order,
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -54,6 +73,7 @@ class OrderController extends Controller
      */
     public function show(string $id)
     {
+<<<<<<< HEAD
         $order = Order::find($id);
 
         if (!$order) {
@@ -61,6 +81,9 @@ class OrderController extends Controller
         }
 
         return response()->json($order);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -68,7 +91,11 @@ class OrderController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -76,6 +103,7 @@ class OrderController extends Controller
      */
     public function update(Request $request, string $id)
     {
+<<<<<<< HEAD
         $order = Order::find($id);
 
         if (!$order) {
@@ -97,6 +125,9 @@ class OrderController extends Controller
             'message' => 'Orden actualizada correctamente.',
             'data' => $order,
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -104,6 +135,7 @@ class OrderController extends Controller
      */
     public function destroy(string $id)
     {
+<<<<<<< HEAD
         $order = Order::find($id);
 
         if (!$order) {
@@ -115,5 +147,8 @@ class OrderController extends Controller
         return response()->json([
             'message' => 'Orden eliminada correctamente.',
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

@@ -12,8 +12,8 @@ class UserController extends Controller
     // Mostrar la lista de usuarios
     public function index()
     {
-        // Obtener todos los usuarios con su rol relacionado
-        $users = User::with('roles')->get();
+        // Obtener usuarios con su rol relacionado y paginación
+        $users = User::with('roles')->paginate(10);
 
         // Enviar datos a la vista
         return view('users.index', compact('users'));
@@ -39,6 +39,7 @@ class UserController extends Controller
             'status' => 'required|boolean',
             'password' => 'required|string|min:6|confirmed',
             'avatar' => 'nullable|image|max:2048',
+          
         ]);
 
         $avatarPath = null;

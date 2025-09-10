@@ -13,12 +13,24 @@ class SettingController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $setting = Setting::all();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Listado de configuraciones',
             'data' => $setting,
+=======
+          $setting = Setting::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Listado de productos',
+            'data' =>  $setting,
+>>>>>>> 691c95be (comentario)
         ]);
     }
 
@@ -41,6 +53,7 @@ class SettingController extends Controller
     /**
      * Display the specified resource.
      */
+<<<<<<< HEAD
     public function show($key)
     {
         $setting = Setting::where('key', $key)->first();
@@ -80,6 +93,14 @@ class SettingController extends Controller
 
 
     /**
+=======
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+>>>>>>> 691c95be (comentario)
      * Show the form for editing the specified resource.
      */
     public function edit(string $id)

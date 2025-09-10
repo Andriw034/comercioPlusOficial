@@ -13,12 +13,24 @@ class OrderMessageController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $ordermessage = OrderMessage::with('order')->get();
+=======
+              $ordermessage = OrderMessage::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+>>>>>>> 691c95be (comentario)
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Listado de mensaje de orden ',
+<<<<<<< HEAD
             'data' => $ordermessage,
+=======
+            'data' =>  $ordermessage,
+            
+>>>>>>> 691c95be (comentario)
         ]);
     }
 

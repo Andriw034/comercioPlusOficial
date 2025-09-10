@@ -13,6 +13,7 @@ class RatingController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $rating = Rating::with('user', 'product')->get();
 
         return response()->json([
@@ -20,6 +21,18 @@ class RatingController extends Controller
             'message' => 'Listado de calificaciones',
             'data' => $rating,
         ]);
+=======
+        $rating = Rating::included()
+        ->filter()
+        ->sort()
+        ->getOrPaginate();
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Listado de productos',       
+             'data' => $rating,
+   ]);
+>>>>>>> 691c95be (comentario)
     }
 
     /**

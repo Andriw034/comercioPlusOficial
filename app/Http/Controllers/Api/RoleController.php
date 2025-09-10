@@ -13,6 +13,7 @@ class RoleController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $role = Role::with('users', 'permissions')->get();
 
         return response()->json([
@@ -20,6 +21,18 @@ class RoleController extends Controller
             'message' => 'lista de roles',
             'data' => $role,
         ]);
+=======
+       $role = Role::included()
+       ->filter()
+       ->sort()
+       ->getOrPaginate();
+
+       return response()->json([
+        'status' => 'ok',
+        'message' => 'lista de  productos',
+        'data' => $role,
+       ]);
+>>>>>>> 691c95be (comentario)
     }
 
     /**

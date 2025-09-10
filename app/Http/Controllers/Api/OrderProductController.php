@@ -13,6 +13,7 @@ class OrderProductController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $ordenProduct = OrderProduct::with('order', 'product')->get();
 
         return response()->json([
@@ -20,6 +21,21 @@ class OrderProductController extends Controller
             'message' => 'Lista de productos de orden',
             'data' => $ordenProduct,
         ]);
+=======
+         $ordenProduct = OrderProduct::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();
+
+        return response()->json([
+            'status' => 'ok',
+            'message'=> 'Lista de productos de orden',
+            'data' => $ordenProduct,
+        ]
+
+        );
+
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -27,8 +43,12 @@ class OrderProductController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API - este método es para interfaces web
         return response()->json(['message' => 'Método no disponible en API'], 405);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -36,6 +56,7 @@ class OrderProductController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'order_id' => 'required|exists:orders,id',
             'product_id' => 'required|exists:products,id',
@@ -49,17 +70,26 @@ class OrderProductController extends Controller
             'message' => 'Producto agregado a la orden correctamente',
             'data' => $orderProduct->load('order', 'product'),
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
      * Display the specified resource.
      */
+<<<<<<< HEAD
     public function show(OrderProduct $orderProduct)
     {
         return response()->json([
             'status' => 'ok',
             'data' => $orderProduct->load('order', 'product'),
         ]);
+=======
+    public function show(string $id)
+    {
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -67,13 +97,18 @@ class OrderProductController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API - este método es para interfaces web
         return response()->json(['message' => 'Método no disponible en API'], 405);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
      * Update the specified resource in storage.
      */
+<<<<<<< HEAD
     public function update(Request $request, OrderProduct $orderProduct)
     {
         $validated = $request->validate([
@@ -87,11 +122,17 @@ class OrderProductController extends Controller
             'message' => 'Producto de orden actualizado correctamente',
             'data' => $orderProduct->load('order', 'product'),
         ]);
+=======
+    public function update(Request $request, string $id)
+    {
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
      * Remove the specified resource from storage.
      */
+<<<<<<< HEAD
     public function destroy(OrderProduct $orderProduct)
     {
         $orderProduct->delete();
@@ -99,5 +140,10 @@ class OrderProductController extends Controller
         return response()->json([
             'message' => 'Producto removido de la orden correctamente',
         ]);
+=======
+    public function destroy(string $id)
+    {
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

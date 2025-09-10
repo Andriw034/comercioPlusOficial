@@ -14,7 +14,11 @@ return new class extends Migration
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
             $table->string('name'); // 'usuario' o 'administrador'
+<<<<<<< HEAD
             $table->string('guard_name')->default('web');
+=======
+       $table->unsignedBigInteger('role_id')->default(1);
+>>>>>>> 691c95be (comentario)
             $table->timestamps();
         });
     }

@@ -13,9 +13,18 @@ class ProfileController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $profile = Profile::all();
 
         return response()->json([
+=======
+        $profile = Profile::included()
+        ->filter()
+        ->sort()
+        ->getOrPaginate();
+
+        return  response()->json([
+>>>>>>> 691c95be (comentario)
             'status' => 'ok',
             'message' => 'List of profiles',
             'data' => $profile,

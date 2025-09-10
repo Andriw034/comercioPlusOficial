@@ -13,12 +13,23 @@ class ChannelController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $channel = Channel::with('user')->get();
+=======
+              $channel = Channel::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+>>>>>>> 691c95be (comentario)
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Channels retrieved successfully',
+<<<<<<< HEAD
             'data' => $channel,
+=======
+            'data' =>  $channel,
+>>>>>>> 691c95be (comentario)
         ]);
     }
 
@@ -27,7 +38,11 @@ class ChannelController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -35,6 +50,7 @@ class ChannelController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'type' => 'required|string|max:255',
             'link' => 'required|string|max:255',
@@ -46,6 +62,9 @@ class ChannelController extends Controller
             'message' => 'Canal creado correctamente.',
             'data' => $channel,
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -53,6 +72,7 @@ class ChannelController extends Controller
      */
     public function show(string $id)
     {
+<<<<<<< HEAD
         $channel = Channel::find($id);
 
         if (!$channel) {
@@ -60,6 +80,9 @@ class ChannelController extends Controller
         }
 
         return response()->json($channel);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -67,7 +90,11 @@ class ChannelController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -75,6 +102,7 @@ class ChannelController extends Controller
      */
     public function update(Request $request, string $id)
     {
+<<<<<<< HEAD
         $channel = Channel::find($id);
 
         if (!$channel) {
@@ -92,6 +120,9 @@ class ChannelController extends Controller
             'message' => 'Canal actualizado correctamente.',
             'data' => $channel,
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -99,6 +130,7 @@ class ChannelController extends Controller
      */
     public function destroy(string $id)
     {
+<<<<<<< HEAD
         $channel = Channel::find($id);
 
         if (!$channel) {
@@ -110,5 +142,8 @@ class ChannelController extends Controller
         return response()->json([
             'message' => 'Canal eliminado correctamente.',
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

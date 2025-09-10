@@ -24,5 +24,8 @@ class DatabaseSeeder extends Seeder
             // RoleSeeder::class, // si existe, puedes mantenerlo; usamos firstOrCreate en PermissionsSeeder
             // Otros seeders que ya tengas...
         ]);
+
+        // Agregar creación de usuarios de prueba
+        \App\Models\User::factory(10)->create();
     }
 }

@@ -4,16 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+<<<<<<< HEAD
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+=======
+use Illuminate\Http\Request;
+>>>>>>> 691c95be (comentario)
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+<<<<<<< HEAD
     public function index(Request $request)
     {
         $data = $request->validate([
@@ -98,6 +103,19 @@ class ProductController extends Controller
                 'total'        => $page->total(),
                 'last_page'    => $page->lastPage(),
             ],
+=======
+    public function index()
+    {
+          $productos = Product::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Listado de productos',
+            'data' => $productos,
+>>>>>>> 691c95be (comentario)
         ]);
     }
 
@@ -106,6 +124,7 @@ class ProductController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
     }
 
@@ -143,22 +162,48 @@ class ProductController extends Controller
 
         $product = Product::create($data);
         return response()->json($product, 201);
+=======
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
      * Display the specified resource.
      */
+<<<<<<< HEAD
     public function show(Product $product)
     {
         return response()->json([
             'status' => 'ok',
             'data' => $product->load('store', 'category'),
         ]);
+=======
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
      * Update the specified resource in storage.
      */
+<<<<<<< HEAD
     public function update(Request $request, Product $product)
     {
         $data = $request->validate([
@@ -188,11 +233,17 @@ class ProductController extends Controller
 
         $product->update($data);
         return response()->json($product);
+=======
+    public function update(Request $request, string $id)
+    {
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
      * Remove the specified resource from storage.
      */
+<<<<<<< HEAD
     public function destroy(Product $product)
     {
         $product->delete();
@@ -200,5 +251,10 @@ class ProductController extends Controller
         return response()->json([
             'message' => 'Producto eliminado correctamente',
         ]);
+=======
+    public function destroy(string $id)
+    {
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

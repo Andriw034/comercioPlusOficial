@@ -14,12 +14,24 @@ class LocationController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $location = Location::with('user')->get();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Locations retrieved successfully',
             'data' => $location,
+=======
+        $location = Location::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+
+        return response()->json([
+            'status' => 'ok',
+              'message' => 'Locations retrieved successfully',
+            'data' =>  $location,
+>>>>>>> 691c95be (comentario)
         ]);
     }
 
@@ -28,7 +40,11 @@ class LocationController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -36,6 +52,7 @@ class LocationController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
@@ -52,6 +69,9 @@ class LocationController extends Controller
             'message' => 'Ubicación creada correctamente.',
             'data' => $location,
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -59,6 +79,7 @@ class LocationController extends Controller
      */
     public function show(string $id)
     {
+<<<<<<< HEAD
         $location = Location::find($id);
 
         if (!$location) {
@@ -66,6 +87,9 @@ class LocationController extends Controller
         }
 
         return response()->json($location);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -73,7 +97,11 @@ class LocationController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -81,6 +109,7 @@ class LocationController extends Controller
      */
     public function update(Request $request, string $id)
     {
+<<<<<<< HEAD
         $location = Location::find($id);
 
         if (!$location) {
@@ -103,6 +132,9 @@ class LocationController extends Controller
             'message' => 'Ubicación actualizada correctamente.',
             'data' => $location,
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -110,6 +142,7 @@ class LocationController extends Controller
      */
     public function destroy(string $id)
     {
+<<<<<<< HEAD
         $location = Location::find($id);
 
         if (!$location) {
@@ -121,5 +154,8 @@ class LocationController extends Controller
         return response()->json([
             'message' => 'Ubicación eliminada correctamente.',
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 }

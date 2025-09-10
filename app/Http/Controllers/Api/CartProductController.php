@@ -13,12 +13,23 @@ class CartProductController extends Controller
      */
     public function index()
     {
+<<<<<<< HEAD
         $cart = CartProduct::with('cart', 'product')->get();
+=======
+              $cart = CartProduct::included() 
+        ->filter()
+        ->sort()
+        ->getOrPaginate();;
+>>>>>>> 691c95be (comentario)
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Data retrieved successfully',
+<<<<<<< HEAD
             'data' => $cart,
+=======
+            'data' =>  $cart,
+>>>>>>> 691c95be (comentario)
         ]);
     }
 
@@ -27,7 +38,11 @@ class CartProductController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -35,6 +50,7 @@ class CartProductController extends Controller
      */
     public function store(Request $request)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'cart_id' => 'required|exists:carts,id',
             'product_id' => 'required|exists:products,id',
@@ -48,6 +64,9 @@ class CartProductController extends Controller
             'message' => 'Producto agregado al carrito correctamente.',
             'data' => $cartProduct,
         ], 201);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -55,6 +74,7 @@ class CartProductController extends Controller
      */
     public function show(string $id)
     {
+<<<<<<< HEAD
         $cartProduct = CartProduct::find($id);
 
         if (!$cartProduct) {
@@ -62,6 +82,9 @@ class CartProductController extends Controller
         }
 
         return response()->json($cartProduct);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -69,7 +92,11 @@ class CartProductController extends Controller
      */
     public function edit(string $id)
     {
+<<<<<<< HEAD
         // No aplica para API
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -77,6 +104,7 @@ class CartProductController extends Controller
      */
     public function update(Request $request, string $id)
     {
+<<<<<<< HEAD
         $cartProduct = CartProduct::find($id);
 
         if (!$cartProduct) {
@@ -94,6 +122,9 @@ class CartProductController extends Controller
             'message' => 'Producto en carrito actualizado correctamente.',
             'data' => $cartProduct,
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -101,6 +132,7 @@ class CartProductController extends Controller
      */
     public function destroy(string $id)
     {
+<<<<<<< HEAD
         $cartProduct = CartProduct::find($id);
 
         if (!$cartProduct) {
@@ -112,5 +144,8 @@ class CartProductController extends Controller
         return response()->json([
             'message' => 'Producto en carrito eliminado correctamente.',
         ]);
+=======
+        //
+>>>>>>> 691c95be (comentario)
     }
 }
