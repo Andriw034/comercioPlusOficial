@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
@@ -41,7 +42,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-
+<<<<<<< HEAD
 // Health check endpoint
 Route::get('/health', function () {
     return response()->json(['status' => 'ok', 'message' => 'API is working']);
@@ -131,10 +132,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Suscripciones
     Route::apiResource('subscriptions', SubscriptionController::class);
 });
-
+=======
 Route::get('users', [UserController::class,'index'])->name('api.v1.users.index');
 Route::post('users', [UserController::class,'store'])->name('api.v1.users.store');
 Route::get('users/{user}', [UserController::class,'show'])->name('api.v1.users.show');
 Route::put('users/{user}', [UserController::class,'update'])->name('api.v1.users.update');
 Route::delete('users/{user}', [UserController::class,'destroy'])->name('api.v1.users.destroy');
-
+http://127.0.0.1:8000/api/ping
+>>>>>>> 691c95be (comentario)
