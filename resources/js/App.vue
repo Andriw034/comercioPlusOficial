@@ -2,7 +2,7 @@
   <div class="min-h-screen flex flex-col">
     <Header @toggle-theme="toggleTheme" :mode="mode" />
     <main class="flex-1">
-      <RouterView />
+      <slot />
     </main>
     <Footer />
   </div>
@@ -10,7 +10,6 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { RouterView } from 'vue-router'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 
@@ -28,11 +27,5 @@ onMounted(() => {
   const stored = localStorage.getItem('theme')
   apply(stored === 'dark' ? 'dark' : 'light')
 })
-
-
-createInertiaApp({
-  resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
-})
-
 </script>
 

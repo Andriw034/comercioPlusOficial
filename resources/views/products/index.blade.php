@@ -50,7 +50,7 @@
   </div>
 
   <div class="mx-auto max-w-7xl">
-    {{-- Título + CTA --}}
+  {{-- Título + CTA --}}
     <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
       <div class="mt-8 md:mt-0">
         <h1 class="text-3xl font-extrabold tracking-tight">
@@ -59,12 +59,32 @@
             <span class="text-white/70 text-xl align-middle"> · {{ $branding['store_name'] }}</span>
           @endif
         </h1>
-        <p class="text-white/70 mt-1">Administra tu catálogo.</p>
+        <p class="text-white/70 mt-1">
+          @if(isset($store) && $store)
+            Administra tu catálogo de productos para {{ $store->name }}
+          @else
+            Administra tu catálogo. <a href="{{ route('store.create') }}" class="text-orange-400 hover:text-orange-300 underline">Crea tu tienda primero</a>
+          @endif
+        </p>
       </div>
-      <a href="{{ route('admin.products.create') }}"
-         class="inline-flex items-center justify-center h-11 rounded-full px-5 font-semibold bg-orange-500 text-black hover:bg-orange-600 shadow">
-        Agregar producto
-      </a>
+      <div class="flex gap-3">
+        @if(isset($store) && $store)
+          <a href="{{ route('store.create') }}"
+             class="inline-flex items-center justify-center h-11 rounded-full px-5 font-semibold bg-white/10 text-white hover:bg-white/20 shadow border border-white/20">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            Editar tienda
+          </a>
+        @endif
+        <a href="{{ route('admin.products.create') }}"
+           class="inline-flex items-center justify-center h-11 rounded-full px-5 font-semibold bg-orange-500 text-black hover:bg-orange-600 shadow">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Agregar producto
+        </a>
+      </div>
     </div>
 
     {{-- Mensajes --}}

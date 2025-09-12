@@ -13,22 +13,14 @@ class ClaimController extends Controller
      */
     public function index()
     {
-<<<<<<< HEAD
-        $claim = Claim::with('user')->get();
+        $claim = Claim::included()
+            ->filter()
+            ->sort()
+            ->getOrPaginate();
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Claim list',
-=======
-              $claim = Claim::included() 
-        ->filter()
-        ->sort()
-        ->getOrPaginate();;
-
-        return response()->json([
-            'status' => 'ok',
-            'message' =>  'Claim list',
->>>>>>> 691c95be (comentario)
             'data' => $claim,
         ]);
     }
@@ -38,11 +30,7 @@ class ClaimController extends Controller
      */
     public function create()
     {
-<<<<<<< HEAD
-        // No aplica para API
-=======
         //
->>>>>>> 691c95be (comentario)
     }
 
     /**
@@ -50,7 +38,7 @@ class ClaimController extends Controller
      */
     public function store(Request $request)
     {
-<<<<<<< HEAD
+
         $validated = $request->validate([
             'message' => 'required|string',
             'date' => 'required|date',
@@ -63,9 +51,9 @@ class ClaimController extends Controller
             'message' => 'Reclamo creado correctamente.',
             'data' => $claim,
         ], 201);
-=======
+
         //
->>>>>>> 691c95be (comentario)
+
     }
 
     /**
@@ -73,7 +61,7 @@ class ClaimController extends Controller
      */
     public function show(string $id)
     {
-<<<<<<< HEAD
+
         $claim = Claim::find($id);
 
         if (!$claim) {
@@ -81,9 +69,9 @@ class ClaimController extends Controller
         }
 
         return response()->json($claim);
-=======
+
         //
->>>>>>> 691c95be (comentario)
+
     }
 
     /**
@@ -91,11 +79,10 @@ class ClaimController extends Controller
      */
     public function edit(string $id)
     {
-<<<<<<< HEAD
+
         // No aplica para API
-=======
-        //
->>>>>>> 691c95be (comentario)
+
+
     }
 
     /**
@@ -103,7 +90,7 @@ class ClaimController extends Controller
      */
     public function update(Request $request, string $id)
     {
-<<<<<<< HEAD
+
         $claim = Claim::find($id);
 
         if (!$claim) {
@@ -122,9 +109,9 @@ class ClaimController extends Controller
             'message' => 'Reclamo actualizado correctamente.',
             'data' => $claim,
         ]);
-=======
+
         //
->>>>>>> 691c95be (comentario)
+
     }
 
     /**
@@ -132,7 +119,7 @@ class ClaimController extends Controller
      */
     public function destroy(string $id)
     {
-<<<<<<< HEAD
+
         $claim = Claim::find($id);
 
         if (!$claim) {
@@ -144,8 +131,8 @@ class ClaimController extends Controller
         return response()->json([
             'message' => 'Reclamo eliminado correctamente.',
         ]);
-=======
+
         //
->>>>>>> 691c95be (comentario)
+
     }
 }

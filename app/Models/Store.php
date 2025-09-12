@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Store extends Model
 {
@@ -15,32 +15,23 @@ class Store extends Model
         'name',
         'slug',
         'description',
-        'address',
-        'phone',
-        'email',
-        'direccion',
-        'telefono',
-        'categoria_principal',
-        'primary_color',
-        'text_color',
-        'button_color',
-        'background_color',
-        'logo',
-        'cover_image',
-        'estado',
-        'calificacion_promedio',
-        'theme'
+        'logo_path',
+        'logo_url',
+        'background_path',
+        'background_url',
+        'theme_primary',
     ];
 
-    public function getRouteKeyName()
+    protected static function boot()
     {
-        return 'slug';
-    }
+        parent::boot();
 
-    protected $casts = [
-        'theme' => 'array',
-        'calificacion_promedio' => 'decimal:2'
-    ];
+        static::creating(function ($store) {
+            if (empty($store->slug)) {
+                $store->slug = Str::slug($store->name);
+            }
+        });
+    }
 
     public function user()
     {
@@ -50,20 +41,5 @@ class Store extends Model
     public function products()
     {
         return $this->hasMany(Product::class);
-    }
-
-    public function orders()
-    {
-        return $this->hasMany(Order::class, 'store_id');
-    }
-
-    public function getLogoUrlAttribute()
-    {
-        return $this->logo ? Storage::url($this->logo) : null;
-    }
-
-    public function getCoverUrlAttribute()
-    {
-        return $this->cover_image ? Storage::url($this->cover_image) : null;
     }
 }

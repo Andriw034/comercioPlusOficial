@@ -4,23 +4,29 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-<<<<<<< HEAD
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-=======
-use Illuminate\Http\Request;
->>>>>>> 691c95be (comentario)
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-<<<<<<< HEAD
     public function index(Request $request)
     {
+        // Si el cliente quiere usar los scopes dinámicos, respetarlos
+        if ($request->hasAny(['included', 'filter', 'sort', 'perPage'])) {
+            $productos = Product::included()->filter()->sort()->getOrPaginate();
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Listado de productos',
+                'data' => $productos,
+            ]);
+        }
+
+        // Implementación con validación y paginación personalizada
         $data = $request->validate([
             'q'           => ['nullable','string','max:100'],
             'category_id' => ['nullable','integer'],
@@ -36,7 +42,7 @@ class ProductController extends Controller
 
         $q = Product::query()
             ->select([
-                'id','name','slug','description','image_path','image','price','stock',
+                'id','name','slug','description','image as image','price','stock',
                 'category_id','offer','average_rating','store_id','created_at'
             ])
             ->with('category:id,name');
@@ -69,31 +75,11 @@ class ProductController extends Controller
             case 'price_asc':  $q->orderBy('price', 'asc'); break;
             case 'price_desc': $q->orderBy('price', 'desc'); break;
             case 'rating_desc':$q->orderBy('average_rating', 'desc'); break;
-            case 'newest':     $q->orderBy('created_at', 'desc'); break;
+            case 'newest':     $q->orderBy('created_at', 'asc'); break; // o desc según necesidad
             default:           $q->orderBy('name'); break;
         }
 
         $page = $q->paginate($perPage)->withQueryString();
-
-        $page->getCollection()->transform(function ($p) {
-            $img = $p->image_path ?: $p->image;
-            if ($img && !str_starts_with($img, 'http')) {
-                $img = asset(ltrim($img, '/'));
-            }
-
-            return [
-                'id'       => $p->id,
-                'name'     => $p->name,
-                'slug'     => $p->slug,
-                'price'    => (float)$p->price,
-                'stock'    => (int)$p->stock,
-                'rating'   => $p->average_rating ? (float)$p->average_rating : null,
-                'image'    => $img,
-                'offer'    => (bool)$p->offer,
-                'category' => optional($p->category)->name,
-                'created'  => $p->created_at?->toIso8601String(),
-            ];
-        });
 
         return response()->json([
             'data' => $page->items(),
@@ -103,19 +89,6 @@ class ProductController extends Controller
                 'total'        => $page->total(),
                 'last_page'    => $page->lastPage(),
             ],
-=======
-    public function index()
-    {
-          $productos = Product::included() 
-        ->filter()
-        ->sort()
-        ->getOrPaginate();;
-
-        return response()->json([
-            'status' => 'ok',
-            'message' => 'Listado de productos',
-            'data' => $productos,
->>>>>>> 691c95be (comentario)
         ]);
     }
 
@@ -124,10 +97,12 @@ class ProductController extends Controller
      */
     public function create()
     {
-<<<<<<< HEAD
         // No aplica para API
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -143,7 +118,7 @@ class ProductController extends Controller
         // Set user_id from authenticated user
         $data['user_id'] = $request->user()->id;
 
-        // Si la BD tiene NOT NULL en description, evitamos 1364
+        // Evitar 1364 NOT NULL si aplica
         if (!array_key_exists('description', $data) || $data['description'] === null) {
             $data['description'] = '';
         }
@@ -162,33 +137,17 @@ class ProductController extends Controller
 
         $product = Product::create($data);
         return response()->json($product, 201);
-=======
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
->>>>>>> 691c95be (comentario)
     }
 
     /**
      * Display the specified resource.
      */
-<<<<<<< HEAD
     public function show(Product $product)
     {
         return response()->json([
             'status' => 'ok',
             'data' => $product->load('store', 'category'),
         ]);
-=======
-    public function show(string $id)
-    {
-        //
     }
 
     /**
@@ -196,14 +155,12 @@ class ProductController extends Controller
      */
     public function edit(string $id)
     {
-        //
->>>>>>> 691c95be (comentario)
+        // No aplica para API
     }
 
     /**
      * Update the specified resource in storage.
      */
-<<<<<<< HEAD
     public function update(Request $request, Product $product)
     {
         $data = $request->validate([
@@ -233,17 +190,11 @@ class ProductController extends Controller
 
         $product->update($data);
         return response()->json($product);
-=======
-    public function update(Request $request, string $id)
-    {
-        //
->>>>>>> 691c95be (comentario)
     }
 
     /**
      * Remove the specified resource from storage.
      */
-<<<<<<< HEAD
     public function destroy(Product $product)
     {
         $product->delete();
@@ -251,10 +202,5 @@ class ProductController extends Controller
         return response()->json([
             'message' => 'Producto eliminado correctamente',
         ]);
-=======
-    public function destroy(string $id)
-    {
-        //
->>>>>>> 691c95be (comentario)
     }
 }

@@ -15,14 +15,6 @@ class UserFactory extends Factory
         return [
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
-<<<<<<< HEAD
-            'password' => bcrypt('password'),
-            'phone' => $this->faker->phoneNumber(),
-            'avatar' => null,
-            'status' => true,
-            'address' => $this->faker->address(),
-            'role_id' => Role::factory(),
-=======
             'phone' => $this->faker->phoneNumber(),
             'address' => $this->faker->address(),
             'password' => bcrypt('password'), // password por defecto
@@ -31,7 +23,6 @@ class UserFactory extends Factory
             'role_id' => 1, // Ajusta según roles existentes
             'created_at' => now(),
             'updated_at' => now(),
->>>>>>> 691c95be (comentario)
         ];
     }
 }

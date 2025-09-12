@@ -15,6 +15,11 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    @auth
+                    <x-nav-link :href="route('admin.products.ui')" :active="request()->routeIs('admin.products.ui')">
+                        {{ __('Productos UI') }}
+                    </x-nav-link>
+                    @endauth
                 </div>
             </div>
 
@@ -70,6 +75,11 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @auth
+            <x-responsive-nav-link :href="route('admin.products.ui')" :active="request()->routeIs('admin.products.ui')">
+                {{ __('Productos UI') }}
+            </x-responsive-nav-link>
+            @endauth
         </div>
 
         <!-- Responsive Settings Options -->

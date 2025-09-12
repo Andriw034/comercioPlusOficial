@@ -71,7 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::resource('products', ProductController::class);
+        Route::patch('products/{product}/update-image', [ProductController::class, 'updateImage'])->name('products.update-image');
         Route::resource('categories', CategoryController::class);
+        // UI de productos (frontend demo con localStorage)
+        Route::view('/products-ui', 'dashboard.products')->name('products.ui');
     });
 });
 
@@ -88,6 +91,27 @@ Route::middleware(HandleInertiaRequests::class)->group(function () {
 Route::get('/products', [PublicProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product}', [PublicProductController::class, 'show'])->name('products.show');
 Route::get('/categories/{category}', [PublicCategoryController::class, 'show'])->name('categories.show');
+
+/* EDUCATION ROUTES */
+Route::prefix('yeargroups')->group(function () {
+    Route::prefix('EYFS')->group(function () {
+        Route::prefix('y0')->group(function () {
+            Route::prefix('subjects')->group(function () {
+                Route::get('phonics/index', fn () => view('yeargroups.EYFS.y0.subjects.phonics.index'))->name('yeargroups.eyfs.y0.subjects.phonics.index');
+                Route::get('understanding-the-world/index', fn () => view('yeargroups.EYFS.y0.subjects.understanding-the-world.index'))->name('yeargroups.eyfs.y0.subjects.understanding-the-world.index');
+                Route::prefix('maths')->group(function () {
+                    Route::prefix('autumn')->group(function () {
+                        Route::get('index', fn () => view('yeargroups.EYFS.y0.subjects.maths.autumn.index'))->name('yeargroups.eyfs.y0.subjects.maths.autumn.index');
+                        Route::get('week1', fn () => view('yeargroups.EYFS.y0.subjects.maths.autumn.week1'))->name('yeargroups.eyfs.y0.subjects.maths.autumn.week1');
+                        Route::get('week2', fn () => view('yeargroups.EYFS.y0.subjects.maths.autumn.week2'))->name('yeargroups.eyfs.y0.subjects.maths.autumn.week2');
+                    });
+                });
+            });
+        });
+    });
+});
+
+Route::get('/lesson/counting-to-3', fn () => view('lesson.counting-to-3'))->name('lesson.counting-to-3');
 
 /* USERS (si administras usuarios globalmente) */
 Route::resource('users', UserController::class);
