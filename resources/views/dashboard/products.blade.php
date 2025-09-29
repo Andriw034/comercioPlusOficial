@@ -1,9 +1,46 @@
-@extends('layouts.marketing')
+@extends('layouts.dashboard')
 
-@section('title', 'Productos — ComercioPlus')
+@section('title', 'Productos Dashboard')
 @section('content')
+@php
+  $store = \App\Models\Store::where('user_id', auth()->id())->first();
+@endphp
+
 <div class="min-h-screen bg-[#0e0f12] text-white p-6">
-  <h1 class="text-4xl font-bold mb-6">Productos</h1>
+  <header class="mb-6 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      @if($store && $store->logo_path)
+        <img src="{{ asset('storage/'.$store->logo_path) }}" alt="Logo" class="h-10 w-10 rounded-2xl object-cover ring-1 ring-white/10" />
+      @endif
+      <div>
+        <h1 class="text-4xl font-bold mb-6 flex items-center gap-2">
+          {{ $store?->name ?? 'Mi Tienda' }}
+          @if($store && $store->cover_path)
+            <span class="text-xs text-white/50">· portada activa</span>
+          @endif
+        </h1>
+        @if($store && $store->description)
+          <p class="text-white/60 text-sm">{{ $store->description }}</p>
+        @endif
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      {{-- Botón "Crear tienda" eliminado --}}
+      {{-- <button class="btn-create-store">Crear tienda</button> --}}
+      @if($store)
+        <a href="{{ route('store.edit', $store) }}" class="rounded-xl bg-white/10 text-white px-4 py-2 hover:bg-white/15">Editar tienda</a>
+      @endif
+    </div>
+  </header>
+
+  @if($store && $store->cover_path)
+    <div class="relative mb-6 overflow-hidden rounded-3xl">
+      <img src="{{ asset('storage/'.$store->cover_path) }}" alt="Portada"
+           class="w-full h-40 sm:h-52 object-cover opacity-90" />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+    </div>
+  @endif
 
   <div id="toolbar" class="sticky top-0 bg-[#0e0f12] p-4 rounded-xl shadow-lg flex flex-wrap gap-4 items-center z-10">
     <button id="btnNewProduct" class="bg-[#FF6000] text-black px-5 py-2 rounded-full font-semibold hover:bg-[#ff7a2e] transition">

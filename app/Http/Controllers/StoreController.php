@@ -2,129 +2,146 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Store;
-use App\Models\PublicStore;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Store;
 
 class StoreController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    /**
+     * Mostrar formulario para crear tienda (wizard básico).
+     * Ruta esperada: route('store.create')
+     */
     public function create()
     {
-        return view('store.create');
+        // Si el usuario ya tiene tienda, redirigir al panel
+        $user = Auth::user();
+        if ($user->stores()->exists()) {
+            return redirect()->route('admin.dashboard')->with('info', 'Ya tienes una tienda.');
+        }
+
+        return view('store.create'); // resources/views/store/create.blade.php
     }
 
+    /**
+     * Guardar tienda nueva.
+     * Ruta esperada: route('store.store') [POST]
+     */
     public function store(Request $request)
     {
-        // 1) Validación
-        $data = $request->validate([
-            'name'        => ['required', 'string', 'max:120'],
-            'description' => ['nullable', 'string', 'max:1000'],
-
-            // Subida desde PC
-            'logo'        => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
-            'cover'       => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
-
-            // Desde URL (opcional)
-            'logo_url'    => ['nullable', 'url'],
-            'cover_url'   => ['nullable', 'url'],
-        ]);
-
         $user = Auth::user();
 
-        // 2) Slug único
-        $baseSlug = Str::slug($data['name']);
-        $slug = $this->uniqueSlug($baseSlug);
-
-        // 3) Crear/actualizar Store del usuario
-        $store = Store::firstOrNew(['user_id' => $user->id]);
-        $justCreated = !$store->exists;
-
-        $store->fill([
-            'name'        => $data['name'],
-            'slug'        => $justCreated ? $slug : ($store->slug ?: $slug),
-            'description' => $data['description'] ?? null,
+        // Validaciones básicas
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'primary_color' => 'nullable|string|size:7', // ej. #ff6600
         ]);
-        $store->user_id = $user->id;
+
+        // Generar slug único
+        $baseSlug = Str::slug($data['name']);
+        $slug = $baseSlug;
+        $i = 1;
+        while (Store::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $i;
+            $i++;
+        }
+
+        // Crear store
+        $store = Store::create([
+            'user_id' => $user->id,
+            'name' => $data['name'],
+            'slug' => $slug,
+            'description' => $data['description'] ?? null,
+            'primary_color' => $data['primary_color'] ?? null,
+            'estado' => 'activa',
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Tienda creada correctamente.');
+    }
+
+    /**
+     * Mostrar la UI de apariencia (logo / portada).
+     * Ruta esperada: route('admin.store.appearance')
+     */
+    public function appearance()
+    {
+        $user = Auth::user();
+        $store = $user->stores()->first();
+
+        if (! $store) {
+            return redirect()->route('store.create')->with('info', 'Crea tu tienda antes de personalizarla.');
+        }
+
+        return view('admin.store.appearance', compact('store')); // resources/views/admin/store/appearance.blade.php
+    }
+
+    /**
+     * Actualizar logo y fondo (cover) de la tienda.
+     * Ruta esperada: route('admin.store.update_appearance') [POST or PUT]
+     *
+     * Recibe inputs:
+     *  - logo (file image)
+     *  - cover (file image)
+     */
+    public function updateAppearance(Request $request)
+    {
+        $user = Auth::user();
+        $store = $user->stores()->first();
+
+        if (! $store) {
+            return redirect()->route('store.create')->with('error', 'Crea tu tienda antes de personalizarla.');
+        }
+
+        $validated = $request->validate([
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'cover' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096', // cover puede ser más grande
+            'primary_color' => 'nullable|string|size:7',
+        ]);
+
+        // Logo
+        if ($request->hasFile('logo')) {
+            $file = $request->file('logo');
+            $path = $file->store('stores/logos', 'public');
+
+            // Borrar logo anterior si existe
+            if ($store->logo_path) {
+                try {
+                    Storage::disk('public')->delete($store->logo_path);
+                } catch (\Throwable $e) { /* ignore */ }
+            }
+
+            $store->logo_path = $path;
+        }
+
+        // Cover / background
+        if ($request->hasFile('cover')) {
+            $file = $request->file('cover');
+            $path = $file->store('stores/covers', 'public');
+
+            // Borrar cover anterior si existe
+            if ($store->background_path) {
+                try {
+                    Storage::disk('public')->delete($store->background_path);
+                } catch (\Throwable $e) { /* ignore */ }
+            }
+
+            $store->background_path = $path;
+        }
+
+        if (isset($validated['primary_color'])) {
+            $store->primary_color = $validated['primary_color'];
+        }
+
         $store->save();
 
-        // 4) Guardar assets
-        $brandingDir = "stores/{$store->id}/branding";
-        $logoPath  = $this->saveFromUrlOrFile($request, 'logo',  'logo_url',  $brandingDir) ?: $store->logo;
-        $coverPath = $this->saveFromUrlOrFile($request, 'cover', 'cover_url', $brandingDir) ?: $store->cover;
-
-        // 5) Actualizar columnas reales (logo, cover)
-        $store->update([
-            'logo'  => $logoPath,
-            'cover' => $coverPath,
-        ]);
-
-        // 6) Sincronizar PublicStore
-        PublicStore::updateOrCreate(
-            ['store_id' => $store->id],
-            [
-                'user_id'            => $user->id,
-                'name'               => $store->name,
-                'nombre_tienda'      => $store->name,
-                'slug'               => $store->slug,
-                'descripcion'        => $store->description,
-                'logo'               => $logoPath,
-                'cover'              => $coverPath,
-                'estado'             => 'activa',  // según tu enum
-                'categoria_principal'=> null,
-            ]
-        );
-
-        // 7) Branding para la UI
-        $branding = [
-            'store_id'   => $store->id,
-            'store_name' => $store->name,
-            'logo_url'   => $logoPath  ? Storage::disk('public')->url($logoPath)  : null,
-            'cover_url'  => $coverPath ? Storage::disk('public')->url($coverPath) : null,
-        ];
-
-        // 8) Redirección al listado de productos del panel
-        return redirect()
-            ->route('admin.products.index')
-            ->with('success', '¡Tu tienda fue creada/actualizada con éxito!')
-            ->with('store_branding', $branding);
-    }
-
-    private function saveFromUrlOrFile(Request $request, string $fileField, string $urlField, string $dir): ?string
-    {
-        if ($request->hasFile($fileField)) {
-            $file = $request->file($fileField);
-            $ext  = strtolower($file->getClientOriginalExtension() ?: 'png');
-            $name = Str::uuid()->toString() . '.' . $ext;
-            return $file->storeAs($dir, $name, 'public');
-        }
-
-        $url = trim((string) $request->input($urlField));
-        if ($url !== '') {
-            try {
-                $contents = @file_get_contents($url);
-                if ($contents !== false) {
-                    $extGuess = pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
-                    $ext = in_array(strtolower($extGuess), ['png','jpg','jpeg','webp']) ? strtolower($extGuess) : 'jpg';
-                    $name = Str::uuid()->toString() . '.' . $ext;
-                    $path = "{$dir}/{$name}";
-                    Storage::disk('public')->put($path, $contents);
-                    return $path;
-                }
-            } catch (\Throwable $e) {}
-        }
-        return null;
-    }
-
-    private function uniqueSlug(string $baseSlug): string
-    {
-        $slug = $baseSlug ?: Str::uuid()->toString();
-        if (!Store::where('slug', $slug)->exists()) return $slug;
-
-        $i = 2;
-        while (Store::where('slug', "{$slug}-{$i}")->exists()) $i++;
-        return "{$slug}-{$i}";
+        return redirect()->route('admin.store.appearance')->with('success', 'Apariencia actualizada correctamente.');
     }
 }

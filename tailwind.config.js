@@ -16,6 +16,21 @@ export default {
       colors: {
         'cp-primary': '#FF6000',
         'cp-primary-2': '#FF8A3D',
+        commerce: {
+          50: '#fff7f2',
+          100: '#ffe8d9',
+          300: '#ffb58a',
+          500: '#ff7a2f',
+          600: '#ff6600',
+        },
+        bg: {
+          'dark-900': '#0b1220',
+          'dark-800': '#111827',
+          'panel': 'rgba(255,255,255,0.03)'
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui']
       },
       borderRadius: {
         '2xl': '1rem',

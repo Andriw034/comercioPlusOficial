@@ -25,6 +25,7 @@ class StoreSeeder extends Seeder
                 'role_id' => $sellerRole->id,
             ]
         );
+        $merchant1->assignRole($sellerRole);
 
         $merchant2 = User::firstOrCreate(
             ['email' => 'comerciante2@ejemplo.com'],
@@ -34,6 +35,7 @@ class StoreSeeder extends Seeder
                 'role_id' => $comercianteRole->id,
             ]
         );
+        $merchant2->assignRole($comercianteRole);
 
         // Crear tiendas para estos comerciantes
         $merchants = [$merchant1, $merchant2];

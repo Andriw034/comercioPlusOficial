@@ -3,51 +3,77 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
+use App\Models\Category;
+use App\Models\Store;
 
 class CategoryController extends Controller
 {
-  
-    public function index()
+    public function __construct()
     {
-        $category = Category::with('products', 'parent', 'children')->get();
-
-        return response()->json([
-            'status' => 'ok',
-            'message' => 'Categories retrieved successfully',
-            'data' => $category,
-        ]);
+        // Protección: requiere sesión / usuario autenticado
+        $this->middleware('auth');
     }
 
-  
-    public function create()
-    {
-        // No aplica para API
-    }
-
-   
+    /**
+     * Store a newly created category via AJAX/API.
+     *
+     * Endpoint expected: POST /api/categories
+     * Body: { name, short_description?, is_popular?, popularity? }
+     *
+     * Returns JSON only:
+     *  - 201 created on success: { message: "...", data: { ...category... } }
+     *  - 422 validation errors: standard Laravel validation JSON
+     *  - 403 if user has no store
+     */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'parent_id' => 'nullable|exists:categories,id',
-            'slug' => 'nullable|string|max:255|unique:categories,slug',
+        $user = Auth::user();
+
+        // Obtener la tienda del usuario (flexible)
+        $store = $this->getUserStore($user);
+
+        if (! $store) {
+            return response()->json([
+                'message' => 'Necesitas crear una tienda antes de agregar categorías.'
+            ], 403);
+        }
+
+        // Validación
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'short_description' => ['nullable', 'string', 'max:255'],
+            'is_popular' => ['nullable', 'boolean'],
+            'popularity' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $candidate = $data['slug'] ?? Str::slug($data['name']);
-        if (Category::where('slug', $candidate)->exists()) {
-            return response()->json([
-                'message' => 'El slug ya existe',
-                'errors' => ['slug' => ['The slug has already been taken.']],
-            ], 422);
+        // Normalizar valores
+        $payload['is_popular'] = (bool) ($payload['is_popular'] ?? false);
+        $payload['popularity'] = $payload['popularity'] ?? 0;
+
+        // Generar slug único dentro de la tienda
+        $base = Str::slug($payload['name']);
+        $slug = $base;
+        $i = 1;
+        while (Category::where('store_id', $store->id)->where('slug', $slug)->exists()) {
+            $slug = $base . '-' . $i;
+            $i++;
         }
-        $data['slug'] = $candidate;
 
-        $category = Category::create($data);
+        // Crear la categoría asociada a la tienda
+        $category = Category::create([
+            'name' => $payload['name'],
+            'slug' => $slug,
+            'short_description' => $payload['short_description'] ?? null,
+            'is_popular' => $payload['is_popular'],
+            'popularity' => $payload['popularity'],
+            'store_id' => $store->id,
+        ]);
 
+        // Respuesta JSON minimalista — ideal para AJAX: no redirecciones ni views
         return response()->json([
             'message' => 'Categoría creada correctamente.',
             'data' => $category,
@@ -55,77 +81,31 @@ class CategoryController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Helper: obtener la tienda del usuario (works with store/storeS)
      */
-    public function show(string $id)
+    protected function getUserStore($user): ?Store
     {
-        $category = Category::find($id);
+        if (! $user) return null;
 
-        if (!$category) {
-            return response()->json(['message' => 'Categoría no encontrada'], 404);
+        if (method_exists($user, 'store')) {
+            try {
+                $s = $user->store;
+                if ($s) return $s;
+            } catch (\Throwable $e) {}
         }
 
-        return response()->json($category);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        // No aplica para API
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        $category = Category::find($id);
-
-        if (!$category) {
-            return response()->json(['message' => 'Categoría no encontrada'], 404);
+        if (method_exists($user, 'stores')) {
+            try {
+                $s = $user->stores()->first();
+                if ($s) return $s;
+            } catch (\Throwable $e) {}
         }
 
-        $data = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'parent_id' => 'nullable|exists:categories,id',
-            'slug' => 'nullable|string|max:255|unique:categories,slug,' . $category->id,
-        ]);
-
-        if (!isset($data['slug']) && isset($data['name'])) {
-            $data['slug'] = Str::slug($data['name']);
+        if (isset($user->store) && $user->store) return $user->store;
+        if (isset($user->stores) && $user->stores instanceof \Illuminate\Support\Collection) {
+            return $user->stores->first();
         }
 
-        $category->update($data);
-
-        return response()->json([
-            'message' => 'Categoría actualizada correctamente.',
-            'data' => $category,
-        ]);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        $category = Category::find($id);
-
-        if (!$category) {
-            return response()->json(['message' => 'Categoría no encontrada'], 404);
-        }
-
-        // Bloquear si tiene productos
-        if (method_exists($category, 'products') && $category->products()->exists()) {
-            return response()->json(['message' => 'Category has products'], 422); // o 409 Conflict si así lo manejas
-        }
-
-        $category->delete();
-
-        return response()->json([
-            'message' => 'Categoría eliminada correctamente.',
-        ], 204);
+        return null;
     }
 }

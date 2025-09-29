@@ -26,11 +26,11 @@
           @isset($useLucide)<x-lucide-package class="h-4 w-4"/>@else<span>📦</span>@endisset
           Productos
         </a>
-        <a href="{{ route('dashboard.branding') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
+        <a href="#" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
           @isset($useLucide)<x-lucide-palette class="h-4 w-4"/>@else<span>🎨</span>@endisset
           Branding IA
         </a>
-        <a href="{{ route('settings.store') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
+        <a href="#" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
           @isset($useLucide)<x-lucide-settings class="h-4 w-4"/>@else<span>⚙️</span>@endisset
           Ajustes
         </a>

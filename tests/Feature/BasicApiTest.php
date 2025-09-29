@@ -26,11 +26,41 @@ class BasicApiTest extends TestCase
 
     public function test_public_categories_endpoint()
     {
-        $user = User::factory()->create();
-        Sanctum::actingAs($user, ['*']);
-
         $response = $this->getJson('/api/categories');
         $response->assertStatus(200);
+    }
+
+    public function test_create_category_without_auth()
+    {
+        $payload = ['name' => 'Test Category', 'description' => 'Test description'];
+        $response = $this->postJson('/api/categories', $payload);
+        $response->assertStatus(201);
+    }
+
+    public function test_create_store_without_auth()
+    {
+        $user = User::factory()->create();
+        $payload = [
+            'name' => 'Test Store',
+            'description' => 'Test store description',
+            'address' => 'Test Address',
+            'phone' => '123456789',
+            'user_id' => $user->id
+        ];
+        $response = $this->postJson('/api/public-stores', $payload);
+        $response->assertStatus(201);
+    }
+
+    public function test_create_subscription_without_auth()
+    {
+        $user = User::factory()->create();
+        $payload = [
+            'user_id' => $user->id,
+            'plan' => 'monthly',
+            'period' => 'monthly'
+        ];
+        $response = $this->postJson('/api/subscriptions', $payload);
+        $response->assertStatus(201);
     }
 
     public function test_public_stores_endpoint()

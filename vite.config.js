@@ -12,13 +12,17 @@ export default defineConfig({
   ],
   server: {
     host: '127.0.0.1',
-    port: 5175,        // puerto alterno para evitar conflictos
-    strictPort: false, // si 5175 está ocupado, elige otro libre
+    port: 5175,
+    strictPort: false,
     hmr: {
       host: '127.0.0.1',
       protocol: 'ws',
       overlay: false,
     },
+    // Permitir conexiones desde cualquier origen para desarrollo
+    cors: true,
+    // Configuración adicional para asegurar que funcione con Laravel
+    origin: 'http://127.0.0.1:5175',
   },
   resolve: {
     alias: {

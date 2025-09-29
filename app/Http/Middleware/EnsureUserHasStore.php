@@ -23,7 +23,7 @@ class EnsureUserHasStore
         }
 
         // Evitar bucle: permitir acceder/guardar la creación de tienda.
-        if ($request->routeIs('store.create') || $request->routeIs('store.create.post')) {
+        if ($request->routeIs('store.create') || $request->routeIs('store.store')) {
             return $next($request);
         }
 

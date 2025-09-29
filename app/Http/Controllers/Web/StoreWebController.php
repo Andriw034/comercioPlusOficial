@@ -59,6 +59,8 @@ class StoreWebController extends Controller
         $store = Store::with(['user', 'products.category'])
             ->findOrFail($id);
 
+        $store->increment('visits');
+
         return Inertia::render('Stores/Show', [
             'store' => $store,
             'title' => $store->name . ' - Comercio Plus'

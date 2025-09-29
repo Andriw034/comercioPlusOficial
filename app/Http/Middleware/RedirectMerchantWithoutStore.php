@@ -42,7 +42,7 @@ class RedirectMerchantWithoutStore
                 $hasStore = Store::where('user_id', $user->id)->exists();
             }
 
-            if (!$hasStore && !$request->routeIs('store.create') && !$request->routeIs('store.create.post')) {
+            if (!$hasStore && !$request->routeIs('store.create') && !$request->routeIs('store.store')) {
                 // Obligar a ir a crear tienda
                 return redirect()->route('store.create')
                     ->with('info', 'Primero crea tu tienda para continuar.');

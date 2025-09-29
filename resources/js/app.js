@@ -2,9 +2,7 @@
 import { createApp, defineComponent, computed, reactive } from 'vue'
 import '../css/app.css'
 
-/* ==========
-   1) HERO mínimo (si existe #app, como en welcome.blade)
-========== */
+/* ========== 1) HERO mínimo (si existe #app, como en welcome.blade) ========== */
 const heroRoot = document.getElementById('app')
 if (heroRoot) {
   const AppRoot = {
@@ -20,9 +18,7 @@ if (heroRoot) {
   createApp(AppRoot).mount('#app')
 }
 
-/* ==========
-   2) Catálogo (demo Vue en Blade) — se monta en #vue-catalog
-========== */
+/* ========== 2) Catálogo (demo Vue en Blade) — se monta en #vue-catalog ========== */
 const catalogRoot = document.getElementById('vue-catalog')
 if (catalogRoot) {
   const CatalogDemo = defineComponent({
@@ -99,4 +95,159 @@ if (catalogRoot) {
   })
 
   createApp(CatalogDemo).mount('#vue-catalog')
+}
+
+/* ========== 3) Wizard Perfil + Tienda + Dashboard (Vue) ========== */
+console.log('[CP] app.js cargado — buscando #store-wizard...');
+const wizardRoot = document.getElementById('store-wizard')
+console.log('[CP] wizardRoot =', wizardRoot);
+
+if (wizardRoot) {
+  const StoreWizard = defineComponent({
+    name: 'StoreWizard',
+    setup() {
+      const state = reactive({
+        step: 'form', // 'form' | 'dashboard'
+        nombre: '',
+        descripcion: '',
+        logoUrl: '',
+        fondoUrl: '',
+        error: '',
+      })
+
+      // Cargar imagen (logo / fondo)
+      const onPick = (e, key) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        const url = URL.createObjectURL(file)
+        state[key] = url
+      }
+
+      const crearTienda = () => {
+        state.error = ''
+        const n = state.nombre.trim()
+        if (!n) {
+          state.error = 'Por favor ingresa el nombre de la tienda.'
+          return
+        }
+        state.step = 'dashboard'
+        // scroll arriba
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+
+      const editar = () => (state.step = 'form')
+
+      return { state, onPick, crearTienda, editar }
+    },
+    template: `
+      <div>
+        <!-- ======= FORMULARIO ======= -->
+        <div v-if="state.step === 'form'"
+             class="rounded-3xl bg-white/5 ring-1 ring-white/10 p-6 shadow-2xl">
+
+          <h2 class="text-xl font-extrabold">🛍️ Crear Perfil & Tienda</h2>
+          <p class="text-white/70 mt-1">Completa la información. Verás el logo y el fondo en el dashboard.</p>
+
+          <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm text-white/80 mb-1">Nombre de la tienda</label>
+              <input v-model="state.nombre" type="text" placeholder="Ej. ComercioPlus Motos"
+                class="w-full rounded-xl bg-white/10 text-white placeholder-white/60 ring-1 ring-white/15 px-4 py-3 focus:outline-none focus:ring-white/30" />
+            </div>
+
+            <div class="md:row-span-2">
+              <label class="block text-sm text-white/80 mb-1">Descripción</label>
+              <textarea v-model="state.descripcion" rows="4"
+                placeholder="Cuenta qué vendes y tu propuesta de valor"
+                class="w-full rounded-xl bg-white/10 text-white placeholder-white/60 ring-1 ring-white/15 px-4 py-3 focus:outline-none focus:ring-white/30"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm text-white/80 mb-1">Logo</label>
+              <div class="flex items-center gap-3">
+                <input type="file" accept="image/*" @change="e => onPick(e, 'logoUrl')"
+                       class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl
+                              file:border-0 file:bg-orange-500 file:text-white hover:file:bg-orange-600" />
+                <div v-if="state.logoUrl" class="h-16 w-16 rounded-xl overflow-hidden ring-1 ring-white/15">
+                  <img :src="state.logoUrl" alt="logo" class="h-full w-full object-cover" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm text-white/80 mb-1">Imagen de fondo</label>
+              <div class="flex items-center gap-3">
+                <input type="file" accept="image/*" @change="e => onPick(e, 'fondoUrl')"
+                       class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl
+                              file:border-0 file:bg-orange-500 file:text-white hover:file:bg-orange-600" />
+                <div v-if="state.fondoUrl" class="h-16 w-28 rounded-xl overflow-hidden ring-1 ring-white/15">
+                  <img :src="state.fondoUrl" alt="fondo" class="h-full w-full object-cover" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="state.error" class="mt-3 text-red-400 text-sm">{{ state.error }}</p>
+
+          <div class="mt-6">
+            <button @click="crearTienda"
+              class="rounded-2xl px-5 py-3 font-extrabold bg-orange-500 hover:bg-orange-600 text-black">
+              Crear tienda
+            </button>
+          </div>
+        </div>
+
+        <!-- ======= DASHBOARD ======= -->
+        <div v-else class="mt-6">
+          <!-- Header con fondo + logo -->
+          <div class="relative h-56 rounded-3xl overflow-hidden ring-1 ring-white/10">
+            <div v-if="state.fondoUrl" class="absolute inset-0">
+              <img :src="state.fondoUrl" class="h-full w-full object-cover" alt="cover" />
+            </div>
+            <div v-else class="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800"></div>
+            <div class="absolute inset-0 bg-black/35"></div>
+
+            <div class="absolute left-5 bottom-5 flex items-center gap-4">
+              <div class="h-16 w-16 rounded-2xl overflow-hidden ring-2 ring-black/70 bg-black/60 grid place-items-center">
+                <img v-if="state.logoUrl" :src="state.logoUrl" class="h-full w-full object-cover" alt="logo" />
+                <span v-else class="text-white/80 text-xs font-bold">LOGO</span>
+              </div>
+              <div>
+                <div class="text-white text-lg font-extrabold">{{ state.nombre || 'Mi Tienda' }}</div>
+                <div v-if="state.descripcion" class="text-white/80 text-sm max-w-lg">{{ state.descripcion }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Productos (placeholder) -->
+          <div class="mt-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-extrabold">Productos</h3>
+              <button @click="editar" class="text-sm text-white/80 hover:text-white underline underline-offset-4">
+                Editar tienda
+              </button>
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div v-for="i in 8" :key="i" class="rounded-2xl overflow-hidden ring-1 ring-white/10 bg-white/5">
+                <div class="aspect-[4/3] bg-white/10"></div>
+                <div class="p-3">
+                  <div class="text-white/95 font-medium truncate">Producto {{ i }}</div>
+                  <div class="text-white/70 text-xs">Categoría</div>
+                  <div class="mt-2 flex items-center justify-between">
+                    <span class="text-white font-semibold">$ 99.900</span>
+                    <button class="text-xs rounded-full px-3 py-1 bg-orange-500 hover:bg-orange-600 text-black font-bold">
+                      Agregar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  })
+
+  createApp(StoreWizard).mount('#store-wizard')
 }

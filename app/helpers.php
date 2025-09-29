@@ -2,15 +2,7 @@
 // Archivo helpers.php creado para evitar error de carga en Composer.
 // Aquí puedes agregar funciones helper globales si es necesario.
 
-/**
- * Generate a URL for the application
- */
-function url($path = '')
-{
-    $baseUrl = config('app.url', 'http://localhost');
-    $path = ltrim($path, '/');
-    return $baseUrl . '/' . $path;
-}
+
 
 /**
  * Get the current URL

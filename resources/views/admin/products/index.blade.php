@@ -1,6 +1,6 @@
-@extends('layouts.admin')
+@extends('layouts.dashboard')
 
-@section('title', 'Productos — ComercioPlus')
+@section('title', 'Productos Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6">
@@ -13,7 +13,7 @@
 
   <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
     {{-- Card Productos en promoción --}}
-    <div class="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 ring-1 ring-white/10 p-6 text-white relative overflow-hidden">
+    <div class="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 ring-1 ring-white/10 p-6 text-white relative overflow-hidden smooth">
       <div class="absolute inset-y-0 left-0 w-1.5 bg-[#FF6000] rounded-l-xl"></div>
       <h2 class="text-xl font-semibold mb-2">Productos en promoción</h2>
       <p class="mb-4 text-sm text-white/80">Aumenta la visibilidad de ofertas.</p>
@@ -22,12 +22,12 @@
         <li><span class="inline-block bg-[#FF6000] text-black rounded px-2 py-0.5 mr-2 text-xs font-semibold">-20%</span> Llantas deportivas</li>
         <li><span class="inline-block bg-[#FF6000] text-black rounded px-2 py-0.5 mr-2 text-xs font-semibold">-10%</span> Pastillas de freno</li>
       </ul>
-      <a href="#" class="text-[#FF6000] font-semibold hover:underline">Ver todas →</a>
+      <a href="#" class="text-[#FF6000] font-semibold hover:underline smooth">Ver todas →</a>
     </div>
 
     {{-- Cards de productos --}}
     @foreach ($products as $product)
-      <div class="rounded-2xl bg-white/[.06] ring-1 ring-white/10 hover:bg-white/[.08] transition p-4 flex flex-col">
+      <div class="rounded-2xl bg-white/[.06] ring-1 ring-white/10 hover:bg-white/[.08] transition-all duration-300 smooth p-4 flex flex-col">
         <div class="aspect-[16/10] rounded-xl overflow-hidden ring-1 ring-white/10 bg-white/5 mb-4">
           <img src="{{ $product->image_url ?? asset('images/placeholder-product.jpg') }}"
                alt="{{ $product->name }}"
@@ -41,7 +41,7 @@
         @endif
         <div class="mt-auto flex gap-2">
           <button type="button"
-                  class="bg-white/90 text-black rounded-full px-4 py-1 font-semibold hover:bg-white/100 transition edit-product-btn"
+                  class="bg-white/90 text-black rounded-full px-4 py-1 font-semibold hover:bg-white/100 transition smooth edit-product-btn"
                   data-product-id="{{ $product->id }}"
                   data-image-url="{{ $product->image_url ?? '' }}">
             Editar
@@ -49,7 +49,7 @@
           <form method="POST" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('¿Eliminar este producto?');" class="inline">
             @csrf
             @method('DELETE')
-            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white rounded-full px-4 py-1 font-semibold transition">
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white rounded-full px-4 py-1 font-semibold transition smooth">
               Eliminar
             </button>
           </form>
@@ -57,6 +57,13 @@
       </div>
     @endforeach
   </div>
+
+  {{-- Paginación --}}
+  @if (method_exists($products, 'links'))
+    <div class="mt-8 flex justify-center">
+      {{ $products->links('vendor.pagination.tailwind') }}
+    </div>
+  @endif
 
   {{-- Modal para cambiar imagen --}}
   <div id="editImageModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50">
@@ -128,16 +135,20 @@
     if (tab === 'url') {
       tabUrl.classList.remove('hidden');
       tabFile.classList.add('hidden');
-      tabUrlBtn.classList.add('bg-[#FF6000]', 'text-black');
+      tabUrlBtn.classList.add('bg-[#FF6000]');
+      tabUrlBtn.classList.add('text-black');
       tabUrlBtn.classList.remove('text-white');
-      tabFileBtn.classList.remove('bg-[#FF6000]', 'text-black');
+      tabFileBtn.classList.remove('bg-[#FF6000]');
+      tabFileBtn.classList.remove('text-black');
       tabFileBtn.classList.add('text-white');
     } else {
       tabUrl.classList.add('hidden');
       tabFile.classList.remove('hidden');
-      tabUrlBtn.classList.remove('bg-[#FF6000]', 'text-black');
+      tabUrlBtn.classList.remove('bg-[#FF6000]');
+      tabUrlBtn.classList.remove('text-black');
       tabUrlBtn.classList.add('text-white');
-      tabFileBtn.classList.add('bg-[#FF6000]', 'text-black');
+      tabFileBtn.classList.add('bg-[#FF6000]');
+      tabFileBtn.classList.add('text-black');
       tabFileBtn.classList.remove('text-white');
     }
   }
@@ -166,6 +177,5 @@
       const imageUrl = this.getAttribute('data-image-url');
       openEditModal(productId, imageUrl);
     });
-  });
 </script>
 @endsection

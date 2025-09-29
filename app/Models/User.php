@@ -56,9 +56,9 @@ class User extends Authenticatable
         'role_id'
     ];
 
-    public function store()
+    public function stores()
     {
-        return $this->hasOne(Store::class);
+        return $this->hasMany(Store::class);
     }
     protected $allowSort = [
         'name',
@@ -99,6 +99,11 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function products()
+    {
+        return $this->hasManyThrough(Product::class, Store::class, 'user_id', 'id', 'store_id', 'id');
     }
 
     /* =========================

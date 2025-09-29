@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Models\Role as SpatieRole;
 
-class Role extends Model
+class Role extends SpatieRole
 {
     use HasFactory;
     
@@ -34,10 +34,7 @@ class Role extends Model
     ];
 
 
-        public function users()
-    {
-        return $this->hasMany(User::class);
-    }
+
 
 
     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente

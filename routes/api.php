@@ -1,230 +1,105 @@
 <?php
 
-use App\Http\Controllers\Api\CartController;
-use App\Http\Controllers\Api\CartProductController;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\ChannelController;
-use App\Http\Controllers\Api\ClaimController;
-use App\Http\Controllers\Api\LocationController;
-use App\Http\Controllers\Api\NotificacionController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\OrderMessageController;
-use App\Http\Controllers\Api\OrderProductController;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\ProfileController;
-use App\Http\Controllers\Api\PruebaController;
-use App\Http\Controllers\Api\PublicStoreController;
-use App\Http\Controllers\Api\RatingController;
-use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\Api\SaleController;
-use App\Http\Controllers\Api\SettingController;
-use App\Http\Controllers\Api\TutorialController;
-use App\Http\Controllers\Api\UserController;
-use App\Models\PublicStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\PublicProductController;
+use App\Http\Controllers\Api\PublicCategoryController;
+use App\Http\Controllers\Api\PublicStoreController;
 
-/*
-|--------------------------------------------------------------------------
-| Rutas API
-|--------------------------------------------------------------------------
-|
-| Aquí puedes registrar las rutas API para tu aplicación. Estas
-| rutas son cargadas por el RouteServiceProvider y todas ellas
-| serán asignadas al grupo de middleware "api".
-|
-*/
+// Health check endpoint
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok'], 200);
+});
 
 // Ruta para verificar que la API está activa
 Route::get('/ping', function () {
     return response()->json(['message' => 'API OK'], 200);
 });
 
-// Ruta para obtener el usuario autenticado (requiere autenticación)
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
+
+Route::get('/health', function () {
+    try {
+        // Verificar conexión a base de datos
+        DB::connection()->getPdo();
+
+        // Verificar que las tablas principales existen
+        $tables = ['users', 'stores', 'products', 'categories'];
+        $missingTables = [];
+
+        foreach ($tables as $table) {
+            if (!Schema::hasTable($table)) {
+                $missingTables[] = $table;
+            }
+        }
+
+        $status = empty($missingTables) ? 'healthy' : 'degraded';
+        $statusCode = empty($missingTables) ? 200 : 207; // 207 Multi-Status
+
+        return response()->json([
+            'status' => $status,
+            'timestamp' => now()->toISOString(),
+            'services' => [
+                'database' => [
+                    'status' => 'connected',
+                    'connection' => config('database.default')
+                ],
+                'cache' => [
+                    'status' => Cache::store()->getStore() ? 'available' : 'unavailable'
+                ]
+            ],
+            'metrics' => [
+                'users_count' => \App\Models\User::count(),
+                'stores_count' => \App\Models\Store::count(),
+                'products_count' => \App\Models\Product::count(),
+                'categories_count' => \App\Models\Category::count(),
+            ],
+            'warnings' => empty($missingTables) ? null : ['missing_tables' => $missingTables]
+        ], $statusCode);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'unhealthy',
+            'timestamp' => now()->toISOString(),
+            'error' => $e->getMessage(),
+            'services' => [
+                'database' => ['status' => 'disconnected'],
+                'cache' => ['status' => 'unknown']
+            ]
+        ], 503);
+    }
 });
 
-// Rutas de recursos para usuarios
-Route::resource('users', UserController::class)
-    ->only(['index', 'show', 'store', 'update', 'destroy'])
-    ->names([
-        'index'   => 'api.v1.users.index',
-        'show'    => 'api.v1.users.show',
-        'store'   => 'api.v1.users.store',
-        'update'  => 'api.v1.users.update',
-        'destroy' => 'api.v1.users.destroy',
-    ]);
+// Rutas públicas (sin autenticación requerida)
+Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+Route::apiResource('public-stores', \App\Http\Controllers\Api\PublicStoreController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 
-// Rutas de recursos para productos
-Route::resource('products', ProductController::class)
-    ->only(['index', 'show', 'store', 'update', 'destroy'])
-    ->names([
-        'index'   => 'api.v1.products.index',
-        'show'    => 'api.v1.products.show',
-        'store'   => 'api.v1.products.store',
-        'update'  => 'api.v1.products.update',
-        'destroy' => 'api.v1.products.destroy',
-    ]);
+// Rutas protegidas (requieren autenticación)
+Route::middleware('auth:sanctum')->group(function () {
+    // Ruta para obtener el usuario autenticado
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
 
-/*
-|---------------------------------------------------------------------------
-| Rutas de recursos para otros modelos
-|---------------------------------------------------------------------------
-| Ejemplo para hacer consultas en Postman con Cart:
-| - Para incluir relaciones: ?include=relation1,relation2
-| - Para filtrar: ?filter[field]=value
-| - Para ordenar: ?sort=field (ascendente) o ?sort=-field (descendente)
-| - Para paginar: ?page=1&per_page=10
-| Ejemplo completo:
-| GET /api/carts?include=user&filter[status]=active&sort=-created_at&page=1&per_page=10
-*/
-Route::resource('carts', CartController::class)->names([
-    'index'   => 'api.v1.carts.index',
-    'store'   => 'api.v1.carts.store',
-    'show'    => 'api.v1.carts.show',
-    'update'  => 'api.v1.carts.update',
-    'destroy' => 'api.v1.carts.destroy',
-]);
+    Route::apiResource('users', UserController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+    Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'store', 'update']);
+    Route::apiResource('products', \App\Http\Controllers\Api\ProductController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 
-Route::resource('cart-products', CartProductController::class)->names([
-    'index'   => 'api.v1.cart-products.index',
-    'store'   => 'api.v1.cart-products.store',
-    'show'    => 'api.v1.cart-products.show',
-    'update'  => 'api.v1.cart-products.update',
-    'destroy' => 'api.v1.cart-products.destroy',
-]);
+    // Cart: los tests piden /api/cart
+    Route::get('cart', [CartController::class, 'index']);
+    Route::post('cart', [CartController::class, 'store']);
+    Route::get('cart/{cart}', [CartController::class, 'show']);
+    Route::put('cart/{cart}', [CartController::class, 'update']);
+    Route::delete('cart/{cart}', [CartController::class, 'destroy']);
+});
 
-Route::resource('categories', CategoryController::class)->names([
-    'index'   => 'api.v1.categories.index',
-    'store'   => 'api.v1.categories.store',
-    'show'    => 'api.v1.categories.show',
-    'update'  => 'api.v1.categories.update',
-    'destroy' => 'api.v1.categories.destroy',
-]);
-
-Route::resource('channels', ChannelController::class)->names([
-    'index'   => 'api.v1.channels.index',
-    'store'   => 'api.v1.channels.store',
-    'show'    => 'api.v1.channels.show',
-    'update'  => 'api.v1.channels.update',
-    'destroy' => 'api.v1.channels.destroy',
-]);
-
-Route::resource('claims', ClaimController::class)->names([
-    'index'   => 'api.v1.claims.index',
-    'store'   => 'api.v1.claims.store',
-    'show'    => 'api.v1.claims.show',
-    'update'  => 'api.v1.claims.update',
-    'destroy' => 'api.v1.claims.destroy',
-]);
-
-Route::resource('locations', LocationController::class)->names([
-    'index'   => 'api.v1.locations.index',
-    'store'   => 'api.v1.locations.store',
-    'show'    => 'api.v1.locations.show',
-    'update'  => 'api.v1.locations.update',
-    'destroy' => 'api.v1.locations.destroy',
-]);
-
-Route::resource('notifications', NotificacionController::class)->names([
-    'index'   => 'api.v1.notifications.index',
-    'store'   => 'api.v1.notifications.store',
-    'show'    => 'api.v1.notifications.show',
-    'update'  => 'api.v1.notifications.update',
-    'destroy' => 'api.v1.notifications.destroy',
-]);
-
-Route::resource('orders', OrderController::class)->names([
-    'index'   => 'api.v1.orders.index',
-    'store'   => 'api.v1.orders.store',
-    'show'    => 'api.v1.orders.show',
-    'update'  => 'api.v1.orders.update',
-    'destroy' => 'api.v1.orders.destroy',
-]);
-
-Route::resource('order-messages', OrderMessageController::class)->names([
-    'index'   => 'api.v1.order-messages.index',
-    'store'   => 'api.v1.order-messages.store',
-    'show'    => 'api.v1.order-messages.show',
-    'update'  => 'api.v1.order-messages.update',
-    'destroy' => 'api.v1.order-messages.destroy',
-]);
-
-Route::resource('order-products', OrderProductController::class)->names([
-    'index'   => 'api.v1.order-products.index',
-    'store'   => 'api.v1.order-products.store',
-    'show'    => 'api.v1.order-products.show',
-    'update'  => 'api.v1.order-products.update',
-    'destroy' => 'api.v1.order-products.destroy',
-]);
-
-Route::resource('profiles', ProfileController::class)->names([
-    'index'   => 'api.v1.profiles.index',
-    'store'   => 'api.v1.profiles.store',
-    'show'    => 'api.v1.profiles.show',
-    'update'  => 'api.v1.profiles.update',
-    'destroy' => 'api.v1.profiles.destroy',
-]);
-
-Route::resource('pruebas', PruebaController::class)->names([
-    'index'   => 'api.v1.pruebas.index',
-    'store'   => 'api.v1.pruebas.store',
-    'show'    => 'api.v1.pruebas.show',
-    'update'  => 'api.v1.pruebas.update',
-    'destroy' => 'api.v1.pruebas.destroy',
-]);
-
-Route::resource('ratings', RatingController::class)->names([
-    'index'   => 'api.v1.ratings.index',
-    'store'   => 'api.v1.ratings.store',
-    'show'    => 'api.v1.ratings.show',
-    'update'  => 'api.v1.ratings.update',
-    'destroy' => 'api.v1.ratings.destroy',
-]);
-
-Route::resource('roles', RoleController::class)->names([
-    'index'   => 'api.v1.roles.index',
-    'store'   => 'api.v1.roles.store',
-    'show'    => 'api.v1.roles.show',
-    'update'  => 'api.v1.roles.update',
-    'destroy' => 'api.v1.roles.destroy',
-]);
-
-Route::resource('sales', SaleController::class)->names([
-    'index'   => 'api.v1.sales.index',
-    'store'   => 'api.v1.sales.store',
-    'show'    => 'api.v1.sales.show',
-    'update'  => 'api.v1.sales.update',
-    'destroy' => 'api.v1.sales.destroy',
-]);
-
-Route::resource('settings', SettingController::class)->names([
-    'index'   => 'api.v1.settings.index',
-    'store'   => 'api.v1.settings.store',
-    'show'    => 'api.v1.settings.show',
-    'update'  => 'api.v1.settings.update',
-    'destroy' => 'api.v1.settings.destroy',
-]);
-
-Route::resource('tutorials', TutorialController::class)->names([
-    'index'   => 'api.v1.tutorials.index',
-    'store'   => 'api.v1.tutorials.store',
-    'show'    => 'api.v1.tutorials.show',
-    'update'  => 'api.v1.tutorials.update',
-    'destroy' => 'api.v1.tutorials.destroy',
-]);
-Route::resource('stores', \App\Http\Controllers\Api\StoreController::class)->names([
-    'index'   => 'api.v1.stores.index',
-    'store'   => 'api.v1.stores.store',
-    'show'    => 'api.v1.stores.show',
-    'update'  => 'api.v1.stores.update',
-    'destroy' => 'api.v1.stores.destroy',
-]);
-Route::resource('publicstores', PublicStoreController::class)->names([
-    'index'   => 'api.v1.publicstores.index',
-    'store'   => 'api.v1.publicstores.store',
-    'show'    => 'api.v1.publicstores.show',
-    'update'  => 'api.v1.publicstores.update',
-    'destroy' => 'api.v1.publicstores.destroy',
-]);
+// Rutas públicas (sin autenticación) - estas deben ir DESPUÉS de las protegidas para tener prioridad
+Route::get('/products', [PublicProductController::class, 'index']);
+Route::get('/categories', [PublicCategoryController::class, 'index']);
+Route::get('/public-stores', [PublicStoreController::class, 'index']);

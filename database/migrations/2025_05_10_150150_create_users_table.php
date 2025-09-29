@@ -13,14 +13,25 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+
+            // Básicos
             $table->string('name');
             $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable(); // verificación de correo
             $table->string('password');
-            $table->string('phone')->nullable();
-            $table->string('avatar')->nullable();
+
+            // Perfil
+            $table->string('phone', 30)->nullable();
+            $table->string('avatar_path')->nullable(); // ruta de imagen (storage/app/public/...)
             $table->boolean('status')->default(true);
             $table->string('address')->nullable();
+
+            // Rol (opcional) - si borran el rol, queda null
             $table->foreignId('role_id')->nullable()->constrained('roles')->nullOnDelete();
+
+            // Tokens de sesión “recuérdame”
+            $table->rememberToken();
+
             $table->timestamps();
         });
     }

@@ -17,11 +17,13 @@ class Product extends Model
         'price',
         'stock',
         'image',
+        'image_path',
         'category_id',
         'offer',
         'average_rating',
         'user_id',
         'store_id',
+        'status',
     ];
 
     // Listas de control para scopes dinámicos

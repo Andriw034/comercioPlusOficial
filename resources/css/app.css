@@ -10,8 +10,10 @@
 
 /* Base */
 @layer base{
-  html,body{height:100%}
-  body{@apply bg-neutral-950 text-white antialiased;}
+  html{height:100%}
+  /* Removido: body{@apply bg-neutral-950 text-white antialiased;} */
+  /* Ahora cada layout puede definir su propio fondo */
+  body{@apply text-white antialiased;}
 }
 
 /* Utilidades opcionales */
@@ -31,3 +33,4 @@
   0%{transform:translateX(0)}
   100%{transform:translateX(-50%)}
 }
+ 

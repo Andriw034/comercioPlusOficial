@@ -20,6 +20,11 @@ class Store extends Model
         'background_path',
         'background_url',
         'theme_primary',
+        'visits',
+    ];
+
+    protected $casts = [
+        'visits' => 'integer',
     ];
 
     protected static function boot()

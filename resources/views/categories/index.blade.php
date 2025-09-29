@@ -1,46 +1,56 @@
-@extends('layouts.admin')
+@extends('layouts.dashboard')
+
+@section('title', 'Categorías Admin — ComercioPlus')
 
 @section('content')
-<div class="max-w-6xl mx-auto">
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-900 mb-4 md:mb-0">Categorías</h1>
-        <a href="{{ route('categories.create') }}" class="bg-primary text-white px-5 py-3 rounded font-semibold hover:bg-primary-light transition-colors duration-300">Agregar Categoría</a>
+<div class="p-6 space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-white">Categorías</h1>
+        <a href="{{ route('categories.create') }}" class="inline-flex items-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white smooth">
+            + Agregar Categoría
+        </a>
     </div>
 
     @if(session('success'))
-        <div class="bg-green-100 text-green-700 p-4 rounded mb-6 shadow">
+        <div class="bg-green-500/20 border border-green-500/30 text-green-200 px-4 py-3 rounded-xl">
             {{ session('success') }}
         </div>
     @endif
 
-    <div class="bg-white rounded shadow p-4">
-        <table class="w-full table-auto border-collapse border border-gray-200">
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="border border-gray-300 px-4 py-2 text-left">Nombre</th>
-                    <th class="border border-gray-300 px-4 py-2 text-left">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($categories as $category)
-                <tr>
-                    <td class="border border-gray-300 px-4 py-2">{{ $category->name }}</td>
-                    <td class="border border-gray-300 px-4 py-2 flex space-x-2">
-                        <a href="{{ route('categories.edit', $category) }}" class="bg-primary text-white px-3 py-1 rounded hover:bg-primary-light transition-colors duration-300">Editar</a>
-                        <form action="{{ route('categories.destroy', $category) }}" method="POST" onsubmit="return confirm('¿Está seguro de eliminar esta categoría?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors duration-300">Eliminar</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="mt-4">
-            {{ $categories->links() }}
+    <div class="rounded-3xl bg-white/10 ring-1 ring-white/15 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-white/10">
+                <thead class="bg-white/5">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Nombre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                    @forelse($categories as $category)
+                    <tr class="hover:bg-white/5 smooth">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">{{ $category->name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                            <a href="{{ route('categories.edit', $category) }}" class="text-blue-400 hover:text-blue-300 smooth">Editar</a>
+                            <form action="{{ route('categories.destroy', $category) }}" method="POST" class="inline" onsubmit="return confirm('¿Está seguro de eliminar esta categoría?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-400 hover:text-red-300 smooth">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-white/70">No hay categorías registradas.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+    </div>
+
+    <div class="flex justify-center">
+        {{ $categories->links('vendor.pagination.tailwind') }}
     </div>
 </div>
 @endsection

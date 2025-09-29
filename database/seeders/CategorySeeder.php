@@ -3,55 +3,67 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Category;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class CategorySeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        $make = function (string $name, ?Category $parent = null): Category {
-            // Para que el slug sea único global (tu migración lo exige),
-            // los hijos usan el slug-del-padre + nombre
-            $base = $parent
-                ? Str::slug($parent->slug.' '.$name)
-                : Str::slug($name);
+        $now = Carbon::now();
 
-            $slug = $base;
-            $k = 1;
-            while (Category::where('slug', $slug)->exists()) {
-                $slug = "{$base}-{$k}";
-                $k++;
-            }
+        $categories = [
+            [
+                'name' => 'Neumáticos',
+                'slug' => Str::slug('Neumáticos'),
+                'short_description' => 'Llantas y cubiertas para todo tipo de vehículos.',
+                'sales_count' => 1250,
+                'popularity' => 980,
+                'is_popular' => true,
+            ],
+            [
+                'name' => 'Baterías',
+                'slug' => Str::slug('Baterías'),
+                'short_description' => 'Baterías de alto rendimiento para autos y motos.',
+                'sales_count' => 980,
+                'popularity' => 870,
+                'is_popular' => true,
+            ],
+            [
+                'name' => 'Filtros de aceite',
+                'slug' => Str::slug('Filtros de aceite'),
+                'short_description' => 'Filtros de aceite para prolongar la vida del motor.',
+                'sales_count' => 800,
+                'popularity' => 750,
+                'is_popular' => true,
+            ],
+            [
+                'name' => 'Pastillas de freno',
+                'slug' => Str::slug('Pastillas de freno'),
+                'short_description' => 'Sistema de frenos seguro y confiable.',
+                'sales_count' => 920,
+                'popularity' => 890,
+                'is_popular' => true,
+            ],
+            [
+                'name' => 'Aceites y lubricantes',
+                'slug' => Str::slug('Aceites y lubricantes'),
+                'short_description' => 'Lubricantes de motor de alta calidad.',
+                'sales_count' => 1100,
+                'popularity' => 940,
+                'is_popular' => true,
+            ],
+        ];
 
-            return Category::updateOrCreate(
-                ['slug' => $slug],
-                ['name' => $name, 'slug' => $slug, 'parent_id' => $parent?->id]
-            );
-        };
-
-        // Nivel 1
-        $motos      = $make('Motos');
-        $accesorios = $make('Accesorios');
-
-        // Nivel 2 bajo Motos (marcas)
-        $yamaha = $make('Yamaha', $motos);
-        $honda  = $make('Honda',  $motos);
-        $suzuki = $make('Suzuki', $motos);
-        $bajaj  = $make('Bajaj',  $motos);
-        $akt    = $make('AKT',    $motos);
-
-        // Nivel 3 bajo cada marca (partes)
-        $parts = ['Empaques', 'Bandas', 'Pastillas', 'Guayas'];
-        foreach ([$yamaha, $honda, $suzuki, $bajaj, $akt] as $brand) {
-            foreach ($parts as $p) {
-                $make($p, $brand);
-            }
+        foreach ($categories as &$category) {
+            $category['created_at'] = $now;
+            $category['updated_at'] = $now;
         }
 
-        // Nivel 2 bajo Accesorios
-        $make('Cascos',  $accesorios);
-        $make('Llantas', $accesorios);
-        $make('Guantes', $accesorios);
+        DB::table('categories')->insert($categories);
     }
 }

@@ -1,19 +1,54 @@
-# TODO for Tailwind v4 + Vue + Vite integration
+# TODO: Implementar Dashboard Layout y Componentes
 
-- [x] Verify composer dependencies installed (vendor folder)
-- [x] Verify npm dependencies installed for Vite + Vue + Tailwind v4
-- [x] Confirm postcss.config.js contains '@tailwindcss/postcss' plugin
-- [x] Confirm tailwind.config.js includes required content paths and color/borderRadius extensions
-- [x] Confirm resources/css/app.css imports Tailwind correctly
-- [x] Confirm resources/js/app.js imports app.css and has Vue test entry
-- [x] Create resources/js/vue-test.js as Vue + Tailwind test entry
-- [x] Confirm vite.config.js includes laravel and vue plugins and vue-test.js entry
-- [x] Create resources/views/tailwind-test.blade.php for Tailwind test view
-- [x] Create resources/views/vue-test.blade.php for Vue + Tailwind test view
-- [x] Add routes for /tailwind-test and /vue-test in routes/web.php before fallback
-- [ ] Run `php artisan route:clear` and `php artisan optimize:clear`
-- [ ] Run `npm run dev` and keep running
-- [ ] Run `php artisan serve --host=127.0.0.1 --port=8000`
-- [ ] Verify http://127.0.0.1:8000/tailwind-test shows orange Tailwind OK box
-- [ ] Verify http://127.0.0.1:8000/vue-test shows orange Vue + Tailwind OK box
-- [ ] Troubleshoot if assets fail to load or routes not found
+## Plan de Implementación
+
+### 1. Reemplazar Layout Dashboard
+- [ ] Reemplazar `resources/views/layouts/dashboard.blade.php` con el código proporcionado
+
+### 2. Reemplazar Controlador Dashboard
+- [ ] Reemplazar `app/Http/Controllers/DashboardController.php` con el código completo del controlador
+
+### 3. Reemplazar Vista de Productos
+- [ ] Reemplazar `resources/views/dashboard/products/index.blade.php` con la vista de grid basado en tarjetas
+
+### 4. Agregar Rutas Dashboard
+- [ ] Agregar las rutas del dashboard a `routes/web.php` dentro del grupo auth middleware
+
+### 5. Actualizar CSS
+- [ ] Agregar la utilidad `.line-clamp-2` a `resources/css/app.css`
+
+### 6. Ejecutar Comandos
+- [ ] Limpiar cachés: `php artisan config:clear`, `php artisan cache:clear`, `php artisan view:clear`
+- [ ] Crear enlace storage: `php artisan storage:link`
+- [ ] Compilar assets: `npm run build`
+- [ ] Verificar servidor: `php artisan serve`
+
+## Pruebas Exhaustivas
+
+### Funcionalidad del Dashboard
+- [ ] Verificar que el dashboard renderiza correctamente después del login
+- [ ] Verificar navegación del sidebar (Dashboard, Productos, Categorías, Pedidos)
+- [ ] Verificar que muestra estadísticas correctas (productos, activos, categorías)
+- [ ] Verificar que muestra productos recientes
+
+### CRUD de Productos
+- [ ] Crear producto: verificar formulario, validación, subida de imagen
+- [ ] Listar productos: verificar grid de tarjetas, paginación
+- [ ] Editar producto: verificar carga de datos, actualización
+- [ ] Eliminar producto: verificar confirmación y eliminación
+- [ ] Verificar permisos (solo productos de la tienda del usuario)
+
+### Diseño y UX
+- [ ] Verificar paleta de colores (gris oscuro, naranja)
+- [ ] Verificar responsividad del layout
+- [ ] Verificar transiciones y efectos hover
+- [ ] Verificar mensajes de éxito/error
+
+### Flujo de Autenticación
+- [ ] Usuario registrado con tienda: login → dashboard de productos
+- [ ] Usuario registrado sin tienda: login → crear tienda
+- [ ] Verificar redirecciones correctas
+
+### Vistas Adicionales
+- [ ] Verificar que vistas de crear/editar producto existen y funcionan
+- [ ] Verificar integración con layout dashboard

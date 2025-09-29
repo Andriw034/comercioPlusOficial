@@ -103,19 +103,19 @@ class ChannelController extends Controller
         ]);
     }
 }
-=======
+
               $channel = Channel::included() 
         ->filter()
         ->sort()
         ->getOrPaginate();;
->>>>>>> 691c95be (comentario)
+
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Channels retrieved successfully',
             'data' =>  $channel,
         ]);
-    }
+    
 
     /**
      * Show the form for creating a new resource.
@@ -164,7 +164,7 @@ class ChannelController extends Controller
         ]);
 
         //
->>>>>>> 691c95be (comentario)
+
     }
 
     /**
@@ -174,4 +174,4 @@ class ChannelController extends Controller
     {
         //
     }
-}
+
