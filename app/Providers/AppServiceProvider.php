@@ -3,25 +3,29 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
+use App\Models\Category;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        // Ignora migraciones del paquete Spatie
-        // if (class_exists(\Spatie\Permission\PermissionServiceProvider::class)) {
-        //     \Spatie\Permission\PermissionServiceProvider::ignoreMigrations();
-        // }
+        //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        // Pasar categorías de la tienda al sidebar
+        View::composer('layouts.partials.sidebar', function ($view) {
+            $store = auth()->user()?->store;
+
+            $cats = $store
+                ? Category::where('store_id', $store->id)
+                    ->orderBy('name')
+                    ->get()
+                : collect();
+
+            $view->with('sidebarCategories', $cats);
+        });
     }
 }

@@ -9,33 +9,30 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
 
-// Public web controllers
-use App\Http\Controllers\WebController;
-use App\Http\Controllers\Web\StoreWebController as PublicStoreWebController;
-use App\Http\Controllers\Web\ProductController as PublicProductController;
-use App\Http\Controllers\Web\CategoryController as PublicCategoryController;
+// Web controllers (organizados)
+use App\Http\Controllers\Web\UserController;
+use App\Http\Controllers\Web\StoreController;
+use App\Http\Controllers\Web\ProductController;                // Admin (dashboard)
+use App\Http\Controllers\Web\CategoryController as AdminCategoryController; // Admin (dashboard)
+use App\Http\Controllers\Web\StoreWebController as PublicStoreWebController; // Público (listado/tienda)
+use App\Http\Controllers\Web\ProductController as PublicProductController;   // Público (productos)
+use App\Http\Controllers\Web\CategoryController as PublicCategoryController; // Público (categorías, si aplica)
 
-// Dashboard / admin controllers
+// Otros controladores
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\StoreController;      // crear/guardar tienda (interno)
-use App\Http\Controllers\ProductController;   // gestión productos (interno)
-use App\Http\Controllers\CategoryController;  // gestión categorías (interno)
 use App\Http\Controllers\OrmController;
-
-// Settings
 use App\Http\Controllers\Settings\ProfileController as SettingsProfileController;
-
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EducationController;
 use App\Http\Controllers\DashboardProductsController;
 use App\Http\Controllers\AdminController;
 
-// API (AJAX) controllers (web-authenticated)
+// API-like (web auth) - Ejemplo de AJAX categorías
 use App\Http\Controllers\Api\CategoryController as ApiCategoryController;
 
 /*
 |--------------------------------------------------------------------------
-| Basic / Public
+| Básico / Público
 |--------------------------------------------------------------------------
 */
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -52,7 +49,7 @@ Route::view('/vue-test', 'vue-test')->name('vue.test');
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard principal (ruta simple)
+| Dashboard principal (simple)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
@@ -67,20 +64,22 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
+
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
-
 /*
 |--------------------------------------------------------------------------
-| Authenticated area (user features)
+| Área autenticada (usuario)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
@@ -91,29 +90,24 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/{order}', [\App\Http\Controllers\Web\OrderController::class, 'show'])->name('orders.show');
 
     // Profile
-    Route::get('/profile/edit', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::post('/profile/update', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
 
     // Settings (Mi perfil)
     Route::get('/settings/profile', [SettingsProfileController::class, 'edit'])->name('settings.profile');
     Route::put('/settings/profile', [SettingsProfileController::class, 'update'])->name('settings.profile.update');
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Crear tienda / tienda (usuario)
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
     Route::get('/crear-tienda', fn() => view('store_wizard'))->name('store.wizard');
 
     Route::get('/tienda/crear', [StoreController::class, 'create'])->name('store.create');
     Route::post('/tienda',        [StoreController::class, 'store'])->name('store.store');
 
-    /*
-    |----------------------------------------------------------------------
-    | Alias de compatibilidad (para controladores viejos que apuntan a stores.create)
-    |----------------------------------------------------------------------
-    | Crea la ruta con nombre `stores.create` que redirige a la ruta real disponible.
-    */
+    // Alias de compatibilidad
     if (Route::has('store.create')) {
         Route::get('/tienda/crear-compat', fn() => redirect()->route('store.create'))->name('stores.create');
     } elseif (Route::has('store.wizard')) {
@@ -123,10 +117,9 @@ Route::middleware('auth')->group(function () {
     }
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Admin / Panel (requiere has.store middleware)
-    | Rutas agrupadas con prefijo "admin" y nombre "admin."
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
     Route::prefix('admin')->name('admin.')->middleware('has.store')->group(function () {
         // Dashboard admin
@@ -141,14 +134,17 @@ Route::middleware('auth')->group(function () {
         Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
         Route::patch('/productos/{product}/update-image', [ProductController::class, 'updateImage'])->name('products.update-image');
 
-        // Categorías (resource admin.categories.*)
-        Route::resource('categories', CategoryController::class);
+
+        
+        // Categorías (solo lo implementado: index/create/store)
+        Route::resource('categories', AdminCategoryController::class)->only(['index','create','store']);
 
         // UI demo
         Route::view('/products-ui', 'dashboard.products')->name('products.ui');
 
-        // Extras / Store settings
+        // Store settings
         Route::prefix('store')->name('store.')->group(function () {
+            Route::get('/', [StoreController::class, 'index'])->name('index');
             Route::get('/appearance', [StoreController::class, 'appearance'])->name('appearance');
             Route::post('/appearance', [StoreController::class, 'updateAppearance'])->name('appearance.update');
             Route::get('/payments',   [StoreController::class, 'payments'])->name('payments');
@@ -167,14 +163,12 @@ Route::middleware('auth')->group(function () {
     });
 
     /*
-    |----------------------------------------------------------------------
-    | API-like AJAX endpoints (web auth) - e.g. crear categoría sin recargar
-    |----------------------------------------------------------------------
-    | Usamos rutas en web.php protegidas con auth para trabajar via session/AJAX.
+    |--------------------------------------------------------------------------
+    | API-like AJAX (web auth)
+    |--------------------------------------------------------------------------
     */
     Route::post('/api/categories', [ApiCategoryController::class, 'store'])
-        ->name('api.categories.store')
-        ->middleware('auth');
+        ->name('api.categories.store');
 });
 
 /*
@@ -185,7 +179,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(HandleInertiaRequests::class)->group(function () {
     Route::get('/stores', [PublicStoreWebController::class, 'index'])->name('stores.index');
 
-    // Evitar capturar /stores/create como slug:
+    // Evita capturar /stores/create como slug
     Route::get('/stores/{store}', [PublicStoreWebController::class, 'show'])
         ->where('store', '^(?!create$)[A-Za-z0-9\-_.]+$')
         ->name('stores.show');
@@ -197,7 +191,7 @@ Route::get('/categories/{category}', [PublicCategoryController::class, 'show'])-
 
 /*
 |--------------------------------------------------------------------------
-| Education routes (your custom)
+| Education
 |--------------------------------------------------------------------------
 */
 Route::prefix('yeargroups')->group(function () {
@@ -218,7 +212,6 @@ Route::prefix('yeargroups')->group(function () {
         });
     });
 });
-
 Route::get('/lesson/counting-to-3', [EducationController::class, 'lessonCountingTo3'])->name('lesson.counting-to-3');
 
 /*
@@ -230,7 +223,7 @@ Route::resource('users', UserController::class);
 
 /*
 |--------------------------------------------------------------------------
-| SPA optional
+| SPA opcional
 |--------------------------------------------------------------------------
 */
 Route::view('/app/{any}', 'app')->where('any', '.*');
@@ -241,3 +234,11 @@ Route::view('/app/{any}', 'app')->where('any', '.*');
 |--------------------------------------------------------------------------
 */
 Route::fallback(fn() => response()->view('errors.404', [], 404));
+
+
+
+Route::get('/storagetest', function () {
+    \Illuminate\Support\Facades\Storage::disk('public')
+        ->put('health.txt', 'ok ' . now());
+    return asset('storage/health.txt');
+});

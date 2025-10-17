@@ -1,7 +1,3 @@
-
-/vendor/
-/node_modules/
-/public/storage
-/.idea/
-/.vscode/
-*.log
+/vendor
+/node_modules
+.env

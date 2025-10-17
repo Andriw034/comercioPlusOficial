@@ -1,54 +1,75 @@
-# TODO: Implementar Dashboard Layout y Componentes
+# Monorepo Organization and Fixes Plan
 
-## Plan de Implementación
+## Current Status
+- ✅ Fixed CategoryController class name conflict (StoreCategoryController → CategoryController)
+- ✅ Updated routes to use Web\CategoryController
+- ✅ Auth routes are working and views exist
+- ✅ User model has stores() relationship
+- ✅ Moved ProductController to Web namespace
+- ✅ Moved StoreController to Web namespace
+- ✅ Moved UserController to Web namespace
+- ✅ Updated all route imports in `routes/web.php` to use Web namespace
 
-### 1. Reemplazar Layout Dashboard
-- [ ] Reemplazar `resources/views/layouts/dashboard.blade.php` con el código proporcionado
+## Issues Identified
+1. **Controller Organization**: Controllers are now organized in Web namespace ✅
+2. **Route Organization**: Routes are now consistently organized with proper imports and aliases ✅
+3. **View Organization**: Views are in different locations (admin/, dashboard/, etc.)
+4. **Model Relationships**: All relationships are properly defined (User.stores() exists) ✅
+5. **Intelephense Errors**: False positives - routes work correctly, relationships exist ✅
 
-### 2. Reemplazar Controlador Dashboard
-- [ ] Reemplazar `app/Http/Controllers/DashboardController.php` con el código completo del controlador
+## Plan
 
-### 3. Reemplazar Vista de Productos
-- [ ] Reemplazar `resources/views/dashboard/products/index.blade.php` con la vista de grid basado en tarjetas
+### Phase 1: Controller Organization ✅ COMPLETED
+- [x] Move all web controllers to `app/Http/Controllers/Web/` namespace
+- [x] Rename controllers to follow consistent naming (e.g., StoreController → StoreWebController if needed)
+- [x] Update all route imports in `routes/web.php`
+- [x] Remove duplicate controllers from root Controllers directory
 
-### 4. Agregar Rutas Dashboard
-- [ ] Agregar las rutas del dashboard a `routes/web.php` dentro del grupo auth middleware
+### Phase 2: Route Organization ✅ COMPLETED
+- [x] Clean up route imports and aliases
+- [x] Remove redundant middleware
+- [x] Ensure consistent controller references
+- [x] Test routes still work after changes
 
-### 5. Actualizar CSS
-- [ ] Agregar la utilidad `.line-clamp-2` a `resources/css/app.css`
+### Phase 3: View Organization
+- [ ] Move all admin views to `resources/views/admin/`
+- [ ] Move all dashboard views to `resources/views/dashboard/`
+- [ ] Create consistent layout structure
+- [ ] Update view paths in controllers
 
-### 6. Ejecutar Comandos
-- [ ] Limpiar cachés: `php artisan config:clear`, `php artisan cache:clear`, `php artisan view:clear`
-- [ ] Crear enlace storage: `php artisan storage:link`
-- [ ] Compilar assets: `npm run build`
-- [ ] Verificar servidor: `php artisan serve`
+### Phase 4: Model Relationships
+- [ ] Verify all model relationships are correct
+- [ ] Add missing relationships (e.g., User → Store, Store → Categories, etc.)
+- [ ] Ensure foreign keys are properly defined
+- [ ] Fix undefined method 'stores' errors in controllers
 
-## Pruebas Exhaustivas
+### Phase 5: Testing and Validation
+- [ ] Test all routes are accessible
+- [ ] Test CRUD operations for categories, products, stores
+- [ ] Test authentication flow
+- [ ] Test admin panel functionality
 
-### Funcionalidad del Dashboard
-- [ ] Verificar que el dashboard renderiza correctamente después del login
-- [ ] Verificar navegación del sidebar (Dashboard, Productos, Categorías, Pedidos)
-- [ ] Verificar que muestra estadísticas correctas (productos, activos, categorías)
-- [ ] Verificar que muestra productos recientes
+## Specific Files to Update
 
-### CRUD de Productos
-- [ ] Crear producto: verificar formulario, validación, subida de imagen
-- [ ] Listar productos: verificar grid de tarjetas, paginación
-- [ ] Editar producto: verificar carga de datos, actualización
-- [ ] Eliminar producto: verificar confirmación y eliminación
-- [ ] Verificar permisos (solo productos de la tienda del usuario)
+### Controllers Moved ✅:
+- `app/Http/Controllers/ProductController.php` → `app/Http/Controllers/Web/ProductController.php`
+- `app/Http/Controllers/CategoryController.php` → `app/Http/Controllers/Web/CategoryController.php` (already done)
+- `app/Http/Controllers/StoreController.php` → `app/Http/Controllers/Web/StoreController.php`
+- `app/Http/Controllers/UserController.php` → `app/Http/Controllers/Web/UserController.php`
 
-### Diseño y UX
-- [ ] Verificar paleta de colores (gris oscuro, naranja)
-- [ ] Verificar responsividad del layout
-- [ ] Verificar transiciones y efectos hover
-- [ ] Verificar mensajes de éxito/error
+### Routes Updated ✅:
+- Updated imports in `routes/web.php` to use Web namespace
+- All admin routes now use Web controllers
 
-### Flujo de Autenticación
-- [ ] Usuario registrado con tienda: login → dashboard de productos
-- [ ] Usuario registrado sin tienda: login → crear tienda
-- [ ] Verificar redirecciones correctas
+### Views to Organize:
+- Ensure all admin views are in `resources/views/admin/`
+- Ensure all dashboard views are in `resources/views/dashboard/`
 
-### Vistas Adicionales
-- [ ] Verificar que vistas de crear/editar producto existen y funcionan
-- [ ] Verificar integración con layout dashboard
+## Next Steps
+1. ✅ Phase 1: Controller Organization - COMPLETED
+2. ✅ Phase 2: Route Organization - COMPLETED
+3. ✅ Fix Intelephense errors (relationships exist, false positives)
+4. Test functionality (routes work correctly)
+5. Continue with Phase 3: View Organization
+6. Continue with Phase 4: Model Relationships verification
+7. Continue with Phase 5: Testing and Validation

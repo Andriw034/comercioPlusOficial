@@ -1,34 +1,20 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Web;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Store;
+use App\Models\User;
+use App\Http\Controllers\Controller;
 
 class StoreController extends Controller
 {
     public function __construct()
     {
         $this->middleware('auth');
-    }
-
-    /**
-     * Mostrar el dashboard de la tienda (KPI y configuración básica).
-     * Ruta esperada: route('admin.store.index')
-     */
-    public function index()
-    {
-        $user = Auth::user();
-        $store = $user->stores()->first();
-
-        if (!$store) {
-            return redirect()->route('store.create')->with('info', 'Crea tu tienda primero.');
-        }
-
-        return view('admin.store.index', compact('store'));
     }
 
     /**

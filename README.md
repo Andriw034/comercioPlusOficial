@@ -1,8 +1,113 @@
-# Comercio Plus
+# Comercio Plus - Monorepo
 
-Plataforma de e-commerce para tiendas de repuestos de motos.
+Plataforma de e-commerce para tiendas de repuestos de motos, construida como un monorepo con Laravel (backend) y Next.js (frontend).
 
-Para comenzar, echa un vistazo a src/app/page.tsx.
+## Estructura del Monorepo
+
+Este proyecto está organizado como un monorepo con las siguientes partes:
+
+### Backend (Laravel)
+- **Ubicación**: Raíz del proyecto (`/`)
+- **Tecnologías**: Laravel 11, PHP 8.2+, MySQL, Blade, Tailwind CSS
+- **Funcionalidades**:
+  - API REST para productos, categorías, tiendas, usuarios
+  - Panel de administración Blade con tema oscuro + naranja
+  - Autenticación y autorización
+  - Gestión de tiendas por usuario
+  - Sistema de productos y categorías por tienda
+
+### Frontend (Next.js)
+- **Ubicación**: `/frontend`
+- **Tecnologías**: Next.js 14, TypeScript, Tailwind CSS, shadcn/ui, Firebase
+- **Funcionalidades**:
+  - Interfaz moderna para clientes
+  - Dashboard de administración alternativo
+  - Integración con Firebase para auth y datos
+  - Componentes UI reutilizables
+
+## Cómo ejecutar
+
+### Backend (Laravel)
+
+1. Instalar dependencias PHP:
+```bash
+composer install
+```
+
+2. Configurar entorno:
+```bash
+cp .env.example .env
+# Editar .env con tus configuraciones de BD, etc.
+```
+
+3. Generar key y migrar BD:
+```bash
+php artisan key:generate
+php artisan migrate --seed
+```
+
+4. Ejecutar servidor:
+```bash
+php artisan serve
+# O con PM2: pm2 start ecosystem.config.js
+```
+
+Accede a: `http://localhost:8000`
+
+### Frontend (Next.js)
+
+1. Ir al directorio frontend:
+```bash
+cd frontend
+```
+
+2. Instalar dependencias:
+```bash
+npm install
+```
+
+3. Configurar entorno:
+```bash
+cp .env.example .env.local
+# Configurar variables de Firebase y API backend
+```
+
+4. Ejecutar servidor de desarrollo:
+```bash
+npm run dev
+```
+
+Accede a: `http://localhost:3000`
+
+## Flujo de trabajo recomendado
+
+1. **Crear Categoría**: En el panel admin de Laravel (`/admin/categories/create`), crea categorías para tu tienda.
+2. **Crear Producto**: Luego crea productos (`/admin/products/create`) seleccionando la categoría creada.
+3. **Ver en Frontend**: Los productos y categorías estarán disponibles en la app Next.js.
+
+## Arquitectura
+
+- **Controladores organizados por capas**:
+  - `App\Http\Controllers\Web\` - Vistas Blade (dashboard)
+  - `App\Http\Controllers\Api\` - APIs JSON
+- **Modelos con relaciones**: Store, Product, Category, User, etc.
+- **Validación de ownership**: Productos y categorías pertenecen a stores específicas
+- **Middleware**: `has.store` para rutas admin
+
+## Desarrollo
+
+- Usa el backend Laravel para lógica de negocio y APIs
+- El frontend Next.js consume las APIs del backend
+- Ambos proyectos usan Tailwind CSS con tema oscuro
+- Tests con Pest (backend) y Playwright (frontend E2E)
+
+## Contribución
+
+1. Elige la parte del proyecto a trabajar (backend/frontend)
+2. Crea una rama descriptiva
+3. Implementa cambios
+4. Ejecuta tests locales
+5. Crea PR con descripción detallada
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
