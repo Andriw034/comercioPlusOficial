@@ -88,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::apiResource('users', UserController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
-    Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'store', 'update']);
+    Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'store', 'update'])->names('api.orders');
     Route::apiResource('products', \App\Http\Controllers\Api\ProductController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 
     // Cart: los tests piden /api/cart

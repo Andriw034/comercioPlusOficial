@@ -106,13 +106,14 @@ class ProductController extends Controller
 
         $product = Product::create([
             'name' => $validated['name'],
+            'slug' => \Illuminate\Support\Str::slug($validated['name']),
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'] ?? 0,
             'stock' => $validated['stock'] ?? 0,
             'category_id' => $validated['category_id'],
             'user_id' => $user->id,
             'store_id' => $store->id,
-            'image' => $imagePath,
+            'image_path' => $imagePath,
             'status' => isset($validated['status']) ? (bool)$validated['status'] : true,
         ]);
 
@@ -169,21 +170,22 @@ class ProductController extends Controller
 
         // Imagen nueva: borrar anterior si existe
         if ($request->hasFile('image')) {
-            if ($product->image) {
-                try { Storage::disk('public')->delete($product->image); } catch (\Throwable $e) {}
+            if ($product->image_path) {
+                try { Storage::disk('public')->delete($product->image_path); } catch (\Throwable $e) {}
             }
-            $product->image = $request->file('image')->store('products', 'public');
+            $product->image_path = $request->file('image')->store('products', 'public');
         } elseif ($request->filled('image_url')) {
             $newPath = $this->saveRemoteImage($request->input('image_url'), 'products');
             if ($newPath) {
-                if ($product->image) {
-                    try { Storage::disk('public')->delete($product->image); } catch (\Throwable $e) {}
+                if ($product->image_path) {
+                    try { Storage::disk('public')->delete($product->image_path); } catch (\Throwable $e) {}
                 }
-                $product->image = $newPath;
+                $product->image_path = $newPath;
             }
         }
 
         $product->name = $validated['name'];
+        $product->slug = \Illuminate\Support\Str::slug($validated['name']);
         $product->description = $validated['description'] ?? $product->description;
         $product->price = $validated['price'] ?? $product->price;
         $product->stock = $validated['stock'] ?? $product->stock;
@@ -206,8 +208,8 @@ class ProductController extends Controller
             abort(403, 'No tienes permiso para eliminar este producto.');
         }
 
-        if ($product->image) {
-            try { Storage::disk('public')->delete($product->image); } catch (\Throwable $e) {}
+        if ($product->image_path) {
+            try { Storage::disk('public')->delete($product->image_path); } catch (\Throwable $e) {}
         }
 
         $product->delete();

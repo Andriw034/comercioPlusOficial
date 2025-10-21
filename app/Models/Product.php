@@ -2,99 +2,106 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
     use HasFactory;
 
+    // Ajusta si tienes otros campos; estos son los comunes en tu proyecto
     protected $fillable = [
+        'store_id',
+        'user_id',
+        'category_id',
         'name',
         'slug',
         'description',
         'price',
         'stock',
-        'image',
-        'image_path',
-        'category_id',
-        'offer',
-        'average_rating',
-        'user_id',
-        'store_id',
-        'status',
+        'status',       // tinyint 0/1
+        'image_path',   // ruta relativa en disco "public"
     ];
 
-    // Listas de control para scopes dinámicos
-    protected $allowIncluded = ['category', 'store', 'ratings', 'orderproduct', 'cartproducts', 'user'];
-    protected $allowSort = ['name', 'price', 'stock', 'average_rating'];
-    protected $allowFilter = ['name', 'description', 'price', 'stock', 'offer', 'average_rating'];
+    protected $casts = [
+        'price' => 'float',
+        'stock' => 'int',
+        'status' => 'int',
+    ];
 
-    // Relaciones
-    public function user() { return $this->belongsTo(User::class); }
-    public function category() { return $this->belongsTo(Category::class); }
-    public function store() { return $this->belongsTo(Store::class); }
-    public function ratings() { return $this->hasMany(Rating::class); }
-    public function orderproduct() { return $this->hasMany(OrderProduct::class); }
-    public function cartproducts() { return $this->hasMany(CartProduct::class); }
+    // Para que se serialicen automáticamente
+    protected $appends = [
+        'image_url',
+        'price_formatted',
+    ];
 
-    // Scopes utilitarios
-    public function scopeIncluded(Builder $query)
+    /* ----------------- Accessors ----------------- */
+
+    /**
+     * URL pública normalizada de la imagen.
+     * Admite:
+     *  - http(s)://...
+     *  - /storage/...
+     *  - storage/...
+     *  - products/{store}/{file}
+     *  - null => imagen por defecto
+     */
+    public function getImageUrlAttribute(): string
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
-            return $query;
+        $path = $this->image_path;
+
+        if (!$path) {
+            return asset('images/no-image.png');
         }
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
-        foreach ($relations as $key => $relationship) {
-            if (!$allowIncluded->contains($relationship)) {
-                unset($relations[$key]);
-            }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
         }
-        return $query->with($relations);
+
+        if (str_starts_with($path, '/storage')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'storage')) {
+            return '/'.$path;
+        }
+
+        // products/{store}/{file} -> /storage/products/{store}/{file}
+        return Storage::url($path);
     }
 
-    public function scopeFilter(Builder $query)
+    public function getPriceFormattedAttribute(): string
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return $query;
-        }
-        $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
-        foreach ($filters as $filter => $value) {
-            if ($allowFilter->contains($filter)) {
-                $query->where($filter, 'LIKE', '%' . $value . '%');
-            }
-        }
-        return $query;
+        return '$'.number_format((float) $this->price, 0, ',', '.');
     }
 
-    public function scopeSort(Builder $query)
+    /* ----------------- Scopes útiles ----------------- */
+
+    public function scopeActive($q)
     {
-        $sort = request('sort');
-        if (!$sort) return $query;
-        $allowSort = collect($this->allowSort);
-        $direction = 'asc';
-        if (str_starts_with($sort, '-')) {
-            $direction = 'desc';
-            $sort = ltrim($sort, '-');
-        }
-        if ($allowSort->contains($sort)) {
-            return $query->orderBy($sort, $direction);
-        }
-        return $query;
+        return $q->where('status', 1);
     }
 
-    public function scopeGetOrPaginate(Builder $query)
+    public function scopeFromVisibleStores($q)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage) {
-                return $query->paginate($perPage);
-            }
-        }
-        return $query->get();
+        return $q->whereHas('store', fn ($qq) => $qq->where('is_visible', true));
+    }
+
+    /* ----------------- Relaciones ----------------- */
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
-

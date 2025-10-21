@@ -20,7 +20,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StoreController;      // crear/guardar tienda (interno)
 use App\Http\Controllers\ProductController;   // gestión productos (interno)
-use App\Http\Controllers\CategoryController;  // gestión categorías (interno)
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;  // gestión categorías (interno)
 use App\Http\Controllers\OrmController;
 
 // Settings
@@ -57,6 +57,34 @@ Route::view('/vue-test', 'vue-test')->name('vue.test');
 */
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin routes (under auth and has.store middleware)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'has.store'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Dashboard ya existe (no tocar)
+
+    // Settings (pestañas)
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('index'); // Pestañas: general, appearance, payments, shipping, taxes, notifications
+        Route::put('/general', [App\Http\Controllers\Admin\SettingsController::class, 'updateGeneral'])->name('update.general');
+        Route::put('/appearance', [App\Http\Controllers\Admin\SettingsController::class, 'updateAppearance'])->name('update.appearance');
+        Route::put('/payments', [App\Http\Controllers\Admin\SettingsController::class, 'updatePayments'])->name('update.payments');
+        Route::put('/shipping', [App\Http\Controllers\Admin\SettingsController::class, 'updateShipping'])->name('update.shipping');
+        Route::put('/taxes', [App\Http\Controllers\Admin\SettingsController::class, 'updateTaxes'])->name('update.taxes');
+        Route::put('/notifications', [App\Http\Controllers\Admin\SettingsController::class, 'updateNotifications'])->name('update.notifications');
+    });
+
+    // Categorías
+    Route::resource('categories', App\Http\Controllers\Admin\CategoryController::class)->names('categories');
+    Route::post('categories/store-json', [App\Http\Controllers\Admin\CategoryController::class, 'storeJson'])->name('categories.store_json');
+
+    // Productos
+    Route::resource('products', App\Http\Controllers\Admin\ProductController::class)->names('products');
 });
 
 /*
@@ -132,28 +160,28 @@ Route::middleware('auth')->group(function () {
         // Dashboard admin
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-        // Productos (admin.products.*)
-        Route::get('/productos', [ProductController::class, 'index'])->name('products.index');
-        Route::get('/productos/crear', [ProductController::class, 'create'])->name('products.create');
-        Route::post('/productos', [ProductController::class, 'store'])->name('products.store');
-        Route::get('/productos/{product}/editar', [ProductController::class, 'edit'])->name('products.edit');
-        Route::put('/productos/{product}', [ProductController::class, 'update'])->name('products.update');
-        Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-        Route::patch('/productos/{product}/update-image', [ProductController::class, 'updateImage'])->name('products.update-image');
+        // Productos (admin.productos.*) - Rutas en español
+        Route::get('/productos', [ProductController::class, 'index'])->name('productos.index');
+        Route::get('/productos/crear', [ProductController::class, 'create'])->name('productos.create');
+        Route::post('/productos', [ProductController::class, 'store'])->name('productos.store');
+        Route::get('/productos/{product}/editar', [ProductController::class, 'edit'])->name('productos.edit');
+        Route::put('/productos/{product}', [ProductController::class, 'update'])->name('productos.update');
+        Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->name('productos.destroy');
+        Route::patch('/productos/{product}/update-image', [ProductController::class, 'updateImage'])->name('productos.update-image');
 
         // Categorías (resource admin.categories.*)
-        Route::resource('categories', CategoryController::class);
+        Route::resource('categories', AdminCategoryController::class);
 
         // UI demo
         Route::view('/products-ui', 'dashboard.products')->name('products.ui');
 
         // Extras / Store settings
         Route::prefix('store')->name('store.')->group(function () {
-            Route::get('/appearance', [StoreController::class, 'appearance'])->name('appearance');
-            Route::post('/appearance', [StoreController::class, 'updateAppearance'])->name('appearance.update');
-            Route::get('/payments',   [StoreController::class, 'payments'])->name('payments');
-            Route::get('/shipping',   [StoreController::class, 'shipping'])->name('shipping');
-            Route::get('/domain',     [StoreController::class, 'domain'])->name('domain');
+            Route::get('appearance', [StoreController::class, 'appearance'])->name('appearance');
+            Route::put('appearance', [StoreController::class, 'updateAppearance'])->name('update_appearance');
+            Route::get('payments',   [StoreController::class, 'payments'])->name('payments');
+            Route::get('shipping',   [StoreController::class, 'shipping'])->name('shipping');
+            Route::get('domain',     [StoreController::class, 'domain'])->name('domain');
         });
 
         // Perfil admin
@@ -179,6 +207,32 @@ Route::middleware('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Storefront (Tienda propia del usuario autenticado)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('storefront')->name('storefront.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Web\StorefrontController::class, 'index'])->name('index');
+    Route::get('/products/{product}', [App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('products.show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Tienda pública por slug (sin auth)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('store')->name('storefront.public.')->group(function () {
+    Route::get('{slug}', [App\Http\Controllers\Web\StorefrontController::class, 'publicIndex'])->name('home');
+    Route::get('{slug}/p/{product:slug}', [App\Http\Controllers\Web\StorefrontController::class, 'publicShow'])->name('product.show');
+});
+
+// Atajo útil: /storefront redirige a la primera tienda (para pruebas locales)
+Route::get('/storefront', function () {
+    $store = \App\Models\Store::query()->firstOrFail();
+    return redirect()->route('storefront.public.home', $store->slug);
+})->name('storefront.shortcut');
+
+/*
+|--------------------------------------------------------------------------
 | Público (Tiendas / Productos / Categorías)
 |--------------------------------------------------------------------------
 */
@@ -192,8 +246,8 @@ Route::middleware(HandleInertiaRequests::class)->group(function () {
 });
 
 Route::get('/products', [PublicProductController::class, 'index'])->name('products.index');
-Route::get('/products/{product}', [PublicProductController::class, 'show'])->name('products.show');
-Route::get('/categories/{category}', [PublicCategoryController::class, 'show'])->name('categories.show');
+Route::get('/products/{product}', [PublicProductController::class, 'show'])->name('public.products.show');
+Route::get('/categories/{category}', [PublicCategoryController::class, 'show'])->name('public.categories.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -226,7 +280,7 @@ Route::get('/lesson/counting-to-3', [EducationController::class, 'lessonCounting
 | Users resource (general)
 |--------------------------------------------------------------------------
 */
-Route::resource('users', UserController::class);
+Route::resource('users', UserController::class)->names('public.users');
 
 /*
 |--------------------------------------------------------------------------

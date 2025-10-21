@@ -56,12 +56,12 @@ class StoreController extends Controller
 
         // Crear store
         $store = Store::create([
-            'user_id' => $user->id,
-            'name' => $data['name'],
-            'slug' => $slug,
-            'description' => $data['description'] ?? null,
+            'user_id'       => $user->id,
+            'name'          => $data['name'],
+            'slug'          => $slug,
+            'description'   => $data['description'] ?? null,
             'primary_color' => $data['primary_color'] ?? null,
-            'estado' => 'activa',
+            'estado'        => 'activa',
         ]);
 
         return redirect()->route('admin.dashboard')->with('success', 'Tienda creada correctamente.');
@@ -73,10 +73,10 @@ class StoreController extends Controller
      */
     public function appearance()
     {
-        $user = Auth::user();
+        $user  = Auth::user();
         $store = $user->stores()->first();
 
-        if (! $store) {
+        if (!$store) {
             return redirect()->route('store.create')->with('info', 'Crea tu tienda antes de personalizarla.');
         }
 
@@ -87,61 +87,42 @@ class StoreController extends Controller
      * Actualizar logo y fondo (cover) de la tienda.
      * Ruta esperada: route('admin.store.update_appearance') [POST or PUT]
      *
-     * Recibe inputs:
+     * Inputs:
      *  - logo (file image)
      *  - cover (file image)
      */
     public function updateAppearance(Request $request)
     {
-        $user = Auth::user();
-        $store = $user->stores()->first();
+        $user  = Auth::user();
+        $store = $user->stores()->firstOrFail();
 
-        if (! $store) {
-            return redirect()->route('store.create')->with('error', 'Crea tu tienda antes de personalizarla.');
-        }
-
-        $validated = $request->validate([
-            'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'cover' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096', // cover puede ser más grande
-            'primary_color' => 'nullable|string|size:7',
+        $request->validate([
+            'logo'  => ['nullable', 'image', 'max:2048', 'mimes:jpg,jpeg,png,svg'],
+            'cover' => ['nullable', 'image', 'max:4096', 'mimes:jpg,jpeg,png'],
         ]);
+
+        $directory = "stores/{$store->id}";
 
         // Logo
         if ($request->hasFile('logo')) {
-            $file = $request->file('logo');
-            $path = $file->store('stores/logos', 'public');
-
-            // Borrar logo anterior si existe
-            if ($store->logo_path) {
-                try {
-                    Storage::disk('public')->delete($store->logo_path);
-                } catch (\Throwable $e) { /* ignore */ }
+            if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
+                Storage::disk('public')->delete($store->logo_path);
             }
-
-            $store->logo_path = $path;
+            $store->logo_path = $request->file('logo')->store($directory, 'public');
         }
 
-        // Cover / background
+        // Portada (cover)
         if ($request->hasFile('cover')) {
-            $file = $request->file('cover');
-            $path = $file->store('stores/covers', 'public');
-
-            // Borrar cover anterior si existe
-            if ($store->background_path) {
-                try {
-                    Storage::disk('public')->delete($store->background_path);
-                } catch (\Throwable $e) { /* ignore */ }
+            if ($store->cover_path && Storage::disk('public')->exists($store->cover_path)) {
+                Storage::disk('public')->delete($store->cover_path);
             }
-
-            $store->background_path = $path;
-        }
-
-        if (isset($validated['primary_color'])) {
-            $store->primary_color = $validated['primary_color'];
+            $store->cover_path = $request->file('cover')->store($directory, 'public');
         }
 
         $store->save();
 
-        return redirect()->route('admin.store.appearance')->with('success', 'Apariencia actualizada correctamente.');
+        return redirect()
+            ->route('admin.store.appearance')
+            ->with('status', 'Apariencia actualizada correctamente.');
     }
 }

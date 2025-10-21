@@ -10,7 +10,7 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'description', 'parent_id'];
+    protected $fillable = ['store_id', 'name', 'slug'];
 
     // Listas de control para scopes
     protected $allowIncluded = ['products', 'parent', 'children'];
@@ -30,6 +30,11 @@ class Category extends Model
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function scopeIncluded(Builder $query)
