@@ -103,12 +103,23 @@
                   Ver JSON
                 </a>
 
-                <button type="button"
-                  class="px-3 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm transition"
-                  disabled
-                  title="Próximamente: acciones CRUD desde el panel">
-                  Acciones
-                </button>
+                @if($id)
+                  <form method="POST" action="{{ route('admin.ext-products.import', $id) }}" class="inline">
+                    @csrf
+                    <button type="submit"
+                      class="w-full px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition font-medium"
+                      title="Importar este producto a tu tienda">
+                      Importar
+                    </button>
+                  </form>
+                @else
+                  <button type="button"
+                    class="px-3 py-2 rounded-lg bg-gray-500 text-gray-300 text-sm cursor-not-allowed"
+                    disabled
+                    title="ID no disponible">
+                    Importar
+                  </button>
+                @endif
               </div>
             </div>
           </article>

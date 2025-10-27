@@ -66,7 +66,7 @@
             ];
           @endphp
 
-          <div class="mt-4 grid grid-cols-3 gap-3">
+          <div class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
             @foreach ($cards as $c)
               <figure class="group relative aspect-[4/3] rounded-xl overflow-hidden ring-1 ring-white/10 bg-white/5">
                 <img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"

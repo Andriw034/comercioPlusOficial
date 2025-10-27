@@ -69,7 +69,7 @@
         {{-- Main content --}}
         <div class="flex-1 min-h-screen">
             {{-- Topbar --}}
-            <header class="bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between">
+            <header class="bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <button id="menu-toggle" class="text-gray-300 md:hidden">☰</button>
                     <h1 class="text-lg font-semibold">{{ $title ?? 'Panel de control' }}</h1>

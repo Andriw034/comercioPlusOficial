@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "./forms.css";
+
 /* Tokens */
 :root{
   --cp-primary:#FF6000;

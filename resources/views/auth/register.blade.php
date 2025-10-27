@@ -53,7 +53,7 @@
       <div>
         <label for="role" class="block text-sm font-medium text-gray-300">Tipo de cuenta</label>
         <select id="role" name="role" required
-                class="mt-1 block w-full px-3 py-2 bg-white border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 sm:text-sm">
           <option value="cliente" {{ old('role') == 'cliente' ? 'selected' : '' }}>Cliente comprador</option>
           <option value="comerciante" {{ old('role') == 'comerciante' ? 'selected' : '' }}>Comerciante</option>
         </select>

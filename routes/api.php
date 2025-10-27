@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\PublicProductController;
 use App\Http\Controllers\Api\PublicCategoryController;
 use App\Http\Controllers\Api\PublicStoreController;
 use App\Http\Controllers\Api\ExternalProductController;
+use App\Http\Controllers\Api\DemoImageController;
 // Health check endpoint
 Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
@@ -117,3 +118,5 @@ Route::get('/ext/products/{externalId}', [ExternalProductController::class, 'sho
 Route::post('/ext/products', [ExternalProductController::class, 'store']);
 Route::put('/ext/products/{externalId}', [ExternalProductController::class, 'update']);
 Route::delete('/ext/products/{externalId}', [ExternalProductController::class, 'destroy']);
+
+Route::get('/demo/images', [\App\Http\Controllers\Api\DemoImageController::class, 'index']);

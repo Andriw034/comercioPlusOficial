@@ -30,20 +30,20 @@
     @else
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             @foreach ($products as $product)
-                <div class="group flex flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900/40 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-500/70 hover:shadow-xl">
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden flex flex-col">
 
                     {{-- Imagen --}}
                     <a href="{{ route('admin.products.edit', $product) }}" class="block">
-                        <div class="relative aspect-square w-full overflow-hidden bg-gray-800">
+                        <div class="relative aspect-square w-full overflow-hidden">
                             <img
                                 src="{{ $product->image_url }}"
                                 alt="Imagen de {{ $product->name }}"
                                 loading="lazy"
-                                class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                class="w-full h-56 object-cover"
                                 onerror="this.onerror=null;this.src='{{ asset('images/no-image.png') }}';"
                             >
                             @if ((int) $product->status !== 1)
-                                <span class="absolute left-2 top-2 rounded-md bg-red-700/90 px-2 py-1 text-xs font-semibold text-red-50">
+                                <span class="absolute left-2 top-2 rounded-md bg-red-700 px-2 py-1 text-xs font-semibold text-white">
                                     Inactivo
                                 </span>
                             @endif
@@ -52,17 +52,17 @@
 
                     {{-- Info --}}
                     <div class="flex flex-1 flex-col p-4">
-                        <h3 class="line-clamp-2 text-base font-medium text-gray-100">{{ $product->name }}</h3>
+                        <h3 class="line-clamp-2 text-base font-medium text-gray-900">{{ $product->name }}</h3>
 
-                        <p class="mt-1 text-xs uppercase tracking-wide text-gray-400">
+                        <p class="mt-1 text-xs uppercase tracking-wide text-gray-500">
                             {{ optional($product->category)->name ?? 'Sin categoría' }}
                         </p>
 
                         <div class="mt-3 flex items-center justify-between">
-                            <p class="text-lg font-semibold text-gray-100">
+                            <p class="text-lg font-semibold text-orange-500">
                                 {{ $product->price_formatted ?? '$'.number_format((float)$product->price, 0, ',', '.') }}
                             </p>
-                            <p class="text-sm text-gray-300">
+                            <p class="text-sm text-gray-600">
                                 Stock: <span class="font-medium">{{ (int) $product->stock }}</span>
                             </p>
                         </div>
@@ -70,7 +70,7 @@
                         {{-- Acciones --}}
                         <div class="mt-4 flex items-center justify-between">
                             <a href="{{ route('admin.products.edit', $product) }}"
-                               class="inline-flex items-center rounded-lg border border-orange-600/70 px-3 py-2 text-sm font-medium text-orange-400 hover:bg-orange-600 hover:text-white transition">
+                               class="inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 transition">
                                 Editar
                             </a>
 
@@ -79,7 +79,7 @@
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
-                                        class="inline-flex items-center rounded-lg border border-red-600/60 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-600 hover:text-white transition">
+                                        class="inline-flex items-center rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 transition">
                                     Eliminar
                                 </button>
                             </form>

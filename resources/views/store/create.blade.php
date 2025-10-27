@@ -37,6 +37,28 @@
           @enderror
         </div>
 
+        {{-- Logo --}}
+        <div>
+          <label for="logo" class="block text-sm font-medium text-gray-700 mb-2">Logo de la tienda</label>
+          <input type="file" name="logo" id="logo" accept="image/*"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+          <span class="text-sm text-gray-600">Selecciona una imagen para el logo (PNG/JPG/SVG, máx 2MB)</span>
+          @error('logo')
+            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+          @enderror
+        </div>
+
+        {{-- Portada --}}
+        <div>
+          <label for="cover" class="block text-sm font-medium text-gray-700 mb-2">Portada de la tienda</label>
+          <input type="file" name="cover" id="cover" accept="image/*"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+          <span class="text-sm text-gray-600">Selecciona una imagen para la portada (PNG/JPG, máx 4MB)</span>
+          @error('cover')
+            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+          @enderror
+        </div>
+
         {{-- Color primario --}}
         <div>
           <label for="primary_color" class="block text-sm font-medium text-gray-700 mb-2">Color primario</label>

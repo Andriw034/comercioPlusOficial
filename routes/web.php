@@ -236,6 +236,8 @@ Route::middleware(['web', 'auth'])  // ajusta middlewares si usas otros (ej. ver
     ->group(function () {
         Route::get('/ext-products', [ExtProductDashboardController::class, 'index'])
             ->name('ext-products.index');
+        Route::post('/ext-products/{externalId}/import', [ExtProductDashboardController::class, 'import'])
+            ->name('ext-products.import');
     });
 
 

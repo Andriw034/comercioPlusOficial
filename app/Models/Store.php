@@ -66,14 +66,21 @@ class Store extends Model
     {
         return $this->logo_path
             ? Storage::disk('public')->url($this->logo_path)
-            : null;
+            : asset('images/no-image.png');
     }
 
     public function getCoverUrlAttribute()
     {
         return $this->cover_path
             ? Storage::disk('public')->url($this->cover_path)
-            : null;
+            : asset('images/no-image.png');
+    }
+
+    public function getImageUrlAttribute()
+    {
+        return $this->logo_path
+            ? Storage::disk('public')->url($this->logo_path)
+            : asset('images/no-image.png');
     }
 
     public function categories()
