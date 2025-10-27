@@ -3,18 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\StoreProductRequest;
-use App\Http\Requests\Admin\UpdateProductRequest;
-use App\Models\Product;
-use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\Product;
+use App\Models\Category;
 
 class ProductController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Mostrar listado de productos del comerciante autenticado.
      */
     public function index(Request $request)
     {
@@ -23,148 +21,132 @@ class ProductController extends Controller
         $query = Product::with('category')
             ->where('store_id', $store->id);
 
-        // Search functionality
-        if ($q = trim((string) $request->get('q'))) {
-            $query->where(function ($qbuilder) use ($q) {
-                $qbuilder->where('name', 'like', "%{$q}%")
-                         ->orWhere('slug', 'like', "%{$q}%");
-            });
+        if ($search = $request->get('q')) {
+            $query->where('name', 'like', "%{$search}%");
         }
 
-        // Category filter
-        if ($request->filled('category_id')) {
-            $query->where('category_id', (int) $request->input('category_id'));
-        }
-
-        // Status filter
-        if ($request->filled('status') && in_array($request->status, ['0','1'], true)) {
-            $query->where('status', (int) $request->status);
+        if ($category = $request->get('category_id')) {
+            $query->where('category_id', $category);
         }
 
         $products = $query->latest('id')->paginate(12);
 
-        // Categories for filter dropdown
-        $categories = Category::where('store_id', $store->id)
-            ->orderBy('name')
-            ->get();
+        $categories = Category::where('store_id', $store->id)->orderBy('name')->get();
 
         return view('admin.products.index', compact('products', 'categories', 'store'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Mostrar formulario de creación de producto.
      */
     public function create()
     {
         $store = auth()->user()->stores()->firstOrFail();
         $categories = Category::where('store_id', $store->id)->orderBy('name')->get();
-        return view('admin.products.create', compact('categories', 'store'));
+
+        return view('admin.products.create', compact('store', 'categories'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Guardar nuevo producto en la base de datos.
      */
-    public function store(StoreProductRequest $request)
+    public function store(Request $request)
     {
         $store = auth()->user()->stores()->firstOrFail();
 
-        $data = $request->validated();
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string|max:2000',
+            'price'       => 'required|numeric|min:0',
+            'stock'       => 'required|integer|min:0',
+            'category_id' => 'nullable|exists:categories,id',
+            'status'      => 'nullable|boolean',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ]);
 
-        // Pertenencia
-        $data['store_id'] = $store->id;
-        $data['user_id']  = auth()->id();
+        $validated['store_id'] = $store->id;
+        $validated['user_id']  = auth()->id();
+        $validated['status']   = isset($validated['status']) ? 1 : 0;
+        $validated['slug']     = $this->generateUniqueSlug($validated['name'], $store->id);
 
-        // Status como tinyint(1)
-        $data['status'] = isset($data['status']) ? (int) (bool) $data['status'] : 1;
+        // Guardar producto primero para tener el ID
+        $product = Product::create($validated);
 
-        // Slug único por tienda
-        $data['slug'] = $this->generateUniqueSlug($data['name'], $store->id);
-
-        // Imagen
+        // Subir imagen (si existe)
         if ($request->hasFile('image')) {
-            $data['image_path'] = $request->file('image')
-                ->store('products/' . $store->id, 'public');
-        }
+            $path = $request->file('image')
+                ->store("stores/{$store->id}/products/{$product->id}", 'public');
 
-        Product::create($data);
+            $product->update(['image_path' => $path]);
+        }
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', 'Producto creado correctamente.');
+            ->with('success', '✅ Producto creado correctamente.');
     }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(Product $product)
-    {
-        $store = auth()->user()->stores()->firstOrFail();
-        if ((int)$product->store_id !== (int)$store->id) {
-            abort(403);
-        }
-        return view('admin.products.show', compact('product', 'store'));
-    }
-
-    /**
-     * Show the form for editing the specified resource.
+     * Mostrar formulario de edición.
      */
     public function edit(Product $product)
     {
         $store = auth()->user()->stores()->firstOrFail();
-        if ((int)$product->store_id !== (int)$store->id) {
-            abort(403);
-        }
+        abort_if($product->store_id !== $store->id, 403);
+
         $categories = Category::where('store_id', $store->id)->orderBy('name')->get();
+
         return view('admin.products.edit', compact('product', 'categories', 'store'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualizar un producto existente.
      */
-    public function update(UpdateProductRequest $request, Product $product)
+    public function update(Request $request, Product $product)
     {
         $store = auth()->user()->stores()->firstOrFail();
-        if ((int)$product->store_id !== (int)$store->id) {
-            abort(403);
+        abort_if($product->store_id !== $store->id, 403);
+
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string|max:2000',
+            'price'       => 'required|numeric|min:0',
+            'stock'       => 'required|integer|min:0',
+            'category_id' => 'nullable|exists:categories,id',
+            'status'      => 'nullable|boolean',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ]);
+
+        if ($product->name !== $validated['name']) {
+            $validated['slug'] = $this->generateUniqueSlug($validated['name'], $store->id, $product->id);
         }
 
-        $data = $request->validated();
-
-        // Status como tinyint(1)
-        if (array_key_exists('status', $data)) {
-            $data['status'] = (int) (bool) $data['status'];
-        }
-
-        // Regenerar slug solo si cambió el nombre; asegurar unicidad ignorando el propio ID
-        if (isset($data['name']) && $data['name'] !== $product->name) {
-            $data['slug'] = $this->generateUniqueSlug($data['name'], $store->id, $product->id);
-        }
-
-        // Imagen
         if ($request->hasFile('image')) {
+            // Eliminar imagen anterior si existe
             if ($product->image_path) {
                 Storage::disk('public')->delete($product->image_path);
             }
-            $data['image_path'] = $request->file('image')
-                ->store('products/' . $store->id, 'public');
+
+            // Guardar nueva imagen
+            $path = $request->file('image')
+                ->store("stores/{$store->id}/products/{$product->id}", 'public');
+
+            $validated['image_path'] = $path;
         }
 
-        $product->update($data);
+        $product->update($validated);
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', 'Producto actualizado correctamente.');
+            ->with('success', '✅ Producto actualizado correctamente.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Eliminar un producto y su imagen asociada.
      */
     public function destroy(Product $product)
     {
         $store = auth()->user()->stores()->firstOrFail();
-        if ((int)$product->store_id !== (int)$store->id) {
-            abort(403);
-        }
+        abort_if($product->store_id !== $store->id, 403);
 
         if ($product->image_path) {
             Storage::disk('public')->delete($product->image_path);
@@ -174,32 +156,24 @@ class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', 'Producto eliminado correctamente.');
+            ->with('success', '🗑️ Producto eliminado correctamente.');
     }
 
     /**
      * Genera un slug único por tienda.
-     *
-     * @param  string      $name
-     * @param  int         $storeId
-     * @param  int|null    $ignoreProductId  ID a ignorar (en update)
-     * @return string
      */
-    protected function generateUniqueSlug(string $name, int $storeId, ?int $ignoreProductId = null): string
+    protected function generateUniqueSlug(string $name, int $storeId, ?int $ignoreId = null): string
     {
         $base = Str::slug($name);
         $slug = $base;
         $i = 2;
 
-        $exists = function (string $try) use ($storeId, $ignoreProductId): bool {
-            $q = Product::where('store_id', $storeId)->where('slug', $try);
-            if ($ignoreProductId) {
-                $q->where('id', '!=', $ignoreProductId);
-            }
-            return $q->exists();
-        };
-
-        while ($exists($slug)) {
+        while (
+            Product::where('store_id', $storeId)
+                ->where('slug', $slug)
+                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
             $slug = "{$base}-{$i}";
             $i++;
         }

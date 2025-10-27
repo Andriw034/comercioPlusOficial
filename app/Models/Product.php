@@ -47,29 +47,33 @@ class Product extends Model
      *  - products/{store}/{file}
      *  - null => imagen por defecto
      */
-    public function getImageUrlAttribute(): string
-    {
-        $path = $this->image_path;
-
-        if (!$path) {
-            return asset('images/no-image.png');
-        }
-
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-
-        if (str_starts_with($path, '/storage')) {
-            return $path;
-        }
-
-        if (str_starts_with($path, 'storage')) {
-            return '/'.$path;
-        }
-
-        // products/{store}/{file} -> /storage/products/{store}/{file}
-        return Storage::url($path);
+  public function getImageUrlAttribute(): string
+{
+    // Fallback si no hay imagen
+    if (!$this->image_path) {
+        // Asegúrate de tener este archivo en public/images/no-image.png
+        return asset('images/no-image.png') . '?v=' . ($this->updated_at?->timestamp ?? time());
     }
+
+    $path = $this->image_path;
+
+    // Si ya es URL absoluta
+    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+        return $path . (str_contains($path, '?') ? '' : ('?v=' . ($this->updated_at?->timestamp ?? time())));
+    }
+
+    // Normaliza rutas que vienen como "/storage..." o "storage..."
+    if (str_starts_with($path, '/storage')) {
+        $url = url($path);
+    } elseif (str_starts_with($path, 'storage')) {
+        $url = url('/' . ltrim($path, '/'));
+    } else {
+        // Ej: "stores/{store_id}/products/{product_id}/main.jpg"
+        $url = \Storage::disk('public')->url($path);
+    }
+
+    return $url . (str_contains($url, '?') ? '' : ('?v=' . ($this->updated_at?->timestamp ?? time())));
+}
 
     public function getPriceFormattedAttribute(): string
     {

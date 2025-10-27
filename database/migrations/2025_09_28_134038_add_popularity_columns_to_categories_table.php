@@ -52,7 +52,7 @@ return new class extends Migration
             }
 
             if (!in_array('categories_popularity_sales_count_index', $indexes)) {
-                $table->index(['popularity', 'sales_count'], 'categories_popularity_sales_count_index');
+                $table->index(['popularity', 'sales_count'], 'categories_popularity_sales_count_index_new');
             }
         });
     }

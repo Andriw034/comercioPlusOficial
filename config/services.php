@@ -31,4 +31,18 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+
+
+    'products_external' => [
+    'base_url' => env('API_BASE_URL', ''),
+    'api_key'  => env('API_KEY', ''),
+    // opcional OAuth2:
+    'oauth' => [
+        'client_id' => env('EXTERNAL_API_OAUTH_CLIENT_ID', ''),
+        'secret'    => env('EXTERNAL_API_OAUTH_SECRET', ''),
+        'token'     => env('EXTERNAL_API_OAUTH_TOKEN', ''),
+    ],
+],
+
+
 ];

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('stores', function (Blueprint $table) {
-            $table->json('theme')->nullable()->after('calificacion_promedio');
+            $table->json('theme')->nullable()->after('theme_primary');
         });
     }
 

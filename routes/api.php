@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\PublicProductController;
 use App\Http\Controllers\Api\PublicCategoryController;
 use App\Http\Controllers\Api\PublicStoreController;
-
+use App\Http\Controllers\Api\ExternalProductController;
 // Health check endpoint
 Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
@@ -97,9 +97,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('cart/{cart}', [CartController::class, 'show']);
     Route::put('cart/{cart}', [CartController::class, 'update']);
     Route::delete('cart/{cart}', [CartController::class, 'destroy']);
+
+    // Estadísticas
+    Route::prefix('stats')->group(function () {
+        Route::get('/summary', [\App\Http\Controllers\Api\StatsController::class, 'summary']);
+        Route::get('/timeseries', [\App\Http\Controllers\Api\StatsController::class, 'timeseries']);
+        Route::get('/top-products', [\App\Http\Controllers\Api\StatsController::class, 'topProducts']);
+    });
 });
 
 // Rutas públicas (sin autenticación) - estas deben ir DESPUÉS de las protegidas para tener prioridad
 Route::get('/products', [PublicProductController::class, 'index']);
 Route::get('/categories', [PublicCategoryController::class, 'index']);
 Route::get('/public-stores', [PublicStoreController::class, 'index']);
+
+
+Route::get('/ext/products', [ExternalProductController::class, 'index']);
+Route::get('/ext/products/{externalId}', [ExternalProductController::class, 'show']);
+Route::post('/ext/products', [ExternalProductController::class, 'store']);
+Route::put('/ext/products/{externalId}', [ExternalProductController::class, 'update']);
+Route::delete('/ext/products/{externalId}', [ExternalProductController::class, 'destroy']);

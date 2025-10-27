@@ -33,4 +33,43 @@
   0%{transform:translateX(0)}
   100%{transform:translateX(-50%)}
 }
- 
+
+/* ====== FORMULARIOS LEGIBLES (ComercioPlus) ====== */
+.form-light input[type="text"],
+.form-light input[type="number"],
+.form-light input[type="email"],
+.form-light input[type="password"],
+.form-light input[type="file"],
+.form-light input[type="date"],
+.form-light textarea,
+.form-light select {
+  background-color: #ffffff !important;
+  color: #111827 !important;          /* texto oscuro */
+  border: 1px solid #d1d5db !important;
+  caret-color: #111827 !important;
+}
+
+.form-light input::placeholder,
+.form-light textarea::placeholder {
+  color: #6b7280 !important;          /* placeholder gris medio */
+  opacity: 1 !important;
+}
+
+.form-light input:focus,
+.form-light textarea:focus,
+.form-light select:focus {
+  outline: none !important;
+  border-color: #fb923c !important;   /* naranja ComercioPlus */
+  box-shadow: 0 0 0 3px rgba(251,146,60,.35) !important;
+}
+
+/* Chrome Autofill */
+.form-light input:-webkit-autofill,
+.form-light input:-webkit-autofill:hover,
+.form-light input:-webkit-autofill:focus,
+.form-light textarea:-webkit-autofill,
+.form-light select:-webkit-autofill {
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

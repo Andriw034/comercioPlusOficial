@@ -1,5 +1,7 @@
 @extends('layouts.dashboard')
 
+@section('title', 'Crear nuevo producto — ComercioPlus')
+
 @section('content')
 <div class="container mx-auto px-4 py-8 bg-gray-900 min-h-[70vh]">
     <div class="max-w-2xl mx-auto">
@@ -24,9 +26,17 @@
             {{-- Nombre --}}
             <div class="mb-6">
                 <label for="name" class="block text-sm font-semibold text-gray-200 mb-3">Nombre del Producto</label>
-                <input type="text" name="name" id="name" value="{{ old('name') }}" placeholder="Ingrese el nombre del producto"
-                       class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('name') ring-red-400 border-red-400 @enderror transition-all"
-                       required aria-required="true" aria-describedby="nameHelp">
+                <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    value="{{ old('name') }}"
+                    placeholder="Ingrese el nombre del producto"
+                    class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('name') ring-red-400 border-red-400 @enderror transition-all"
+                    required
+                    aria-required="true"
+                    aria-describedby="nameHelp"
+                >
                 <p id="nameHelp" class="sr-only">Nombre del producto. Requerido.</p>
                 @error('name')
                     <p class="text-red-400 text-sm mt-2 font-medium" role="alert">{{ $message }}</p>
@@ -36,8 +46,13 @@
             {{-- Descripción (opcional) --}}
             <div class="mb-6">
                 <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">Descripción</label>
-                <textarea name="description" id="description" rows="5" placeholder="Ingrese la descripción detallada del producto"
-                          class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('description') ring-red-400 border-red-400 @enderror transition-all resize-vertical">{{ old('description') }}</textarea>
+                <textarea
+                    name="description"
+                    id="description"
+                    rows="5"
+                    placeholder="Ingrese la descripción detallada del producto"
+                    class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('description') ring-red-400 border-red-400 @enderror transition-all resize-vertical"
+                >{{ old('description') }}</textarea>
                 @error('description')
                     <p class="text-red-400 text-sm mt-2 font-medium" role="alert">{{ $message }}</p>
                 @enderror
@@ -47,10 +62,18 @@
                 {{-- Precio --}}
                 <div>
                     <label for="price" class="block text-sm font-semibold text-gray-200 mb-3">Precio (COP)</label>
-                    <input type="text" name="price" id="price" inputmode="decimal" placeholder="300000"
-                           value="{{ old('price') }}"
-                           class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('price') ring-red-400 border-red-400 @enderror transition-all"
-                           required>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputmode="decimal"
+                        name="price"
+                        id="price"
+                        placeholder="300000"
+                        value="{{ old('price') }}"
+                        class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('price') ring-red-400 border-red-400 @enderror transition-all"
+                        required
+                    >
                     @error('price')
                         <p class="text-red-400 text-sm mt-2 font-medium" role="alert">{{ $message }}</p>
                     @enderror
@@ -59,24 +82,34 @@
                 {{-- Stock --}}
                 <div>
                     <label for="stock" class="block text-sm font-semibold text-gray-200 mb-3">Stock</label>
-                    <input type="number" name="stock" id="stock" min="0" value="{{ old('stock') }}" placeholder="0"
-                           class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('stock') ring-red-400 border-red-400 @enderror transition-all"
-                           required>
+                    <input
+                        type="number"
+                        name="stock"
+                        id="stock"
+                        min="0"
+                        value="{{ old('stock') }}"
+                        placeholder="0"
+                        class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('stock') ring-red-400 border-red-400 @enderror transition-all"
+                        required
+                    >
                     @error('stock')
                         <p class="text-red-400 text-sm mt-2 font-medium" role="alert">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
 
-            {{-- Categoría --}}
+            {{-- Categoría (opcional según tu controlador) --}}
             <div class="mb-6">
                 <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">Categoría</label>
 
                 @if(isset($categories) && $categories->count())
-                    <select name="category_id" id="category_id"
-                            class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 @error('category_id') ring-red-400 border-red-400 @enderror transition-all"
-                            required aria-required="true" aria-describedby="catHelp">
-                        <option value="" class="text-gray-500">Seleccionar categoría</option>
+                    <select
+                        name="category_id"
+                        id="category_id"
+                        class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 @error('category_id') ring-red-400 border-red-400 @enderror transition-all"
+                        aria-describedby="catHelp"
+                    >
+                        <option value="" class="text-gray-500">Seleccionar categoría (opcional)</option>
 
                         @php
                             $popular = $categories->where('is_popular', true);
@@ -130,9 +163,14 @@
 
                     <div class="flex-1">
                         <label for="image" class="inline-flex items-center gap-3 cursor-pointer">
-                            <input type="file" name="image" id="image"
-                                   accept="image/jpg,image/jpeg,image/png,image/webp"
-                                   class="hidden" aria-describedby="imgHelp">
+                            <input
+                                type="file"
+                                name="image"
+                                id="image"
+                                accept="image/jpg,image/jpeg,image/png,image/webp"
+                                class="hidden"
+                                aria-describedby="imgHelp"
+                            >
                             <span class="inline-block px-4 py-2 rounded-md bg-white text-gray-900 border border-gray-300 hover:bg-gray-100 text-sm font-medium">Elegir archivo</span>
                             <span id="file-name" class="text-gray-300 text-sm">No file chosen</span>
                         </label>
@@ -141,7 +179,7 @@
                             <p id="imgHelp" class="text-sm text-gray-400">
                                 Formatos permitidos: JPG, JPEG, PNG, WEBP. Tamaño máximo: 4 MB.
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">Se recomienda 800x800px para una vista óptima en la vitrina.</p>
+                            <p class="text-xs text-gray-500 mt-1">Recomendado: 800×800 px para una vitrina óptima.</p>
                         </div>
 
                         @error('image')
@@ -154,11 +192,18 @@
             {{-- Estado --}}
             <div class="mb-8">
                 <label class="inline-flex items-center gap-2">
-                    <input type="checkbox" name="status" value="1" {{ old('status', 1) ? 'checked' : '' }}
-                           class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                    <input
+                        type="checkbox"
+                        name="status"
+                        value="1"
+                        {{ old('status', 1) ? 'checked' : '' }}
+                        class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                    >
                     <span class="text-sm text-gray-200">Producto activo</span>
                 </label>
-                @error('status') <p class="text-red-400 text-sm mt-2 font-medium">{{ $message }}</p> @enderror
+                @error('status')
+                    <p class="text-red-400 text-sm mt-2 font-medium">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- Acciones --}}
@@ -167,7 +212,8 @@
                    class="bg-gray-700 hover:bg-gray-600 text-gray-100 px-6 py-3 rounded-lg transition-all duration-200 shadow-md">
                     Cancelar
                 </a>
-                <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-all duration-200 shadow-md font-semibold">
+                <button type="submit"
+                        class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-all duration-200 shadow-md font-semibold">
                     Crear Producto
                 </button>
             </div>
@@ -193,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Límite coherente con el Request (4 MB)
+        // Límite coherente con el backend (4 MB)
         if (f.size > 4 * 1024 * 1024) {
             alert('El archivo supera el límite de 4 MB.');
             realInput.value = '';
@@ -207,8 +253,10 @@ document.addEventListener('DOMContentLoaded', function () {
         reader.readAsDataURL(f);
     });
 
+    // Accesibilidad: activar con Enter o Space el botón de subir
     const trigger = document.querySelector('label[for="image"]');
     if (trigger) {
+        trigger.tabIndex = 0;
         trigger.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();

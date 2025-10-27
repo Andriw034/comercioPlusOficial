@@ -36,15 +36,15 @@
                 @method('PUT')
                 <div>
                     <label for="name" class="block font-semibold mb-2 text-white/90">Nombre de la Tienda</label>
-                    <input type="text" name="name" id="name" placeholder="Ejemplo: Tienda Plus" class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" required value="{{ old('name', $store->name) }}">
+                    <input type="text" name="name" id="name" placeholder="Ejemplo: Tienda Plus" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" required value="{{ old('name', $store->name) }}">
                 </div>
                 <div>
                     <label for="description" class="block font-semibold mb-2 text-white/90">Descripción</label>
-                    <textarea name="description" id="description" rows="5" placeholder="Describe tu tienda" class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" required>{{ old('description', $store->description) }}</textarea>
+                    <textarea name="description" id="description" rows="5" placeholder="Describe tu tienda" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth resize-vertical" required>{{ old('description', $store->description) }}</textarea>
                 </div>
                 <div>
                     <label for="logo" class="block font-semibold mb-2 text-white/90">Logo de la Tienda</label>
-                    <input type="file" name="logo" id="logo" accept="image/*" class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
+                    <input type="file" name="logo" id="logo" accept="image/*" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
                     @if(!empty($store->logo))
                         <img src="{{ asset('storage/' . $store->logo) }}" alt="Logo actual" class="mt-4 h-20 w-20 object-cover rounded-xl ring-1 ring-white/20">
                     @endif

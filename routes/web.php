@@ -21,6 +21,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\StoreController;      // crear/guardar tienda (interno)
 use App\Http\Controllers\ProductController;   // gestión productos (interno)
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;  // gestión categorías (interno)
+use App\Http\Controllers\Admin\StatsPageController;
 use App\Http\Controllers\OrmController;
 
 // Settings
@@ -32,7 +33,7 @@ use App\Http\Controllers\AdminController;
 
 // API (AJAX) controllers (web-authenticated)
 use App\Http\Controllers\Api\CategoryController as ApiCategoryController;
-
+use App\Http\Controllers\Web\Admin\ExtProductDashboardController;
 /*
 |--------------------------------------------------------------------------
 | Basic / Public
@@ -57,34 +58,6 @@ Route::view('/vue-test', 'vue-test')->name('vue.test');
 */
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Admin routes (under auth and has.store middleware)
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'has.store'])->prefix('admin')->name('admin.')->group(function () {
-
-    // Dashboard ya existe (no tocar)
-
-    // Settings (pestañas)
-    Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('index'); // Pestañas: general, appearance, payments, shipping, taxes, notifications
-        Route::put('/general', [App\Http\Controllers\Admin\SettingsController::class, 'updateGeneral'])->name('update.general');
-        Route::put('/appearance', [App\Http\Controllers\Admin\SettingsController::class, 'updateAppearance'])->name('update.appearance');
-        Route::put('/payments', [App\Http\Controllers\Admin\SettingsController::class, 'updatePayments'])->name('update.payments');
-        Route::put('/shipping', [App\Http\Controllers\Admin\SettingsController::class, 'updateShipping'])->name('update.shipping');
-        Route::put('/taxes', [App\Http\Controllers\Admin\SettingsController::class, 'updateTaxes'])->name('update.taxes');
-        Route::put('/notifications', [App\Http\Controllers\Admin\SettingsController::class, 'updateNotifications'])->name('update.notifications');
-    });
-
-    // Categorías
-    Route::resource('categories', App\Http\Controllers\Admin\CategoryController::class)->names('categories');
-    Route::post('categories/store-json', [App\Http\Controllers\Admin\CategoryController::class, 'storeJson'])->name('categories.store_json');
-
-    // Productos
-    Route::resource('products', App\Http\Controllers\Admin\ProductController::class)->names('products');
 });
 
 /*
@@ -127,9 +100,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/settings/profile', [SettingsProfileController::class, 'update'])->name('settings.profile.update');
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Crear tienda / tienda (usuario)
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
     Route::get('/crear-tienda', fn() => view('store_wizard'))->name('store.wizard');
 
@@ -137,9 +110,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/tienda',        [StoreController::class, 'store'])->name('store.store');
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Alias de compatibilidad (para controladores viejos que apuntan a stores.create)
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Crea la ruta con nombre `stores.create` que redirige a la ruta real disponible.
     */
     if (Route::has('store.create')) {
@@ -151,23 +124,54 @@ Route::middleware('auth')->group(function () {
     }
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Admin / Panel (requiere has.store middleware)
     | Rutas agrupadas con prefijo "admin" y nombre "admin."
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
     Route::prefix('admin')->name('admin.')->middleware('has.store')->group(function () {
-        // Dashboard admin
-        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    // ...tus rutas admin...
+
+    // Dashboard admin (nombre requerido por el layout)
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Alias opcional para /admin/dashboard (redirige al nombre oficial)
+    Route::get('/dashboard', fn() => redirect()->route('admin.dashboard'));
+
+    // 📊 ESTADÍSTICAS
+    Route::get('/stats', [StatsPageController::class, 'index'])->name('stats.index');
+
+
+
+        // SETTINGS (Pestañas del panel admin)
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('index'); // Pestañas: general, appearance, payments, shipping, taxes, notifications
+            Route::put('/general',      [App\Http\Controllers\Admin\SettingsController::class, 'updateGeneral'])->name('update.general');
+            Route::put('/appearance',   [App\Http\Controllers\Admin\SettingsController::class, 'updateAppearance'])->name('update.appearance');
+            Route::put('/payments',     [App\Http\Controllers\Admin\SettingsController::class, 'updatePayments'])->name('update.payments');
+            Route::put('/shipping',     [App\Http\Controllers\Admin\SettingsController::class, 'updateShipping'])->name('update.shipping');
+            Route::put('/taxes',        [App\Http\Controllers\Admin\SettingsController::class, 'updateTaxes'])->name('update.taxes');
+            Route::put('/notifications',[App\Http\Controllers\Admin\SettingsController::class, 'updateNotifications'])->name('update.notifications');
+        });
 
         // Productos (admin.productos.*) - Rutas en español
-        Route::get('/productos', [ProductController::class, 'index'])->name('productos.index');
-        Route::get('/productos/crear', [ProductController::class, 'create'])->name('productos.create');
-        Route::post('/productos', [ProductController::class, 'store'])->name('productos.store');
-        Route::get('/productos/{product}/editar', [ProductController::class, 'edit'])->name('productos.edit');
-        Route::put('/productos/{product}', [ProductController::class, 'update'])->name('productos.update');
-        Route::delete('/productos/{product}', [ProductController::class, 'destroy'])->name('productos.destroy');
+        Route::get('/productos',                   [ProductController::class, 'index'])->name('productos.index');
+        Route::get('/productos/crear',             [ProductController::class, 'create'])->name('productos.create');
+        Route::post('/productos',                  [ProductController::class, 'store'])->name('productos.store');
+        Route::get('/productos/{product}/editar',  [ProductController::class, 'edit'])->name('productos.edit');
+        Route::put('/productos/{product}',         [ProductController::class, 'update'])->name('productos.update');
+        Route::delete('/productos/{product}',      [ProductController::class, 'destroy'])->name('productos.destroy');
         Route::patch('/productos/{product}/update-image', [ProductController::class, 'updateImage'])->name('productos.update-image');
+
+        // ======== ALIASES DE COMPATIBILIDAD PARA RUTAS EN INGLÉS ========
+        // Permite que las vistas que usan admin.products.* sigan funcionando.
+        Route::get('/products',                          [ProductController::class, 'index'])->name('products.index');
+        Route::get('/products/create',                   [ProductController::class, 'create'])->name('products.create');
+        Route::post('/products',                         [ProductController::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit',           [ProductController::class, 'edit'])->name('products.edit');
+        Route::put('/products/{product}',                [ProductController::class, 'update'])->name('products.update');
+        Route::delete('/products/{product}',             [ProductController::class, 'destroy'])->name('products.destroy');
+        Route::patch('/productos/{product}/update-image', [ProductController::class, 'updateImage'])->name('products.update-image');
 
         // Categorías (resource admin.categories.*)
         Route::resource('categories', AdminCategoryController::class);
@@ -175,7 +179,7 @@ Route::middleware('auth')->group(function () {
         // UI demo
         Route::view('/products-ui', 'dashboard.products')->name('products.ui');
 
-        // Extras / Store settings
+        // Extras / Store settings (apariencia, envíos, etc. de la tienda)
         Route::prefix('store')->name('store.')->group(function () {
             Route::get('appearance', [StoreController::class, 'appearance'])->name('appearance');
             Route::put('appearance', [StoreController::class, 'updateAppearance'])->name('update_appearance');
@@ -192,17 +196,27 @@ Route::middleware('auth')->group(function () {
 
         // Users management (admin.users.*)
         Route::resource('users', AdminController::class)->names('users');
+
+        // 📊 ESTADÍSTICAS (Vista del panel)
+        Route::get('/stats', [StatsPageController::class, 'index'])->name('stats.index');
     });
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | API-like AJAX endpoints (web auth) - e.g. crear categoría sin recargar
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Usamos rutas en web.php protegidas con auth para trabajar via session/AJAX.
     */
     Route::post('/api/categories', [ApiCategoryController::class, 'store'])
         ->name('api.categories.store')
         ->middleware('auth');
+
+    // ===================== API DE ESTADÍSTICAS (CON SESIÓN) =====================
+    Route::prefix('api')->name('api.')->middleware('auth')->group(function () {
+        Route::get('/stats/summary',      [App\Http\Controllers\Api\StatsController::class, 'summary'])->name('stats.summary');
+        Route::get('/stats/timeseries',   [App\Http\Controllers\Api\StatsController::class, 'timeseries'])->name('stats.timeseries');
+        Route::get('/stats/top-products', [App\Http\Controllers\Api\StatsController::class, 'topProducts'])->name('stats.top_products');
+    });
 });
 
 /*
@@ -214,6 +228,16 @@ Route::middleware('auth')->prefix('storefront')->name('storefront.')->group(func
     Route::get('/', [App\Http\Controllers\Web\StorefrontController::class, 'index'])->name('index');
     Route::get('/products/{product}', [App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('products.show');
 });
+
+
+Route::middleware(['web', 'auth'])  // ajusta middlewares si usas otros (ej. verified, can:...)
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/ext-products', [ExtProductDashboardController::class, 'index'])
+            ->name('ext-products.index');
+    });
+
 
 /*
 |--------------------------------------------------------------------------
