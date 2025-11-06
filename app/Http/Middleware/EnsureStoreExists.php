@@ -2,22 +2,32 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Store;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Facades\Route;
 
 class EnsureStoreExists
 {
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check()) {
-            $hasStore = Store::where('user_id', Auth::id())->exists();
-            // Permitir acceder a la creación si no tiene tienda
-            if (!$hasStore && !$request->routeIs('store.create') && !$request->routeIs('store.store')) {
-                return redirect()->route('store.create');
+        $user = $request->user();
+
+        // Si no hay user, dejar que redireccione el auth middleware
+        if (!$user) return $next($request);
+
+        // Solo obliga a comerciantes/admin; clientes no pasan por admin/*
+        $isMerchant = $user->hasRole('admin_comerciante') || $user->hasRole('merchant') || $user->role === 'merchant';
+        $isAdmin    = $user->hasRole('admin') || $user->role === 'admin';
+
+        if ($isMerchant || $isAdmin) {
+            $hasStore = \App\Models\Store::where('user_id', $user->id)->exists();
+            if (!$hasStore) {
+                return redirect()->route(Route::has('store.create') ? 'store.create' : 'store.wizard')
+                    ->with('warning', 'Primero crea tu tienda para acceder al panel.');
             }
         }
+
         return $next($request);
     }
 }

@@ -23,7 +23,14 @@ class UpdateCategoryRequest extends FormRequest
      */
     public function rules(): array
     {
-        $store = Auth::user()->stores()->firstOrFail();
+        $user = Auth::user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            abort(403, 'Debes crear una tienda antes de gestionar categorías.');
+        }
+
+        $store = $user->stores()->first();
         $id    = $this->route('category'); // Category ID in route model binding
 
         return [

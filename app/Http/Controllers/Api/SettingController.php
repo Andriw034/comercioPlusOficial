@@ -27,7 +27,6 @@ class SettingController extends Controller
      */
     public function create()
     {
-        //
     }
 
     /**
@@ -35,7 +34,6 @@ class SettingController extends Controller
      */
     public function store(Request $request)
     {
-        //
     }
 
     /**
@@ -82,7 +80,6 @@ class SettingController extends Controller
      */
     public function edit(string $id)
     {
-        //
     }
 
     /**
@@ -90,7 +87,6 @@ class SettingController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
     }
 
     /**
@@ -98,6 +94,5 @@ class SettingController extends Controller
      */
     public function destroy(string $id)
     {
-        //
     }
 }

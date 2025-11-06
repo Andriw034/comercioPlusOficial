@@ -14,12 +14,13 @@ use App\Http\Controllers\WebController;
 use App\Http\Controllers\Web\StoreWebController as PublicStoreWebController;
 use App\Http\Controllers\Web\ProductController as PublicProductController;
 use App\Http\Controllers\Web\CategoryController as PublicCategoryController;
+use App\Http\Controllers\CatalogoController;
 
 // Dashboard / admin controllers
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StoreController;      // crear/guardar tienda (interno)
-use App\Http\Controllers\ProductController;   // gestión productos (interno)
+use App\Http\Controllers\Admin\ProductController;   // gestión productos (interno)
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;  // gestión categorías (interno)
 use App\Http\Controllers\Admin\StatsPageController;
 use App\Http\Controllers\OrmController;
@@ -34,13 +35,20 @@ use App\Http\Controllers\AdminController;
 // API (AJAX) controllers (web-authenticated)
 use App\Http\Controllers\Api\CategoryController as ApiCategoryController;
 use App\Http\Controllers\Web\Admin\ExtProductDashboardController;
+
 /*
 |--------------------------------------------------------------------------
 | Basic / Public
 |--------------------------------------------------------------------------
 */
-Route::get('/', fn() => view('welcome'))->name('home');
-Route::get('/welcome', fn() => view('welcome'))->name('welcome');
+// Home pública = welcome
+Route::get('/', fn() => view('welcome'))->name('welcome');
+
+// Catálogo público
+Route::get('/catalogo', fn() => view('catalogo'))->name('catalogo');
+
+// Alias de compatibilidad: /home → welcome
+Route::get('/home', fn() => redirect()->route('welcome'))->name('home.redirect');
 
 /*
 |--------------------------------------------------------------------------
@@ -62,22 +70,24 @@ Route::middleware(['auth'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Authentication (guest)
+| Authentication (guest) — (SIN Auth::routes() para evitar duplicados)
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
+
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-
-Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
 
 /*
 |--------------------------------------------------------------------------
@@ -126,22 +136,18 @@ Route::middleware('auth')->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Admin / Panel (requiere has.store middleware)
-    | Rutas agrupadas con prefijo "admin" y nombre "admin."
     |--------------------------------------------------------------------------
     */
     Route::prefix('admin')->name('admin.')->middleware('has.store')->group(function () {
-    // ...tus rutas admin...
 
-    // Dashboard admin (nombre requerido por el layout)
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        // Dashboard admin (nombre requerido por el layout)
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Alias opcional para /admin/dashboard (redirige al nombre oficial)
-    Route::get('/dashboard', fn() => redirect()->route('admin.dashboard'));
+        // Alias opcional para /admin/dashboard (redirige al nombre oficial)
+        Route::get('/dashboard', fn() => redirect()->route('admin.dashboard'));
 
-    // 📊 ESTADÍSTICAS
-    Route::get('/stats', [StatsPageController::class, 'index'])->name('stats.index');
-
-
+        // 📊 ESTADÍSTICAS
+        Route::get('/stats', [StatsPageController::class, 'index'])->name('stats.index');
 
         // SETTINGS (Pestañas del panel admin)
         Route::prefix('settings')->name('settings.')->group(function () {
@@ -154,24 +160,8 @@ Route::middleware('auth')->group(function () {
             Route::put('/notifications',[App\Http\Controllers\Admin\SettingsController::class, 'updateNotifications'])->name('update.notifications');
         });
 
-        // Productos (admin.productos.*) - Rutas en español
-        Route::get('/productos',                   [ProductController::class, 'index'])->name('productos.index');
-        Route::get('/productos/crear',             [ProductController::class, 'create'])->name('productos.create');
-        Route::post('/productos',                  [ProductController::class, 'store'])->name('productos.store');
-        Route::get('/productos/{product}/editar',  [ProductController::class, 'edit'])->name('productos.edit');
-        Route::put('/productos/{product}',         [ProductController::class, 'update'])->name('productos.update');
-        Route::delete('/productos/{product}',      [ProductController::class, 'destroy'])->name('productos.destroy');
-        Route::patch('/productos/{product}/update-image', [ProductController::class, 'updateImage'])->name('productos.update-image');
-
-        // ======== ALIASES DE COMPATIBILIDAD PARA RUTAS EN INGLÉS ========
-        // Permite que las vistas que usan admin.products.* sigan funcionando.
-        Route::get('/products',                          [ProductController::class, 'index'])->name('products.index');
-        Route::get('/products/create',                   [ProductController::class, 'create'])->name('products.create');
-        Route::post('/products',                         [ProductController::class, 'store'])->name('products.store');
-        Route::get('/products/{product}/edit',           [ProductController::class, 'edit'])->name('products.edit');
-        Route::put('/products/{product}',                [ProductController::class, 'update'])->name('products.update');
-        Route::delete('/products/{product}',             [ProductController::class, 'destroy'])->name('products.destroy');
-        Route::patch('/productos/{product}/update-image', [ProductController::class, 'updateImage'])->name('products.update-image');
+        // Productos (resource routes)
+        Route::resource('products', ProductController::class)->except(['show']);
 
         // Categorías (resource admin.categories.*)
         Route::resource('categories', AdminCategoryController::class);
@@ -196,9 +186,6 @@ Route::middleware('auth')->group(function () {
 
         // Users management (admin.users.*)
         Route::resource('users', AdminController::class)->names('users');
-
-        // 📊 ESTADÍSTICAS (Vista del panel)
-        Route::get('/stats', [StatsPageController::class, 'index'])->name('stats.index');
     });
 
     /*
@@ -208,11 +195,10 @@ Route::middleware('auth')->group(function () {
     | Usamos rutas en web.php protegidas con auth para trabajar via session/AJAX.
     */
     Route::post('/api/categories', [ApiCategoryController::class, 'store'])
-        ->name('api.categories.store')
-        ->middleware('auth');
+        ->name('api.categories.store');
 
     // ===================== API DE ESTADÍSTICAS (CON SESIÓN) =====================
-    Route::prefix('api')->name('api.')->middleware('auth')->group(function () {
+    Route::prefix('api')->name('api.')->group(function () {
         Route::get('/stats/summary',      [App\Http\Controllers\Api\StatsController::class, 'summary'])->name('stats.summary');
         Route::get('/stats/timeseries',   [App\Http\Controllers\Api\StatsController::class, 'timeseries'])->name('stats.timeseries');
         Route::get('/stats/top-products', [App\Http\Controllers\Api\StatsController::class, 'topProducts'])->name('stats.top_products');
@@ -229,8 +215,13 @@ Route::middleware('auth')->prefix('storefront')->name('storefront.')->group(func
     Route::get('/products/{product}', [App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('products.show');
 });
 
-
-Route::middleware(['web', 'auth'])  // ajusta middlewares si usas otros (ej. verified, can:...)
+/*
+|--------------------------------------------------------------------------
+| Admin Ext Products (agrupado aparte pero coherente con admin.*)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin')->name('admin.')->middleware('has.store')->group(function () {
+  Route::middleware(['web', 'auth'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -240,6 +231,11 @@ Route::middleware(['web', 'auth'])  // ajusta middlewares si usas otros (ej. ver
             ->name('ext-products.import');
     });
 
+    Route::get('/ext-products', [ExtProductDashboardController::class, 'index'])
+        ->name('ext-products.index');
+    Route::post('/ext-products/{externalId}/import', [ExtProductDashboardController::class, 'import'])
+        ->name('ext-products.import');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -321,3 +317,5 @@ Route::view('/app/{any}', 'app')->where('any', '.*');
 |--------------------------------------------------------------------------
 */
 Route::fallback(fn() => response()->view('errors.404', [], 404));
+
+

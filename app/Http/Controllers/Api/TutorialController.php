@@ -27,7 +27,6 @@ class TutorialController extends Controller
      */
     public function create()
     {
-        // No aplica para API
     }
 
     /**
@@ -67,7 +66,6 @@ class TutorialController extends Controller
      */
     public function edit(string $id)
     {
-        // No aplica para API
     }
 
     /**

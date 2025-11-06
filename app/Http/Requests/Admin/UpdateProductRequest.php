@@ -14,7 +14,14 @@ class UpdateProductRequest extends FormRequest
 
     public function rules(): array
     {
-        $storeId = auth()->user()->stores()->firstOrFail()->id;
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            abort(403, 'Debes crear una tienda antes de gestionar productos.');
+        }
+
+        $storeId = $user->stores()->first()->id;
 
         return [
             'name' => ['required','string','max:255'],

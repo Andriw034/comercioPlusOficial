@@ -1,111 +1,106 @@
-{{-- resources/views/welcome.blade.php --}}
-@extends('layouts.marketing')
+@extends('layouts.public')
 
-@section('title', 'ComercioPlus — Catálogo de repuestos y accesorios de moto')
+@section('title', 'ComercioPlus — Tu vitrina de repuestos y accesorios')
 
 @section('content')
-  <!-- HERO -->
-  <section class="relative min-h-[86vh] flex items-center">
-    <!-- Fondo: gradiente + imagen externa -->
-    <div class="absolute inset-0 -z-10"
-         style="
-           background-image:
-             linear-gradient(to right, rgba(14,15,18,.92), rgba(14,15,18,.65)),
-             url('https://images.unsplash.com/photo-1517940310602-75f39d4ac6fb?q=80&w=1880&auto=format&fit=crop');
-           background-size: cover;
-           background-position: center;
-           background-repeat: no-repeat;">
-    </div>
-    <!-- Tinte naranja suave -->
-    <div class="absolute inset-0 -z-10 pointer-events-none"
-         style="background: radial-gradient(700px 360px at 15% 25%, rgba(255,96,0,.25), transparent 60%);"></div>
+<section
+  class="relative min-h-[90vh] flex items-center justify-center text-white overflow-hidden isolate">
+  {{-- Fondo animado --}}
+  <div class="absolute inset-0 -z-10 animate-cpGradient bg-[radial-gradient(1200px_600px_at_10%_-20%,rgba(255,107,0,.18),transparent_60%),radial-gradient(1000px_500px_at_90%_10%,rgba(255,138,61,.14),transparent_55%),linear-gradient(120deg,#0d0d0d_0%,#1a1a1a_50%,#262626_100%)]"></div>
 
-    <div class="relative mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 grid gap-12 lg:grid-cols-2 items-center">
-      <!-- Texto + CTAs -->
-      <div class="max-w-xl">
-        <h1 class="text-4xl/tight sm:text-5xl/tight font-extrabold tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,.65)]">
-          Tu vitrina de <span class="text-orange-400">repuestos y accesorios</span> en minutos
-        </h1>
-        <p class="mt-5 text-lg text-white/90 drop-shadow-[0_1px_10px_rgba(0,0,0,.7)]">
-          Crea tu <strong>tienda</strong>, carga productos, organiza por categorías y comparte tu catálogo profesional.
-        </p>
-        <div class="mt-8 flex flex-wrap items-center gap-3">
-          <a href="{{ route('register') }}"
-             class="inline-flex h-12 items-center rounded-full px-7 font-semibold bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/25 transition">
-            Empezar gratis
-          </a>
-          <a href="{{ route('login') }}"
-             class="inline-flex h-12 items-center rounded-full px-7 font-semibold border border-white/25 text-white/90 hover:border-white/40 hover:bg-white/5 transition">
-            Iniciar sesión
-          </a>
-        </div>
+  <div class="relative z-10 w-full max-w-7xl px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+    {{-- Columna izquierda --}}
+    <div class="order-2 lg:order-1">
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
+        Tu vitrina de <span class="text-orange-500">repuestos y accesorios</span><br class="hidden sm:block"> en minutos
+      </h1>
 
-        <ul class="mt-8 grid gap-2 text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,.6)] text-sm">
-          <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Sube tu logo y portada</li>
-          <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Catálogo por categorías (Frenos, Iluminación, Transmisión…)</li>
-          <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Panel para crear/editar productos al instante</li>
-        </ul>
+      <p class="mt-4 text-base sm:text-lg text-gray-300 max-w-xl">
+        Crea tu <span class="text-white font-semibold">tienda</span>, carga productos, organiza por categorías y comparte tu catálogo profesional.
+      </p>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href="{{ route('register') }}"
+           class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-orange-500 text-white font-semibold shadow-md hover:bg-orange-600 active:bg-orange-700 transition">
+          Empezar gratis
+        </a>
+        <a href="{{ route('login') }}"
+           class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/25 text-gray-100 hover:bg-white/5 transition">
+          Iniciar sesión
+        </a>
       </div>
 
-      <!-- Vista previa simple (tarjetas) -->
-      <div class="lg:pl-6">
-        <div class="rounded-3xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 shadow-2xl p-6">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold text-white/90">Vista previa de tu catálogo</div>
-            <span class="text-xs text-white/60">demo</span>
-          </div>
+      <ul class="mt-6 space-y-1 text-sm text-gray-400">
+        <li>• Sube tu logo y portada</li>
+        <li>• Catálogo por categorías (Frenos, Iluminación, Transmisión...)</li>
+        <li>• Panel para crear y editar productos al instante</li>
+      </ul>
+    </div>
 
+    {{-- Columna derecha (preview) --}}
+    <div class="order-1 lg:order-2">
+      <div class="relative rounded-3xl bg-white/5 backdrop-blur border border-white/10 p-6 sm:p-8 shadow-[0_20px_70px_-30px_rgba(0,0,0,0.7)]">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 class="text-gray-100 font-semibold">Vista previa de tu catálogo</h3>
+          <span class="text-xs text-gray-400">demo</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 sm:gap-4">
           @php
             $cards = [
-              ['alt' => 'Cascos y protección',   'src' => 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=900&auto=format&fit=crop'],
-              ['alt' => 'Llantas y rines',       'src' => 'https://images.unsplash.com/photo-1517940310602-75f39d4ac6fb?q=80&w=900&auto=format&fit=crop'],
-              ['alt' => 'Frenos y discos',       'src' => 'https://images.unsplash.com/photo-1526045478516-99145907023c?q=80&w=900&auto=format&fit=crop'],
-              ['alt' => 'Transmisión y cadenas', 'src' => 'https://images.unsplash.com/photo-1602320734573-1b57f5813996?q=80&w=900&auto=format&fit=crop'],
-              ['alt' => 'Aceites y lubricantes', 'src' => 'https://images.unsplash.com/photo-1589578527966-1e9b2ae05a0e?q=80&w=900&auto=format&fit=crop'],
-              ['alt' => 'Iluminación/eléctricos','src' => 'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?q=80&w=900&auto=format&fit=crop'],
+              ['img'=>'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?w=640','t'=>'Cascos y protección'],
+              ['img'=>'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=640','t'=>'Llantas y rines'],
+              ['img'=>'https://images.unsplash.com/photo-1558981403-c5f9891fa1a6?w=640','t'=>'Transmisión y cadenas'],
+              ['img'=>'https://images.unsplash.com/photo-1610915526186-6aa5cb18228e?w=640','t'=>'Aceites y lubricantes'],
             ];
           @endphp
-
-          <div class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-            @foreach ($cards as $c)
-              <figure class="group relative aspect-[4/3] rounded-xl overflow-hidden ring-1 ring-white/10 bg-white/5">
-                <img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                     src="{{ $c['src'] }}" alt="{{ $c['alt'] }}">
-                <figcaption class="absolute inset-x-0 bottom-0 p-2 text-[11px] font-medium text-white/95 bg-gradient-to-t from-black/60 to-transparent">
-                  {{ $c['alt'] }}
-                </figcaption>
-              </figure>
-            @endforeach
+          @foreach($cards as $c)
+          <div class="relative rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-inner">
+            <img src="{{ $c['img'] }}"
+                 alt="{{ $c['t'] }}"
+                 loading="lazy"
+                 class="object-cover w-full h-28 sm:h-32 opacity-95">
+            <p class="absolute inset-x-0 bottom-0 text-[13px] sm:text-sm font-semibold bg-black/55 text-white py-1.5 px-2">
+              {{ $c['t'] }}
+            </p>
           </div>
+          @endforeach
+        </div>
 
-          <div class="mt-5 flex justify-end">
-            <a href="{{ route('register') }}"
-               class="inline-flex h-10 items-center rounded-full px-5 text-sm font-semibold bg-orange-500 hover:bg-orange-600 shadow hover:shadow-orange-500/25 transition">
-              Crear mi tienda
-            </a>
-          </div>
+        <div class="mt-5 sm:mt-6 text-center">
+          <a href="{{ route('store.create') }}"
+             class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-orange-500 text-white font-semibold hover:bg-orange-600 transition">
+            Crear mi tienda
+          </a>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- CATEGORÍAS -->
-  <section id="categorias" class="relative bg-[#0e0f12]">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20 pt-10">
-      <h2 class="text-xl font-semibold text-white/95">Categorías populares</h2>
-      <p class="text-sm text-white/70">Organiza tu catálogo rápidamente.</p>
+{{-- Features --}}
+<section class="bg-[#0f0f0f] text-gray-200 py-16 sm:py-20">
+  <div class="mx-auto max-w-6xl px-6 text-center mb-10">
+    <h2 class="text-2xl sm:text-3xl font-bold">¿Por qué usar ComercioPlus?</h2>
+    <p class="text-gray-400 mt-2">Herramientas integradas y diseño profesional para tu negocio.</p>
+  </div>
 
-      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @foreach (['Aceites & Lubricantes','Llantas & Rines','Frenos','Transmisión & Cadenas','Accesorios & Estética','Iluminación & Eléctricos'] as $c)
-          <a href="#"
-             class="group rounded-2xl border border-white/10 bg-white/[.06] px-5 py-4 hover:bg-white/[.1] transition">
-            <div class="flex items-center justify-between">
-              <div class="text-white font-medium">{{ $c }}</div>
-              <span class="text-xs text-white/70 group-hover:text-white/90">Ver productos →</span>
-            </div>
-          </a>
-        @endforeach
-      </div>
-    </div>
-  </section>
+  <div class="mx-auto max-w-6xl px-6 grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
+    <article class="rounded-2xl bg-[#161616] border border-white/10 p-6 sm:p-8 shadow-lg hover:shadow-orange-500/10 transition">
+      <img src="{{ asset('images/icons/cart.svg') }}" alt="" class="w-9 h-9 mb-4">
+      <h3 class="text-lg sm:text-xl font-semibold mb-2">Gestión de Productos</h3>
+      <p class="text-gray-400 text-sm">Administra catálogo con fotos, stock, precios y categorías.</p>
+    </article>
+    <article class="rounded-2xl bg-[#161616] border border-white/10 p-6 sm:p-8 shadow-lg hover:shadow-orange-500/10 transition">
+      <img src="{{ asset('images/icons/chart.svg') }}" alt="" class="w-9 h-9 mb-4">
+      <h3 class="text-lg sm:text-xl font-semibold mb-2">Estadísticas</h3>
+      <p class="text-gray-400 text-sm">Monitorea ventas, ingresos y productos más vendidos.</p>
+    </article>
+    <article class="rounded-2xl bg-[#161616] border border-white/10 p-6 sm:p-8 shadow-lg hover:shadow-orange-500/10 transition">
+      <img src="{{ asset('images/icons/paint.svg') }}" alt="" class="w-9 h-9 mb-4">
+      <h3 class="text-lg sm:text-xl font-semibold mb-2">Personalización</h3>
+      <p class="text-gray-400 text-sm">Configura marca, colores, portada y dominio de tu tienda.</p>
+    </article>
+  </div>
+</section>
 @endsection

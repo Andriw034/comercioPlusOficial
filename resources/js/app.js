@@ -102,7 +102,9 @@ console.log('[CP] app.js cargado — buscando #store-wizard...');
 const wizardRoot = document.getElementById('store-wizard')
 console.log('[CP] wizardRoot =', wizardRoot);
 
-if (wizardRoot) {
+if (!wizardRoot) {
+  console.debug('[CP] wizardRoot not found; skipping wizard init on this page.');
+} else {
   const StoreWizard = defineComponent({
     name: 'StoreWizard',
     setup() {

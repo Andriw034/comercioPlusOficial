@@ -16,20 +16,44 @@ class SettingsController extends Controller
 {
     public function index()
     {
-        $store = auth()->user()->stores()->firstOrFail();
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de acceder a la configuración.');
+        }
+
+        $store = $user->stores()->first();
         return view('admin.settings.index', compact('store'));
     }
 
     public function updateGeneral(UpdateGeneralRequest $request)
     {
-        $store = auth()->user()->stores()->firstOrFail();
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de acceder a la configuración.');
+        }
+
+        $store = $user->stores()->first();
         $store->update($request->validated());
         return redirect()->back()->with('success', 'Configuración general actualizada.');
     }
 
     public function updateAppearance(UpdateAppearanceRequest $request)
     {
-        $store = auth()->user()->stores()->firstOrFail();
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de acceder a la configuración.');
+        }
+
+        $store = $user->stores()->first();
 
         $data = [];
 
@@ -53,28 +77,60 @@ class SettingsController extends Controller
 
     public function updatePayments(UpdatePaymentsRequest $request)
     {
-        $store = auth()->user()->stores()->firstOrFail();
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de acceder a la configuración.');
+        }
+
+        $store = $user->stores()->first();
         $store->update($request->validated());
         return redirect()->back()->with('success', 'Configuración de pagos actualizada.');
     }
 
     public function updateShipping(UpdateShippingRequest $request)
     {
-        $store = auth()->user()->stores()->firstOrFail();
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de acceder a la configuración.');
+        }
+
+        $store = $user->stores()->first();
         $store->update($request->validated());
         return redirect()->back()->with('success', 'Configuración de envíos actualizada.');
     }
 
     public function updateTaxes(UpdateTaxesRequest $request)
     {
-        $store = auth()->user()->stores()->firstOrFail();
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de acceder a la configuración.');
+        }
+
+        $store = $user->stores()->first();
         $store->update($request->validated());
         return redirect()->back()->with('success', 'Configuración de impuestos actualizada.');
     }
 
     public function updateNotifications(UpdateNotificationsRequest $request)
     {
-        $store = auth()->user()->stores()->firstOrFail();
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de acceder a la configuración.');
+        }
+
+        $store = $user->stores()->first();
         $store->update($request->validated());
         return redirect()->back()->with('success', 'Configuración de notificaciones actualizada.');
     }

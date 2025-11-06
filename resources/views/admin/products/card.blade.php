@@ -23,6 +23,7 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
             </span>
         @endif
     </div>
+    
     <div class="p-3">
         <p class="line-clamp-1 text-sm font-medium text-gray-100">{{ $product->name }}</p>
         <div class="mt-1 flex items-center justify-between">

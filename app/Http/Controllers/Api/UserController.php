@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
-    // Obtener todos los usuarios
     public function index()
     {
         $query = User::query()->with('store', 'carts', 'orders');
@@ -27,7 +26,6 @@ class UserController extends Controller
         return response()->json($users);
     }
 
-    // Crear un nuevo usuario
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -56,7 +54,6 @@ class UserController extends Controller
             'avatar' => $avatarPath,
         ]);
 
-        // Asignar rol si fue provisto
         if (!empty($validated['role'])) {
             try { $user->assignRole($validated['role']); } catch (\Throwable $e) { /* opcional */ }
         }
@@ -74,7 +71,6 @@ class UserController extends Controller
         return view('users.edit', compact('user', 'roles'));
     }
 
-    // Obtener un usuario específico
     public function show($id)
     {
         $user = User::find($id);
@@ -86,7 +82,6 @@ class UserController extends Controller
         return response()->json($user);
     }
 
-    // Actualizar un usuario
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
@@ -113,7 +108,6 @@ class UserController extends Controller
             'status' => $validated['status'] ?? $user->status,
         ]);
 
-        // Actualizar rol si fue provisto
         if (!empty($validated['role'])) {
             try { $user->syncRoles([$validated['role']]); } catch (\Throwable $e) { /* opcional */ }
         }
@@ -129,7 +123,6 @@ class UserController extends Controller
         ]);
     }
 
-    // Eliminar un usuario
     public function destroy(User $user)
     {
         if ($user->avatar) {

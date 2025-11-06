@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PublicCategoryController;
 use App\Http\Controllers\Api\PublicStoreController;
 use App\Http\Controllers\Api\ExternalProductController;
 use App\Http\Controllers\Api\DemoImageController;
+use App\Http\Controllers\Api\SupabaseImagesController;
 // Health check endpoint
 Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);
@@ -120,3 +121,4 @@ Route::put('/ext/products/{externalId}', [ExternalProductController::class, 'upd
 Route::delete('/ext/products/{externalId}', [ExternalProductController::class, 'destroy']);
 
 Route::get('/demo/images', [\App\Http\Controllers\Api\DemoImageController::class, 'index']);
+Route::get('demo/supabase-images', [SupabaseImagesController::class, 'index']);

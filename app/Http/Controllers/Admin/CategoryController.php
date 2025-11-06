@@ -14,7 +14,15 @@ class CategoryController extends Controller
 {
     public function index(Request $request)
     {
-        $store = Auth::user()->stores()->firstOrFail();
+        $user = Auth::user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de gestionar categorías.');
+        }
+
+        $store = $user->stores()->first();
 
         $q = trim((string) $request->get('q'));
         $categories = Category::where('store_id', $store->id)
@@ -33,7 +41,15 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request)
     {
-        $store = Auth::user()->stores()->firstOrFail();
+        $user = Auth::user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return redirect()->route('store.create')
+                ->with('error', 'Debes crear una tienda antes de gestionar categorías.');
+        }
+
+        $store = $user->stores()->first();
         $name  = $request->validated()['name'];
 
         Category::create([
@@ -89,7 +105,17 @@ class CategoryController extends Controller
     {
         $request->validate(['name' => ['required','string','max:80']]);
 
-        $store = Auth::user()->stores()->firstOrFail();
+        $user = Auth::user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Debes crear una tienda antes de gestionar categorías.',
+            ], 403);
+        }
+
+        $store = $user->stores()->first();
         $name  = trim($request->input('name'));
 
         // Unicidad por tienda
@@ -117,7 +143,14 @@ class CategoryController extends Controller
 
     private function authorizeCategory(Category $category): void
     {
-        $store = Auth::user()->stores()->firstOrFail();
+        $user = Auth::user();
+
+        // Verificar si el usuario tiene tienda
+        if (!$user->stores()->exists()) {
+            abort(403, 'Debes crear una tienda antes de gestionar categorías.');
+        }
+
+        $store = $user->stores()->first();
         abort_unless($category->store_id === $store->id, 403);
     }
 }

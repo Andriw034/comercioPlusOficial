@@ -19,7 +19,6 @@ class NotificacionController extends Controller
         return response()->json([
             'status' => 'ok',
             'message' => 'Notificaciones',
-=======
               $Notification = Notification::included() 
         ->filter()
         ->sort()
@@ -28,7 +27,6 @@ class NotificacionController extends Controller
         return response()->json([
             'status' => 'ok',
               'message' => 'Notificaciones',
->>>>>>> 691c95be (comentario)
             'data' => $Notification,
         ]);
     }

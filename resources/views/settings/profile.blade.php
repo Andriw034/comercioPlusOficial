@@ -12,7 +12,7 @@
     {{-- NAV / Encabezado mínimo (puedes quitarlo si ya tienes navbar global) --}}
     <header class="border-b border-white/10 bg-black/40 backdrop-blur-md">
         <div class="mx-auto max-w-7xl h-16 px-6 flex items-center justify-between">
-            <a href="{{ route('home') }}" class="font-semibold tracking-wide">
+            <a href="{{ route('welcome') }}" class="font-semibold tracking-wide">
                 Comercio<span class="text-orange-500">Plus</span>
             </a>
             <nav class="hidden md:flex items-center gap-6 text-sm">

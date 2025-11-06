@@ -10,102 +10,43 @@ class Product extends Model
 {
     use HasFactory;
 
-    // Ajusta si tienes otros campos; estos son los comunes en tu proyecto
     protected $fillable = [
-        'store_id',
-        'user_id',
-        'category_id',
         'name',
         'slug',
         'description',
         'price',
         'stock',
-        'status',       // tinyint 0/1
-        'image_path',   // ruta relativa en disco "public"
+        'image_path',   // 👈 solo esta (no dupliques)
+        'category_id',
+        'store_id',
+        'user_id',
+        'status',
+        'offer',
+        'average_rating',
     ];
 
-    protected $casts = [
-        'price' => 'float',
-        'stock' => 'int',
-        'status' => 'int',
-    ];
+    // Si quieres que aparezca en JSON automáticamente:
+    // protected $appends = ['image_url'];
 
-    // Para que se serialicen automáticamente
-    protected $appends = [
-        'image_url',
-        'price_formatted',
-    ];
-
-    /* ----------------- Accessors ----------------- */
-
-    /**
-     * URL pública normalizada de la imagen.
-     * Admite:
-     *  - http(s)://...
-     *  - /storage/...
-     *  - storage/...
-     *  - products/{store}/{file}
-     *  - null => imagen por defecto
-     */
-  public function getImageUrlAttribute(): string
-{
-    // Fallback si no hay imagen
-    if (!$this->image_path) {
-        // Asegúrate de tener este archivo en public/images/no-image.png
-        return asset('images/no-image.png') . '?v=' . ($this->updated_at?->timestamp ?? time());
-    }
-
-    $path = $this->image_path;
-
-    // Si ya es URL absoluta
-    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-        return $path . (str_contains($path, '?') ? '' : ('?v=' . ($this->updated_at?->timestamp ?? time())));
-    }
-
-    // Normaliza rutas que vienen como "/storage..." o "storage..."
-    if (str_starts_with($path, '/storage')) {
-        $url = url($path);
-    } elseif (str_starts_with($path, 'storage')) {
-        $url = url('/' . ltrim($path, '/'));
-    } else {
-        // Ej: "stores/{store_id}/products/{product_id}/main.jpg"
-        $url = \Storage::disk('public')->url($path);
-    }
-
-    return $url . (str_contains($url, '?') ? '' : ('?v=' . ($this->updated_at?->timestamp ?? time())));
-}
-
-    public function getPriceFormattedAttribute(): string
+    public function getImageUrlAttribute()
     {
-        return '$'.number_format((float) $this->price, 0, ',', '.');
-    }
+        // 1) URL externa completa
+        if (!empty($this->image_path) && preg_match('#^https?://#i', $this->image_path)) {
+            return $this->image_path;
+        }
 
-    /* ----------------- Scopes útiles ----------------- */
+        // 2) Ruta en el disco 'public', ej: "products/archivo.jpg"
+        if (!empty($this->image_path)) {
+            $path = preg_replace('#^public/#', '', $this->image_path);
+            return Storage::disk('public')->url($path);
+        }
 
-    public function scopeActive($q)
-    {
-        return $q->where('status', 1);
-    }
-
-    public function scopeFromVisibleStores($q)
-    {
-        return $q->whereHas('store', fn ($qq) => $qq->where('is_visible', true));
-    }
-
-    /* ----------------- Relaciones ----------------- */
-
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
+        // 3) Nada definido
+        return null;
     }
 
     public function category()
     {
-        return $this->belongsTo(Category::class);
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\Category::class);
     }
 }
