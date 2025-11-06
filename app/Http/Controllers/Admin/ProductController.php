@@ -3,181 +3,157 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Models\Product;
-use App\Models\Category;
+use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
-    /**
-     * Mostrar listado de productos del comerciante autenticado.
-     */
-    public function index(Request $request)
+    // GET /admin/products
+    public function index()
     {
-        $store = auth()->user()->stores()->firstOrFail();
-
-        $query = Product::with('category')
-            ->where('store_id', $store->id);
-
-        if ($search = $request->get('q')) {
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        if ($category = $request->get('category_id')) {
-            $query->where('category_id', $category);
-        }
-
-        $products = $query->latest('id')->paginate(12);
-
-        $categories = Category::where('store_id', $store->id)->orderBy('name')->get();
-
-        return view('admin.products.index', compact('products', 'categories', 'store'));
+        $products = Product::latest()->paginate(12);
+        return view('admin.products.index', compact('products'));
     }
 
-    /**
-     * Mostrar formulario de creación de producto.
-     */
+    // GET /admin/products/create
     public function create()
     {
-        $store = auth()->user()->stores()->firstOrFail();
-        $categories = Category::where('store_id', $store->id)->orderBy('name')->get();
+        $categories = Category::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.products.create', compact('store', 'categories'));
+        return view('admin.products.create', compact('categories'));
     }
 
-    /**
-     * Guardar nuevo producto en la base de datos.
-     */
+    // POST /admin/products
     public function store(Request $request)
     {
-        $store = auth()->user()->stores()->firstOrFail();
-
-        $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'description' => 'nullable|string|max:2000',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'category_id' => 'nullable|exists:categories,id',
-            'status'      => 'nullable|boolean',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        $data = $request->validate([
+            'name'        => ['required', 'string', 'max:255'],
+            'price'       => ['required', 'numeric', 'min:0'],
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'image'       => ['nullable', 'image', 'max:2048'],
+            'slug'        => ['nullable', 'string', 'max:255', 'unique:products,slug'],
+            'description' => ['nullable', 'string'],
+            'stock'       => ['nullable', 'integer', 'min:0'],
+            'store_id'    => ['nullable', 'integer'],
+            'user_id'     => ['nullable', 'integer'],
+            'status'      => ['nullable'],
+            'offer'       => ['nullable', 'numeric'],
+            'average_rating' => ['nullable', 'numeric'],
         ]);
 
-        $validated['store_id'] = $store->id;
-        $validated['user_id']  = auth()->id();
-        $validated['status']   = isset($validated['status']) ? 1 : 0;
-        $validated['slug']     = $this->generateUniqueSlug($validated['name'], $store->id);
-
-        // Guardar producto primero para tener el ID
-        $product = Product::create($validated);
-
-        // Subir imagen (si existe)
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')
-                ->store("stores/{$store->id}/products/{$product->id}", 'public');
-
-            $product->update(['image_path' => $path]);
+        $store = auth()->user()?->stores()->first();
+        if (!$store) {
+            abort(403, 'No se encontró una tienda asociada al usuario.');
         }
+        $storeId = $store->id;
 
-        return redirect()
-            ->route('admin.products.index')
-            ->with('success', '✅ Producto creado correctamente.');
-    }
-
-    /**
-     * Mostrar formulario de edición.
-     */
-    public function edit(Product $product)
-    {
-        $store = auth()->user()->stores()->firstOrFail();
-        abort_if($product->store_id !== $store->id, 403);
-
-        $categories = Category::where('store_id', $store->id)->orderBy('name')->get();
-
-        return view('admin.products.edit', compact('product', 'categories', 'store'));
-    }
-
-    /**
-     * Actualizar un producto existente.
-     */
-    public function update(Request $request, Product $product)
-    {
-        $store = auth()->user()->stores()->firstOrFail();
-        abort_if($product->store_id !== $store->id, 403);
-
-        $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'description' => 'nullable|string|max:2000',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'category_id' => 'nullable|exists:categories,id',
-            'status'      => 'nullable|boolean',
-            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-        ]);
-
-        if ($product->name !== $validated['name']) {
-            $validated['slug'] = $this->generateUniqueSlug($validated['name'], $store->id, $product->id);
+        $desiredSlug = $data['slug'] ?? null;
+        $baseSlug = Str::slug($desiredSlug ?: $data['name']);
+        if ($baseSlug === '') {
+            $baseSlug = Str::random(8);
         }
-
-        if ($request->hasFile('image')) {
-            // Eliminar imagen anterior si existe
-            if ($product->image_path) {
-                Storage::disk('public')->delete($product->image_path);
-            }
-
-            // Guardar nueva imagen
-            $path = $request->file('image')
-                ->store("stores/{$store->id}/products/{$product->id}", 'public');
-
-            $validated['image_path'] = $path;
-        }
-
-        $product->update($validated);
-
-        return redirect()
-            ->route('admin.products.index')
-            ->with('success', '✅ Producto actualizado correctamente.');
-    }
-
-    /**
-     * Eliminar un producto y su imagen asociada.
-     */
-    public function destroy(Product $product)
-    {
-        $store = auth()->user()->stores()->firstOrFail();
-        abort_if($product->store_id !== $store->id, 403);
-
-        if ($product->image_path) {
-            Storage::disk('public')->delete($product->image_path);
-        }
-
-        $product->delete();
-
-        return redirect()
-            ->route('admin.products.index')
-            ->with('success', '🗑️ Producto eliminado correctamente.');
-    }
-
-    /**
-     * Genera un slug único por tienda.
-     */
-    protected function generateUniqueSlug(string $name, int $storeId, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $i = 2;
-
+        $slug = $baseSlug;
+        $suffix = 1;
         while (
-            Product::where('store_id', $storeId)
-                ->where('slug', $slug)
-                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+            Product::where('slug', $slug)
+                ->where('store_id', $storeId)
                 ->exists()
         ) {
-            $slug = "{$base}-{$i}";
-            $i++;
+            $slug = $baseSlug.'-'.$suffix++;
+        }
+        $data['slug'] = $slug;
+        $data['store_id'] = $storeId;
+        $data['user_id'] = auth()->id();
+
+        $product = new Product($data);
+        $product->status = $request->boolean('status');
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public'); // "products/archivo.jpg"
+            $product->image_path = $path;
         }
 
-        return $slug;
+        $product->save();
+
+        return redirect()->route('admin.products.index')->with('status', 'Producto creado.');
+    }
+
+    // GET /admin/products/{product}/edit
+    public function edit(Product $product)
+    {
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.products.edit', compact('product', 'categories'));
+    }
+
+    // PUT/PATCH /admin/products/{product}
+    public function update(Request $request, Product $product)
+    {
+        $data = $request->validate([
+            'name'        => ['required', 'string', 'max:255'],
+            'price'       => ['required', 'numeric', 'min:0'],
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'image'       => ['nullable', 'image', 'max:2048'],
+            'slug'        => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product->id)],
+            'description' => ['nullable', 'string'],
+            'stock'       => ['nullable', 'integer', 'min:0'],
+            'store_id'    => ['nullable', 'integer'],
+            'user_id'     => ['nullable', 'integer'],
+            'status'      => ['nullable'],
+            'offer'       => ['nullable', 'numeric'],
+            'average_rating' => ['nullable', 'numeric'],
+        ]);
+
+        $storeId = $product->store_id;
+        $providedSlug = $data['slug'] ?? null;
+        $seedSlug = $providedSlug ?: ($request->filled('name') ? $request->input('name') : null);
+
+        if (!empty($seedSlug)) {
+            $baseSlug = Str::slug($seedSlug);
+            if ($baseSlug === '') {
+                $baseSlug = Str::random(8);
+            }
+            $slug = $baseSlug;
+            $suffix = 1;
+            while (
+                Product::where('slug', $slug)
+                    ->where('id', '!=', $product->id)
+                    ->when($storeId, fn($query) => $query->where('store_id', $storeId))
+                    ->exists()
+            ) {
+                $slug = $baseSlug.'-'.$suffix++;
+            }
+            $data['slug'] = $slug;
+        }
+
+        $product->fill($data);
+        $product->status = $request->boolean('status');
+
+        if ($request->hasFile('image')) {
+            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+            $path = $request->file('image')->store('products', 'public');
+            $product->image_path = $path;
+        }
+
+        $product->save();
+
+        return redirect()->route('admin.products.edit', $product)->with('status', 'Producto actualizado.');
+    }
+
+    // DELETE /admin/products/{product}
+    public function destroy(Product $product)
+    {
+        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+        $product->delete();
+
+        return redirect()->route('admin.products.index')->with('status', 'Producto eliminado.');
     }
 }

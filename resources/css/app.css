@@ -1,77 +1,40 @@
+﻿@import "./comercioplus.css";
+@import "./forms.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import "./forms.css";
+/* ***** Tokens ComercioPlus ***** */
+:root{ --cp-primary:#FF6000; --cp-primary-2:#FF8A3D; --cp-bg:#0f172a; --cp-panel:#111827; --cp-sidebar:#0b1423; }
 
-/* Tokens */
-:root{
-  --cp-primary:#FF6000;
-  --cp-primary-2:#FF8A3D;
-}
-
-/* Base */
 @layer base{
   html{height:100%}
-  /* Removido: body{@apply bg-neutral-950 text-white antialiased;} */
-  /* Ahora cada layout puede definir su propio fondo */
-  body{@apply text-white antialiased;}
+  body{ @apply antialiased; background:transparent; }
 }
 
-/* Utilidades opcionales */
+/* Focus ring visible y limpio */
+.cp-focus:focus { outline: 2px solid var(--cp-primary); outline-offset: 2px; }
+/* Boton primario base */
+.btn-cp { @apply inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-medium cp-focus; background: var(--cp-primary); color:#fff; }
+.btn-cp:hover { filter: brightness(0.95); }
+.btn-ghost { @apply inline-flex items-center gap-2 px-3 py-2 rounded-2xl font-medium text-slate-200 hover:bg-white/10 cp-focus transition; }
+
 @layer utilities{
-  .bg-cp-primary{background-color:var(--cp-primary)}
-  .bg-cp-primary-2{background-color:var(--cp-primary-2)}
-  .from-cp-primary{
-    --tw-gradient-from:var(--cp-primary) var(--tw-gradient-from-position);
-    --tw-gradient-to:rgb(255 96 0 / 0) var(--tw-gradient-to-position);
-    --tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)
+  .line-clamp-2{
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
   }
-  .to-cp-primary-2{--tw-gradient-to:var(--cp-primary-2) var(--tw-gradient-to-position)}
 }
 
-/* Keyframes del marquee (no poner dentro de @layer) */
-@keyframes cp-scroll-left{
-  0%{transform:translateX(0)}
-  100%{transform:translateX(-50%)}
+/* Focus naranja inputs (.form-light) */
+.form-light input, .form-light textarea, .form-light select{
+  background:#fff !important; color:#111827 !important; border:1px solid #d1d5db !important; caret-color:#111827 !important;
+}
+.form-light input::placeholder, .form-light textarea::placeholder{ color:#6b7280 !important; opacity:1 !important; }
+.form-light input:focus, .form-light textarea:focus, .form-light select:focus{
+  outline:none !important; border-color:#fb923c !important; box-shadow:0 0 0 3px rgba(251,146,60,.35) !important;
 }
 
-/* ====== FORMULARIOS LEGIBLES (ComercioPlus) ====== */
-.form-light input[type="text"],
-.form-light input[type="number"],
-.form-light input[type="email"],
-.form-light input[type="password"],
-.form-light input[type="file"],
-.form-light input[type="date"],
-.form-light textarea,
-.form-light select {
-  background-color: #ffffff !important;
-  color: #111827 !important;          /* texto oscuro */
-  border: 1px solid #d1d5db !important;
-  caret-color: #111827 !important;
-}
-
-.form-light input::placeholder,
-.form-light textarea::placeholder {
-  color: #6b7280 !important;          /* placeholder gris medio */
-  opacity: 1 !important;
-}
-
-.form-light input:focus,
-.form-light textarea:focus,
-.form-light select:focus {
-  outline: none !important;
-  border-color: #fb923c !important;   /* naranja ComercioPlus */
-  box-shadow: 0 0 0 3px rgba(251,146,60,.35) !important;
-}
-
-/* Chrome Autofill */
-.form-light input:-webkit-autofill,
-.form-light input:-webkit-autofill:hover,
-.form-light input:-webkit-autofill:focus,
-.form-light textarea:-webkit-autofill,
-.form-light select:-webkit-autofill {
-  -webkit-text-fill-color: #111827 !important;
-  caret-color: #111827 !important;
-  transition: background-color 5000s ease-in-out 0s;
-}

@@ -1,98 +1,83 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Productos')
-
 @section('content')
-<div class="mx-auto max-w-7xl p-6">
+<div class="min-h-[calc(100vh-120px)] w-full">
+  @if(session('status'))
+    <div class="mx-6 my-4 rounded-md border border-emerald-600/30 bg-emerald-500/20 px-4 py-3 text-emerald-100 lg:mx-8">
+      {{ session('status') }}
+    </div>
+  @endif
 
-    {{-- Header --}}
-    <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-semibold text-gray-100">Productos</h1>
-
-        <a href="{{ route('admin.products.create') }}"
-           class="rounded-lg bg-orange-600 px-4 py-2 text-white shadow hover:bg-orange-700 transition">
-            Nuevo producto
-        </a>
+  <div class="mx-6 lg:mx-8">
+    <div class="mb-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-extrabold text-white">Productos</h1>
+        <p class="text-sm text-slate-300">Gestiona tu catalogo de ComercioPlus</p>
+      </div>
+      <a href="{{ route('admin.products.create') }}"
+         class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-white"
+         style="background:#FF6000">
+        Nuevo producto
+      </a>
     </div>
 
-    {{-- Flash success --}}
-    @if (session('success'))
-        <div class="mb-6 rounded-lg border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-emerald-100">
-            {{ session('success') }}
-        </div>
-    @endif
+    @if($products->count())
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        @foreach($products as $product)
+          <article class="overflow-hidden rounded-xl border border-white/10 bg-[#111827] shadow-sm transition hover:shadow-md">
+            <div class="p-3">
+              <div class="mb-3">
+                <img
+                  src="{{ $product->image_url ?? asset('images/no-image.png') }}"
+                  alt="Imagen de {{ $product->name }}"
+                  class="aspect-[4/3] w-full rounded-lg object-cover"
+                  onerror="this.onerror=null;this.src='{{ asset('images/no-image.png') }}';"
+                >
+              </div>
 
-    {{-- Grid --}}
-    @if(($products->total() ?? $products->count()) === 0)
-        <div class="rounded-2xl border border-dashed border-gray-700 p-10 text-center text-gray-400">
-            No hay productos
-        </div>
-    @else
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            @foreach ($products as $product)
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden flex flex-col">
+              <div class="space-y-1">
+                <h2 class="font-semibold leading-tight text-white">{{ $product->name }}</h2>
+                <span class="text-xs uppercase text-slate-400">
+                  {{ optional($product->category)->name ?? 'Sin categoria' }}
+                </span>
+                <p class="text-sm font-semibold text-white/90">
+                  {{ $product->price_formatted ?? '$'.number_format((float) $product->price, 0, ',', '.') }}
+                </p>
+              </div>
 
-                    {{-- Imagen --}}
-                    <a href="{{ route('admin.products.edit', $product) }}" class="block">
-                        <div class="relative aspect-square w-full overflow-hidden">
-                            <img
-                                src="{{ $product->image_url }}"
-                                alt="Imagen de {{ $product->name }}"
-                                loading="lazy"
-                                class="w-full h-56 object-cover"
-                                onerror="this.onerror=null;this.src='{{ asset('images/no-image.png') }}';"
-                            >
-                            @if ((int) $product->status !== 1)
-                                <span class="absolute left-2 top-2 rounded-md bg-red-700 px-2 py-1 text-xs font-semibold text-white">
-                                    Inactivo
-                                </span>
-                            @endif
-                        </div>
-                    </a>
-
-                    {{-- Info --}}
-                    <div class="flex flex-1 flex-col p-4">
-                        <h3 class="line-clamp-2 text-base font-medium text-gray-900">{{ $product->name }}</h3>
-
-                        <p class="mt-1 text-xs uppercase tracking-wide text-gray-500">
-                            {{ optional($product->category)->name ?? 'Sin categoría' }}
-                        </p>
-
-                        <div class="mt-3 flex items-center justify-between">
-                            <p class="text-lg font-semibold text-orange-500">
-                                {{ $product->price_formatted ?? '$'.number_format((float)$product->price, 0, ',', '.') }}
-                            </p>
-                            <p class="text-sm text-gray-600">
-                                Stock: <span class="font-medium">{{ (int) $product->stock }}</span>
-                            </p>
-                        </div>
-
-                        {{-- Acciones --}}
-                        <div class="mt-4 flex items-center justify-between">
-                            <a href="{{ route('admin.products.edit', $product) }}"
-                               class="inline-flex items-center rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 transition">
-                                Editar
-                            </a>
-
-                            <form method="POST" action="{{ route('admin.products.destroy', $product) }}"
-                                  onsubmit="return confirm('¿Eliminar producto?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="inline-flex items-center rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 transition">
-                                    Eliminar
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+              <div class="mt-3 flex items-center justify-between">
+                <span class="text-xs text-slate-400">Stock: {{ $product->stock ?? 0 }}</span>
+                <div class="flex items-center gap-2">
+                  <a href="{{ route('admin.products.edit', $product) }}"
+                     class="rounded-md px-3 py-1 text-[13px] font-semibold text-white"
+                     style="background:#FF6000">
+                    Editar
+                  </a>
+                  <form method="POST" action="{{ route('admin.products.destroy', $product) }}"
+                        onsubmit="return confirm('Seguro que deseas eliminar este producto?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                            class="rounded-md px-3 py-1 text-[13px] font-semibold text-white"
+                            style="background:#FF6000">
+                      Eliminar
+                    </button>
+                  </form>
                 </div>
-            @endforeach
-        </div>
+              </div>
+            </div>
+          </article>
+        @endforeach
+      </div>
 
-        {{-- Paginación Tailwind --}}
-        <div class="mt-8">
-            {{ $products->onEachSide(1)->links('vendor.pagination.tailwind') }}
-        </div>
+      <div class="mt-8 text-white">
+        {{ $products->links() }}
+      </div>
+    @else
+      <div class="rounded-xl border border-white/10 bg-[#111827] p-8 text-center text-slate-200">
+        No hay productos todavia.
+      </div>
     @endif
+  </div>
 </div>
 @endsection
