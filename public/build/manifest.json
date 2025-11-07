@@ -1,22 +1,16 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BNZGkQW7.css",
+    "file": "assets/app-Dng1KrLV.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-CxRbvARB.js",
+    "file": "assets/app-QXD43gvJ.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-BNZGkQW7.css"
+      "assets/app-Dng1KrLV.css"
     ]
-  },
-  "resources/js/supabase-demo.js": {
-    "file": "assets/supabase-demo-C8I8q3EU.js",
-    "name": "supabase-demo",
-    "src": "resources/js/supabase-demo.js",
-    "isEntry": true
   }
 }

@@ -1,7 +1,7 @@
-input, select, textarea {
-  @apply bg-white text-gray-900 border border-gray-300 rounded-lg w-full p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-500;
+/* resources/css/forms.css */
+input, select, textarea, button {
+  font: inherit;
 }
-
-label {
-  @apply text-gray-800 font-medium;
+input::placeholder, textarea::placeholder {
+  opacity: .7;
 }

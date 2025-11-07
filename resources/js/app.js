@@ -1,6 +1,7 @@
 // resources/js/app.js
 import { createApp, defineComponent, computed, reactive } from 'vue'
 import '../css/app.css'
+import './welcome-demo-supabase.js'
 
 /* ========== 1) HERO mínimo (si existe #app, como en welcome.blade) ========== */
 const heroRoot = document.getElementById('app')
@@ -117,7 +118,6 @@ if (!wizardRoot) {
         error: '',
       })
 
-      // Cargar imagen (logo / fondo)
       const onPick = (e, key) => {
         const file = e.target.files?.[0]
         if (!file) return
@@ -133,7 +133,6 @@ if (!wizardRoot) {
           return
         }
         state.step = 'dashboard'
-        // scroll arriba
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
 
@@ -201,7 +200,6 @@ if (!wizardRoot) {
 
         <!-- ======= DASHBOARD ======= -->
         <div v-else class="mt-6">
-          <!-- Header con fondo + logo -->
           <div class="relative h-56 rounded-3xl overflow-hidden ring-1 ring-white/10">
             <div v-if="state.fondoUrl" class="absolute inset-0">
               <img :src="state.fondoUrl" class="h-full w-full object-cover" alt="cover" />
@@ -221,7 +219,6 @@ if (!wizardRoot) {
             </div>
           </div>
 
-          <!-- Productos (placeholder) -->
           <div class="mt-6">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-extrabold">Productos</h3>

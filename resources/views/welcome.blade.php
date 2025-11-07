@@ -1,106 +1,97 @@
-@extends('layouts.public')
+<!-- resources/views/welcome.blade.php -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ComercioPlus</title>
+  @vite(['resources/css/app.css','resources/js/app.js'])
+</head>
+<body class="welcome-page antialiased">
+  <div class="welcome-shell">
+    <header class="welcome-header">
+      <img src="{{ asset('assets/comercioplus-logo.png') }}" alt="ComercioPlus" class="welcome-logo" loading="lazy">
+      <nav class="welcome-nav">
+        <a href="#demo-preview" class="welcome-nav__link">Catálogo</a>
+        <a href="{{ route('login') }}" class="welcome-nav__link">Iniciar sesión</a>
+        <a href="{{ route('register') }}" class="welcome-nav__link welcome-nav__link--outline">Crear cuenta</a>
+      </nav>
+    </header>
 
-@section('title', 'ComercioPlus — Tu vitrina de repuestos y accesorios')
-
-@section('content')
-<section
-  class="relative min-h-[90vh] flex items-center justify-center text-white overflow-hidden isolate">
-  {{-- Fondo animado --}}
-  <div class="absolute inset-0 -z-10 animate-cpGradient bg-[radial-gradient(1200px_600px_at_10%_-20%,rgba(255,107,0,.18),transparent_60%),radial-gradient(1000px_500px_at_90%_10%,rgba(255,138,61,.14),transparent_55%),linear-gradient(120deg,#0d0d0d_0%,#1a1a1a_50%,#262626_100%)]"></div>
-
-  <div class="relative z-10 w-full max-w-7xl px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
-    {{-- Columna izquierda --}}
-    <div class="order-2 lg:order-1">
-      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
-        Tu vitrina de <span class="text-orange-500">repuestos y accesorios</span><br class="hidden sm:block"> en minutos
-      </h1>
-
-      <p class="mt-4 text-base sm:text-lg text-gray-300 max-w-xl">
-        Crea tu <span class="text-white font-semibold">tienda</span>, carga productos, organiza por categorías y comparte tu catálogo profesional.
-      </p>
-
-      <div class="mt-6 flex flex-wrap gap-3">
-        <a href="{{ route('register') }}"
-           class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-orange-500 text-white font-semibold shadow-md hover:bg-orange-600 active:bg-orange-700 transition">
-          Empezar gratis
-        </a>
-        <a href="{{ route('login') }}"
-           class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/25 text-gray-100 hover:bg-white/5 transition">
-          Iniciar sesión
-        </a>
-      </div>
-
-      <ul class="mt-6 space-y-1 text-sm text-gray-400">
-        <li>• Sube tu logo y portada</li>
-        <li>• Catálogo por categorías (Frenos, Iluminación, Transmisión...)</li>
-        <li>• Panel para crear y editar productos al instante</li>
-      </ul>
-    </div>
-
-    {{-- Columna derecha (preview) --}}
-    <div class="order-1 lg:order-2">
-      <div class="relative rounded-3xl bg-white/5 backdrop-blur border border-white/10 p-6 sm:p-8 shadow-[0_20px_70px_-30px_rgba(0,0,0,0.7)]">
-        <div class="flex items-center justify-between mb-4 sm:mb-6">
-          <h3 class="text-gray-100 font-semibold">Vista previa de tu catálogo</h3>
-          <span class="text-xs text-gray-400">demo</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 sm:gap-4">
-          @php
-            $cards = [
-              ['img'=>'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?w=640','t'=>'Cascos y protección'],
-              ['img'=>'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=640','t'=>'Llantas y rines'],
-              ['img'=>'https://images.unsplash.com/photo-1558981403-c5f9891fa1a6?w=640','t'=>'Transmisión y cadenas'],
-              ['img'=>'https://images.unsplash.com/photo-1610915526186-6aa5cb18228e?w=640','t'=>'Aceites y lubricantes'],
-            ];
-          @endphp
-          @foreach($cards as $c)
-          <div class="relative rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-inner">
-            <img src="{{ $c['img'] }}"
-                 alt="{{ $c['t'] }}"
-                 loading="lazy"
-                 class="object-cover w-full h-28 sm:h-32 opacity-95">
-            <p class="absolute inset-x-0 bottom-0 text-[13px] sm:text-sm font-semibold bg-black/55 text-white py-1.5 px-2">
-              {{ $c['t'] }}
+    <main class="welcome-main">
+      <section class="welcome-hero">
+        <div class="welcome-grid">
+          <div class="welcome-copy">
+            <p class="welcome-eyebrow">Catálogo inteligente para tiendas de repuestos</p>
+            <h1 class="welcome-title">
+              Tu vitrina de <span class="welcome-title__accent">repuestos y accesorios</span> en minutos
+            </h1>
+            <p class="welcome-lead">
+              Crea tu tienda, carga productos, organízalos por categorías y comparte tu catálogo profesional con tus clientes.
             </p>
+            <div class="welcome-cta">
+              <a href="{{ route('register') }}" class="btn-pill btn-pill--primary">Empezar gratis</a>
+              <a href="{{ route('login') }}" class="btn-pill btn-pill--dark" data-login-cta>Iniciar sesión</a>
+            </div>
+            <ul class="welcome-list">
+              <li>Catálogo limpio y veloz</li>
+              <li>Carga por categorías (llantas, frenos, cascos, etc.)</li>
+              <li>Comparte tu tienda en redes o WhatsApp</li>
+            </ul>
           </div>
-          @endforeach
+
+          <div id="demo-preview" class="cp-preview-panel">
+            <div class="cp-preview-head">
+              <div>
+                <p class="cp-preview-eyebrow">Vista previa de tu catálogo</p>
+              </div>
+              <span class="cp-preview-demo">demo</span>
+            </div>
+
+            <div class="cp-preview-search">
+              <label for="busqueda" class="sr-only">Buscar productos</label>
+              <input id="busqueda" type="search" placeholder="Buscar productos (ej. casco)"
+                     class="cp-preview-input" autocomplete="off" />
+              <button id="btnBuscar" type="button" class="btn-pill btn-pill--small btn-pill--search">Buscar</button>
+            </div>
+
+            <p id="error" class="cp-preview-error" role="status" aria-live="polite"></p>
+
+            <div id="lista" data-empty="No encontramos productos para esta búsqueda."
+                 class="cp-preview-grid"></div>
+
+            <div class="cp-preview-subhead">
+              <p>Mis favoritos</p>
+              <button id="btnClearFav" type="button" class="cp-preview-chip">Limpiar</button>
+            </div>
+
+            <div id="favoritos" data-empty="Agrega productos para mostrarlos aquí."
+                 class="cp-preview-grid cp-preview-grid--mini"></div>
+
+            <a href="{{ route('register') }}" class="btn-pill btn-pill--primary cp-preview-cta">
+              Crear mi tienda
+            </a>
+          </div>
         </div>
+      </section>
 
-        <div class="mt-5 sm:mt-6 text-center">
-          <a href="{{ route('store.create') }}"
-             class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-orange-500 text-white font-semibold hover:bg-orange-600 transition">
-            Crear mi tienda
-          </a>
+      <section class="welcome-section">
+        <div class="welcome-section__inner">
+          <h2 class="welcome-section__title">Categorías populares</h2>
+          <p class="welcome-section__copy">
+            Llantas y rines · Frenos y discos · Transmisión y cadenas · Aceites y lubricantes · Iluminación / eléctricos
+          </p>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+      </section>
+    </main>
 
-{{-- Features --}}
-<section class="bg-[#0f0f0f] text-gray-200 py-16 sm:py-20">
-  <div class="mx-auto max-w-6xl px-6 text-center mb-10">
-    <h2 class="text-2xl sm:text-3xl font-bold">¿Por qué usar ComercioPlus?</h2>
-    <p class="text-gray-400 mt-2">Herramientas integradas y diseño profesional para tu negocio.</p>
+    <footer class="welcome-footer">
+      &copy; {{ date('Y') }} ComercioPlus.
+    </footer>
   </div>
 
-  <div class="mx-auto max-w-6xl px-6 grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
-    <article class="rounded-2xl bg-[#161616] border border-white/10 p-6 sm:p-8 shadow-lg hover:shadow-orange-500/10 transition">
-      <img src="{{ asset('images/icons/cart.svg') }}" alt="" class="w-9 h-9 mb-4">
-      <h3 class="text-lg sm:text-xl font-semibold mb-2">Gestión de Productos</h3>
-      <p class="text-gray-400 text-sm">Administra catálogo con fotos, stock, precios y categorías.</p>
-    </article>
-    <article class="rounded-2xl bg-[#161616] border border-white/10 p-6 sm:p-8 shadow-lg hover:shadow-orange-500/10 transition">
-      <img src="{{ asset('images/icons/chart.svg') }}" alt="" class="w-9 h-9 mb-4">
-      <h3 class="text-lg sm:text-xl font-semibold mb-2">Estadísticas</h3>
-      <p class="text-gray-400 text-sm">Monitorea ventas, ingresos y productos más vendidos.</p>
-    </article>
-    <article class="rounded-2xl bg-[#161616] border border-white/10 p-6 sm:p-8 shadow-lg hover:shadow-orange-500/10 transition">
-      <img src="{{ asset('images/icons/paint.svg') }}" alt="" class="w-9 h-9 mb-4">
-      <h3 class="text-lg sm:text-xl font-semibold mb-2">Personalización</h3>
-      <p class="text-gray-400 text-sm">Configura marca, colores, portada y dominio de tu tienda.</p>
-    </article>
-  </div>
-</section>
-@endsection
+  <script>
+    document.documentElement.dataset.placeholder = @json(asset('assets/placeholders/product.png'));
+  </script>
+</body>
+</html>

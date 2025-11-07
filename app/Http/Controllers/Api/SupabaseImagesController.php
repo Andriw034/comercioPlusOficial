@@ -2,114 +2,195 @@
 
 namespace App\Http\Controllers\Api;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class SupabaseImagesController extends Controller
 {
     public function index(Request $request)
     {
-        try {
-            $data = $request->validate([
-                'q'     => ['nullable', 'string'],
-                'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        $limit = (int) $request->query('limit', 6);
+        $q     = trim((string) $request->query('q', ''));
+
+        $supabaseUrl = rtrim(env('SUPABASE_URL', ''), '/');
+        $anonKey     = env('SUPABASE_ANON_KEY', '');
+        $serviceKey  = env('SUPABASE_SERVICE_ROLE_KEY', '');
+        $table       = env('SUPABASE_TABLE', 'product');
+        $bucket      = env('SUPABASE_PUBLIC_BUCKET', 'moto_images');
+
+        if (!$supabaseUrl || (!$anonKey && !$serviceKey) || !$table) {
+            return response()->json([
+                'source' => 'local-fallback',
+                'data'   => $this->fallbackLocal($limit),
             ]);
+        }
 
-            $q = $data['q'] ?? '';          // permite vacío
-            $limit = $data['limit'] ?? 6;   // default 6
+        $bearerKey = $serviceKey ?: $anonKey; // usa service role si existe
 
-            $url   = env('SUPABASE_URL');
-            $key   = env('SUPABASE_ANON_KEY');
-            $table = env('SUPABASE_TABLE', 'images'); // Cambiado a 'images' basado en logs
+        try {
+            $select = 'id,name,image,image_path,public_url,price,price_cents,created_at';
+            $base   = "{$supabaseUrl}/rest/v1/{$table}?select={$select}";
 
-            if ($url && $key && $table) {
-                $params = [
-                    'select' => 'id,title,file_path,public_url,created_at',
-                    'limit'  => $limit,
-                ];
+            $filters = [];
+            if ($q !== '') {
+                $filters[] = 'name=ilike.*' . rawurlencode($q) . '*';
+            }
+            $filters[] = 'or=(image.not.is.null,image_path.not.is.null,public_url.not.is.null)';
 
-                if ($q !== '') {
-                    $params['title'] = "ilike.%{$q}%";
-                }
+            $query = $base
+                . (count($filters) ? ('&' . implode('&', $filters)) : '')
+                . "&order=created_at.desc&limit={$limit}";
 
-                $resp = Http::withHeaders([
-                    'apikey'        => $key,
-                    'Authorization' => "Bearer {$key}",
-                ])->get("{$url}/rest/v1/{$table}", $params);
+            $resp = Http::withHeaders([
+                'apikey'        => $bearerKey,
+                'Authorization' => 'Bearer ' . $bearerKey,
+            ])->get($query);
 
-                if ($resp->ok()) {
-                    $rows = $resp->json() ?: [];
-
-                    $data = collect($rows)->map(function ($row) use ($url) {
-                        $id        = $row['id']         ?? null;
-                        $title     = $row['title']      ?? 'Sin título';
-                        $filePath  = $row['file_path']  ?? '';
-                        $publicUrl = $row['public_url'] ?? '';
-                        $created   = $row['created_at'] ?? null;
-
-                        $finalUrl = null;
-
-                        if (is_string($filePath) && str_starts_with($filePath, 'http')) {
-                            $finalUrl = $filePath;
-                        } elseif (is_string($publicUrl) && str_starts_with($publicUrl, 'http')) {
-                            $finalUrl = $publicUrl;
-                        } elseif ($filePath) {
-                            $finalUrl = rtrim($url, '/') . '/storage/v1/object/public/' . ltrim($filePath, '/');
-                        }
-
-                        return [
-                            'id'         => $id,
-                            'title'      => $title,
-                            'url'        => $finalUrl,
-                            'created_at' => $created,
-                        ];
-                    })
-                    ->filter(fn ($r) => !empty($r['url']))
-                    ->values();
-
-                    return response()->json([
-                        'ok'   => true,
-                        'data' => $data,
-                    ]);
-                } else {
-                    Log::warning('Supabase API error, falling back to local products', [
-                        'status' => $resp->status(),
-                        'body' => $resp->body(),
-                    ]);
-                }
+            if (!$resp->ok()) {
+                return response()->json([
+                    'source' => 'local-fallback',
+                    'error'  => 'supabase_http_error',
+                    'data'   => $this->fallbackLocal($limit),
+                ]);
             }
 
-            $items = \App\Models\Product::query()
-                ->latest('id')
-                ->take($limit)
-                ->get()
-                ->map(function ($p) {
-                    return [
-                        'id'         => (string) $p->id,
-                        'title'      => $p->name,
-                        'url'        => $p->image_url ?: asset('images/placeholder.jpg'),
-                        'created_at' => optional($p->created_at)->toISOString(),
-                    ];
-                })
-                ->values();
+            $rows = $resp->json();
+            if (!is_array($rows)) {
+                return response()->json([
+                    'source' => 'local-fallback',
+                    'error'  => 'supabase_bad_json',
+                    'data'   => $this->fallbackLocal($limit),
+                ]);
+            }
+
+            $items = [];
+            foreach ($rows as $row) {
+                $norm = $this->normalizeSupabaseRow($row, $supabaseUrl, $bucket);
+                if ($norm) $items[] = $norm;
+            }
+
+            if (empty($items)) {
+                return response()->json([
+                    'source' => 'local-fallback',
+                    'error'  => 'supabase_empty_after_map',
+                    'data'   => $this->fallbackLocal($limit),
+                ]);
+            }
 
             return response()->json([
-                'ok'   => true,
-                'data' => $items,
+                'source' => 'supabase',
+                'data'   => $items,
             ]);
-
         } catch (\Throwable $e) {
-            Log::error('supabase-images error', [
-                'e' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
-                'ok' => false,
-                'error' => 'internal_error',
-                'message' => 'Revisa storage/logs/laravel.log',
-            ], 500);
+                'source' => 'local-fallback',
+                'error'  => 'exception:' . $e->getMessage(),
+                'data'   => $this->fallbackLocal($limit),
+            ]);
         }
+    }
+
+    protected function normalizeSupabaseRow(array $row, string $supabaseUrl, string $bucket): ?array
+    {
+        $id        = Arr::get($row, 'id');
+        $name      = Arr::get($row, 'name');
+        $image     = Arr::get($row, 'image');
+        $imagePath = Arr::get($row, 'image_path');
+        $publicUrl = Arr::get($row, 'public_url');
+        $createdAt = Arr::get($row, 'created_at');
+        $price     = $this->normalizePrice(Arr::get($row, 'price'));
+
+        if ($price === null) {
+            $priceCents = Arr::get($row, 'price_cents');
+            if ($priceCents !== null) {
+                $price = $this->normalizePrice(((float) $priceCents) / 100);
+            }
+        }
+
+        $finalUrl = null;
+
+        if ($this->isAbsoluteUrl($publicUrl)) {
+            $finalUrl = $publicUrl;
+        } elseif ($this->isAbsoluteUrl($image)) {
+            $finalUrl = $image;
+        }
+        if (!$finalUrl && $publicUrl) {
+            $finalUrl = $this->publicStorageUrl($supabaseUrl, $bucket, $publicUrl);
+        }
+        if (!$finalUrl && $imagePath) {
+            $finalUrl = $this->publicStorageUrl($supabaseUrl, $bucket, $imagePath);
+        }
+
+        if (!$finalUrl) return null;
+
+        return [
+            'id'         => $id,
+            'name'       => $name,
+            'image_url'  => $finalUrl,
+            'price'      => $price,
+            'created_at' => $createdAt,
+        ];
+    }
+
+    protected function isAbsoluteUrl(?string $val): bool
+    {
+        if (!$val) return false;
+        return Str::startsWith($val, ['http://', 'https://']);
+    }
+
+    protected function publicStorageUrl(string $supabaseUrl, string $bucket, string $path): string
+    {
+        $path = ltrim($path, '/');
+        return rtrim($supabaseUrl, '/') . '/storage/v1/object/public/' . $bucket . '/' . $path;
+    }
+
+    protected function fallbackLocal(int $limit): array
+    {
+        $rows = Product::query()
+            ->select(['id', 'name', 'image', 'image_url', 'price'])
+            ->limit($limit)
+            ->get();
+
+        $out = [];
+        foreach ($rows as $p) {
+            $candidatos = [
+                $p->image_url ?? null,
+                $p->image ?? null,
+            ];
+            $url = collect($candidatos)->first(fn ($u) => is_string($u) && Str::startsWith($u, ['http://', 'https://']));
+            if ($url) {
+                $out[] = [
+                    'id'        => $p->id,
+                    'name'      => $p->name,
+                    'image_url' => $url,
+                    'price'     => $this->normalizePrice($p->price),
+                ];
+            }
+        }
+        return $out;
+    }
+
+    protected function normalizePrice($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $normalized = str_replace(['$', ',', ' '], ['', '', ''], $value);
+        } else {
+            $normalized = $value;
+        }
+
+        if (!is_numeric($normalized)) {
+            return null;
+        }
+
+        $number = (float) $normalized;
+        return $number >= 0 ? $number : null;
     }
 }
