@@ -50,7 +50,7 @@
 
             <div class="cp-preview-search">
               <label for="busqueda" class="sr-only">Buscar productos</label>
-              <input id="busqueda" type="search" placeholder="Buscar productos (ej. casco)"
+              <input id="busqueda" type="search" placeholder="Buscar repuestos de moto"
                      class="cp-preview-input" autocomplete="off" />
               <button id="btnBuscar" type="button" class="btn-pill btn-pill--small btn-pill--search">Buscar</button>
             </div>
@@ -61,7 +61,7 @@
                  class="cp-preview-grid"></div>
 
             <div class="cp-preview-subhead">
-              <p>Mis favoritos</p>
+              <p>Mis motos favoritas</p>
               <button id="btnClearFav" type="button" class="cp-preview-chip">Limpiar</button>
             </div>
 

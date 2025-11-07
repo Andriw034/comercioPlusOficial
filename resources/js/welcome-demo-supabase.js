@@ -1,5 +1,12 @@
 // resources/js/welcome-demo-supabase.js
 document.addEventListener('DOMContentLoaded', () => {
+  const CLAVE_PEXELS = 'RcWPHKzcM1v3IlZ2NwHxDtO5kkym5qi59yiPrYRTHTEpmGLRjdkcjWYe'
+  const URL_FAVORITOS = 'https://68dff0d693207c4b47933ecb.mockapi.io/api/v1/favoritos'
+
+  let queryActual = 'motorcycle parts'
+  const urlFotos = (q = queryActual, limit = 3) =>
+    `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=${limit}`
+
   const dom = {
     lista: document.getElementById('lista'),
     favoritos: document.getElementById('favoritos'),
@@ -11,153 +18,208 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!dom.lista) return
 
-  const fallbackImage =
-    document.documentElement.dataset.placeholder ||
-    '/images/placeholder.jpg'
-
+  const placeholder =
+    document.documentElement.dataset.placeholder || '/images/placeholder.jpg'
   const state = {
-    favorites: [],
-    cache: new Map(),
+    catalogo: [],
+    favoritos: [],
   }
 
-  const currency = new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  })
+  const log = (...args) => console.log('[DEMO]', ...args)
+  const warn = (...args) => console.warn('[DEMO]', ...args)
+  const fail = (ctx, e) => console.error('[DEMO]', ctx, e)
 
-  const setError = (message = '') => {
-    if (!dom.error) return
-    dom.error.textContent = message
+  const setError = (msg = '') => {
+    if (dom.error) dom.error.textContent = msg
   }
 
-  const parsePrice = (value) => {
-    if (value === null || typeof value === 'undefined') return null
-    const number = Number(value)
-    if (!Number.isFinite(number)) return null
-    return number >= 0 ? number : null
-  }
-
-  const normalizeItems = (items) =>
-    items.map((item, index) => {
-      const safeId = item?.id ?? `demo-${Date.now()}-${index}`
-      return {
-        id: String(safeId),
-        name: item?.name ?? 'Producto demo',
-        image_url: item?.image_url ?? null,
-        price: parsePrice(item?.price ?? item?.price_cents ?? null),
-      }
-    })
-
-  const renderList = (items, target, { allowFavorite = true } = {}) => {
-    if (!target) return
-
+  const renderCatalogo = (items) => {
     if (!items.length) {
-      target.innerHTML = `<div class="cp-preview-empty">${target.dataset.empty || 'Sin datos disponibles'}</div>`
+      dom.lista.innerHTML = `<div class="cp-preview-empty">${dom.lista.dataset.empty || 'Sin resultados'}</div>`
       return
     }
 
-    target.innerHTML = items
-      .map((item) => createCard(item, { allowFavorite }))
+    dom.lista.innerHTML = items
+      .map(
+        (item) => `
+        <article class="cp-card cp-card-demo" data-id="${item.id}">
+          <img class="cp-card-demo__image"
+               src="${item.image_url}"
+               alt="${item.name}"
+               loading="lazy"
+               onerror="this.src='${placeholder}'">
+          <button class="cp-card__chip cp-card__chip--floating js-add-fav"
+                  type="button"
+                  data-url="${item.image_url}"
+                  title="Agregar a favoritos">👍</button>
+        </article>`
+      )
       .join('')
+
+    dom.lista.querySelectorAll('.js-add-fav').forEach((btn) => {
+      btn.addEventListener('click', () => guardarFavorito(btn.dataset.url))
+    })
   }
 
-  const createCard = (item, { allowFavorite }) => {
-    const priceLabel =
-      item.price != null ? currency.format(item.price) : 'Consultar'
-    const favButton = allowFavorite
-      ? `<button class="cp-card__chip js-add-fav" type="button" data-id="${item.id}" title="Agregar a favoritos">🔥</button>`
-      : ''
+  const renderFavoritos = (items) => {
+    if (!items.length) {
+      dom.favoritos.innerHTML = `<div class="cp-preview-empty">${dom.favoritos.dataset.empty || 'Sin favoritos'}</div>`
+      return
+    }
 
-    return `
-      <article class="cp-card" data-id="${item.id}">
-        <img class="cp-card__image"
-             src="${item.image_url || fallbackImage}"
-             alt="${item.name}"
-             loading="lazy"
-             onerror="this.src='${fallbackImage}'">
-        <div class="cp-card__title" title="${item.name}">${item.name}</div>
-        <div class="cp-card__actions">
-          <span class="cp-card__price">${priceLabel}</span>
-          ${favButton}
-        </div>
-      </article>
-    `
+    dom.favoritos.innerHTML = items
+      .map(
+        (fav) => `
+        <article class="cp-card cp-card-demo" data-id="${fav.id}">
+          <img class="cp-card-demo__image"
+               src="${fav.image_url || placeholder}"
+               alt="${fav.title || 'favorito'}"
+               loading="lazy"
+               onerror="this.src='${placeholder}'">
+          <button class="cp-card__chip cp-card__chip--floating cp-card__chip--remove js-remove-fav"
+                  type="button"
+                  data-id="${fav.id}"
+                  title="Quitar favorito">🗑️</button>
+        </article>`
+      )
+      .join('')
+
+    dom.favoritos.querySelectorAll('.js-remove-fav').forEach((btn) => {
+      btn.addEventListener('click', () => eliminarFavorito(btn.dataset.id))
+    })
   }
 
-  const updateCache = (items) => {
-    state.cache = new Map(items.map((item) => [item.id, item]))
-  }
+  const normalizarFotos = (photos = []) =>
+    photos.slice(0, 3).map((photo, index) => ({
+      id: photo.id || `pexels-${index}`,
+      name: photo.alt || `Repuesto ${index + 1}`,
+      image_url:
+        photo.src?.large ||
+        photo.src?.medium ||
+        photo.src?.original ||
+        placeholder,
+      price: 25000 * (index + 2),
+    }))
 
-  const renderFavorites = () => {
-    renderList(state.favorites, dom.favoritos, { allowFavorite: false })
-  }
-
-  const addFavorite = (item) => {
-    state.favorites = [
-      item,
-      ...state.favorites.filter((fav) => fav.id !== item.id),
-    ].slice(0, 4)
-    renderFavorites()
-  }
-
-  const fetchDemoData = async (query = '', limit = 6) => {
+  const cargarMotos = async () => {
+    log('GET Pexels →', urlFotos(queryActual))
     try {
-      setError('Cargando demo…')
-      const params = new URLSearchParams({ limit })
-      if (query) params.append('q', query)
-      const resp = await fetch(`/api/demo/supabase-images?${params.toString()}`)
-      const payload = await resp.json()
-      if (!resp.ok || payload.error) {
-        throw new Error(payload.error || 'demo_http_error')
+      setError('Cargando demo...')
+      const resp = await fetch(urlFotos(queryActual), {
+        headers: { Authorization: CLAVE_PEXELS },
+      })
+      const body = await resp.json().catch(() => ({}))
+
+      if (!resp.ok) {
+        setError(`Error ${resp.status}: ${body?.message || 'sin detalle'}`)
+        return
       }
+
+      const fotos = normalizarFotos(body.photos || [])
+      if (!fotos.length) {
+        setError('Sin resultados para esta búsqueda.')
+        dom.lista.innerHTML = ''
+        return
+      }
+
+      state.catalogo = fotos
+      renderCatalogo(fotos)
       setError('')
-      const items = Array.isArray(payload.data) ? payload.data : []
-      return normalizeItems(items)
-    } catch (error) {
-      console.error('Error welcome demo:', error)
-      setError('No pudimos cargar tu demo en este momento.')
-      return []
+    } catch (e) {
+      fail('cargarMotos', e)
+      setError('Error cargando imágenes: ' + e.message)
     }
   }
 
-  const hydrate = async (query = '') => {
-    const data = await fetchDemoData(query)
-    updateCache(data)
-    renderList(data, dom.lista)
-    if (!data.length) {
-      setError('No encontramos productos para esta búsqueda.')
-    } else {
-      setError('')
+  const listarFavoritos = async () => {
+    log('GET favoritos →', URL_FAVORITOS)
+    try {
+      const resp = await fetch(URL_FAVORITOS)
+      const data = await resp.json().catch(() => [])
+
+      if (!resp.ok) {
+        setError(`Error ${resp.status}: ${data?.message || ''}`)
+        return
+      }
+
+      state.favoritos = data || []
+      renderFavoritos(state.favoritos)
+    } catch (e) {
+      fail('listarFavoritos', e)
+      setError('Error cargando favoritos: ' + e.message)
     }
-    if (!state.favorites.length && data.length) {
-      state.favorites = data.slice(0, 3)
-      renderFavorites()
+  }
+
+  const guardarFavorito = async (imageUrl) => {
+    if (!imageUrl) return
+    log('POST favorito →', imageUrl)
+    try {
+      const resp = await fetch(URL_FAVORITOS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: imageUrl, title: queryActual }),
+      })
+      const data = await resp.json().catch(() => ({}))
+
+      if (resp.status !== 200 && resp.status !== 201) {
+        setError(`Error ${resp.status}: ${data?.message || ''}`)
+        return
+      }
+
+      await listarFavoritos()
+    } catch (e) {
+      fail('guardarFavorito', e)
+      setError('Error guardando favorito: ' + e.message)
+    }
+  }
+
+  const eliminarFavorito = async (id) => {
+    if (!id) return
+    log('DELETE favorito id=', id)
+    try {
+      const resp = await fetch(`${URL_FAVORITOS}/${id}`, { method: 'DELETE' })
+      const data = await resp.json().catch(() => ({}))
+
+      if (resp.status !== 200 && resp.status !== 204) {
+        setError(`Error ${resp.status}: ${data?.message || ''}`)
+        return
+      }
+
+      await listarFavoritos()
+    } catch (e) {
+      fail('eliminarFavorito', e)
+      setError('Error al eliminar: ' + e.message)
     }
   }
 
   dom.btnBuscar?.addEventListener('click', () => {
-    hydrate(dom.input?.value.trim() || '')
+    const q = dom.input?.value.trim()
+    queryActual = q || 'motorcycle parts'
+    cargarMotos()
   })
 
   dom.input?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault()
-      hydrate(dom.input.value.trim())
+      queryActual = dom.input.value.trim() || 'motorcycle parts'
+      cargarMotos()
     }
   })
 
-  dom.btnClearFav?.addEventListener('click', () => {
-    state.favorites = []
-    renderFavorites()
+  dom.btnClearFav?.addEventListener('click', async () => {
+    if (!state.favoritos.length) {
+      dom.favoritos.innerHTML = `<div class="cp-preview-empty">${dom.favoritos.dataset.empty || 'Sin favoritos'}</div>`
+      return
+    }
+    const snapshot = [...state.favoritos]
+    for (const fav of snapshot) {
+      await eliminarFavorito(fav.id)
+    }
   })
 
-  dom.lista.addEventListener('click', (event) => {
-    const button = event.target.closest('.js-add-fav')
-    if (!button) return
-    const candidate = state.cache.get(button.dataset.id)
-    if (candidate) addFavorite(candidate)
-  })
+  window.addEventListener('error', (e) => fail('window.error', e.error || e.message))
+  window.addEventListener('unhandledrejection', (e) => fail('unhandledrejection', e.reason))
 
-  hydrate()
+  listarFavoritos()
+  cargarMotos()
 })
