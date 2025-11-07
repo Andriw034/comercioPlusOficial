@@ -23,6 +23,7 @@ use App\Http\Controllers\StoreController;      // crear/guardar tienda (interno)
 use App\Http\Controllers\Admin\ProductController;   // gestión productos (interno)
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;  // gestión categorías (interno)
 use App\Http\Controllers\Admin\StatsPageController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\OrmController;
 
 // Settings
@@ -152,6 +153,7 @@ Route::middleware('auth')->group(function () {
         // SETTINGS (Pestañas del panel admin)
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('index'); // Pestañas: general, appearance, payments, shipping, taxes, notifications
+            Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
             Route::put('/general',      [App\Http\Controllers\Admin\SettingsController::class, 'updateGeneral'])->name('update.general');
             Route::put('/appearance',   [App\Http\Controllers\Admin\SettingsController::class, 'updateAppearance'])->name('update.appearance');
             Route::put('/payments',     [App\Http\Controllers\Admin\SettingsController::class, 'updatePayments'])->name('update.payments');
@@ -317,5 +319,3 @@ Route::view('/app/{any}', 'app')->where('any', '.*');
 |--------------------------------------------------------------------------
 */
 Route::fallback(fn() => response()->view('errors.404', [], 404));
-
-

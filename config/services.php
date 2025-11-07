@@ -49,5 +49,10 @@ return [
         'base_url' => 'https://api.pexels.com/v1/',
     ],
 
+    'posthog' => [
+        'host' => env('POSTHOG_HOST', 'https://app.posthog.com'),
+        'project_id' => env('POSTHOG_PROJECT_ID'),
+        'personal_api_key' => env('POSTHOG_PERSONAL_API_KEY'),
+    ],
 
 ];

@@ -2,6 +2,9 @@
 import { createApp, defineComponent, computed, reactive } from 'vue'
 import '../css/app.css'
 import './welcome-demo-supabase.js'
+import { usePostHog } from './composables/usePostHog'
+
+const { posthog } = usePostHog()
 
 /* ========== 1) HERO mínimo (si existe #app, como en welcome.blade) ========== */
 const heroRoot = document.getElementById('app')

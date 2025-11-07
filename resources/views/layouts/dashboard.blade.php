@@ -50,6 +50,14 @@
                     </svg>
                     <span>Configuracion</span>
                 </a>
+                <a href="{{ route('admin.settings.analytics') }}"
+                   class="ml-4 flex items-center gap-3 rounded-lg px-4 py-2 font-medium tracking-wide text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6000] {{ request()->routeIs('admin.settings.analytics') ? 'bg-white/10 text-white' : '' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+                    </svg>
+                    <span>Analítica</span>
+                </a>
 
                 @if(auth()->user()->store)
                     <a href="{{ route('storefront.public.home', auth()->user()->store->slug) }}" target="_blank"
