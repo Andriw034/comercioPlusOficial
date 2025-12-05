@@ -1,0 +1,127 @@
+
+> dev
+> vite --host 0.0.0.0 & php artisan serve
+
+sh: line 1: php: command not found
+
+  VITE v5.4.20  ready in 359 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.88.0.3:5173/
+
+  LARAVEL v11.0.0  plugin v1.3.0
+
+  ➜  APP_URL: http://localhost:8000
+12:12:06 AM [vite] page reload google-cloud-sdk/lib/googlecloudsdk/api_lib/meta/help_html_data/_title_.html
+12:12:06 AM [vite] page reload google-cloud-sdk/lib/googlecloudsdk/api_lib/meta/help_html_data/index.html
+12:12:07 AM [vite] page reload google-cloud-sdk/lib/googlecloudsdk/core/credentials/oauth2_landing.html
+12:12:07 AM [vite] page reload google-cloud-sdk/lib/googlecloudsdk/core/credentials/oauth2_landing_error.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/index.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/about.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/cache-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/contents.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/http-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/httplib2-example.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/index.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/module-httplib2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/node2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/ref.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/response-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/about.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/cache-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/contents.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/http-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/httplib2-example.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/index.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/module-httplib2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/node2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/ref.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/response-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/pyparsing/examples/0README.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/funcsigs/docs/_templates/page.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/genindex.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/index.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/libhttplib2.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/modindex.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/search.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/Big5/_chromium_Big5_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-JP/_mozilla_bug426271_text-euc-jp.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-JP/_mozilla_bug431054_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-JP/_mozilla_bug620106_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-KR/_chromium_windows-949_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-KR/_mozilla_bug9357_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/GB2312/_mozilla_bug171813_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/KOI8-R/_chromium_KOI8-R_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/SHIFT_JIS/_chromium_Shift-JIS_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/TIS-620/_mozilla_bug488426_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/ascii/_chromium_iso-8859-1_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/ascii/_mozilla_bug638318_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/iso-8859-5-cyrillic/_chromium_ISO-8859-5_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/iso-8859-6-arabic/_chromium_ISO-8859-6_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/iso-8859-7-greek/_chromium_ISO-8859-7_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/utf-8/_chromium_UTF-8_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/utf-8/_mozilla_bug306272_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/utf-8/_mozilla_bug426271_text-utf-8.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1251-cyrillic/_chromium_windows-1251_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1252/_mozilla_bug421271_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1254-turkish/_chromium_windows-1254_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1255-hebrew/_chromium_ISO-8859-8_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1255-hebrew/_chromium_windows-1255_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1256-arabic/_chromium_windows-1256_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/funcsigs/docs/_templates/page.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/requests/docs/_templates/hacks.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/requests/docs/_templates/sidebarintro.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/requests/docs/_templates/sidebarlogo.html
+12:12:16 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/gslib/vendored/boto/docs/source/_templates/page.html
+ge reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/httplib2-example.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/index.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/module-httplib2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/node2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/ref.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/httplib2/ref/response-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/pyparsing/examples/0README.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/about.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/cache-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/contents.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/http-objects.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/httplib2-example.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/index.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/module-httplib2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/node2.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/ref.html
+12:12:14 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/ref/response-objects.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/Big5/_chromium_Big5_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-JP/_mozilla_bug426271_text-euc-jp.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-JP/_mozilla_bug431054_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-JP/_mozilla_bug620106_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-KR/_chromium_windows-949_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/EUC-KR/_mozilla_bug9357_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/GB2312/_mozilla_bug171813_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/KOI8-R/_chromium_KOI8-R_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/SHIFT_JIS/_chromium_Shift-JIS_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/TIS-620/_mozilla_bug488426_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/ascii/_chromium_iso-8859-1_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/ascii/_mozilla_bug638318_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/iso-8859-5-cyrillic/_chromium_ISO-8859-5_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/iso-8859-6-arabic/_chromium_ISO-8859-6_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/iso-8859-7-greek/_chromium_ISO-8859-7_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/utf-8/_chromium_UTF-8_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/utf-8/_mozilla_bug306272_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/utf-8/_mozilla_bug426271_text-utf-8.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1251-cyrillic/_chromium_windows-1251_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1252/_mozilla_bug421271_text.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1254-turkish/_chromium_windows-1254_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1255-hebrew/_chromium_ISO-8859-8_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1255-hebrew/_chromium_windows-1255_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/chardet/tests/windows-1256-arabic/_chromium_windows-1256_with_no_encoding_specified.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/funcsigs/docs/_templates/page.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/requests/docs/_templates/hacks.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/requests/docs/_templates/sidebarintro.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil/third_party/requests/docs/_templates/sidebarlogo.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/funcsigs/docs/_templates/page.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/genindex.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/index.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/libhttplib2.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/modindex.html
+12:12:15 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/third_party/httplib2/doc/html/search.html
+12:12:16 AM [vite] page reload google-cloud-sdk/platform/gsutil_py2/gslib/vendored/boto/docs/source/_templates/page.html
