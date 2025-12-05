@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,15 +13,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // Solo ejecutar PermissionsSeeder si existe la tabla permissions
-            // if (Schema::hasTable('permissions')) {
-            //     PermissionsSeeder::class,
-            // }
+            PermissionsSeeder::class,
             CategorySeeder::class,
             StoreSeeder::class,
             ProductSeeder::class,
-            // RoleSeeder::class, // si existe, puedes mantenerlo; usamos firstOrCreate en PermissionsSeeder
-            // Otros seeders que ya tengas...
         ]);
 
         // Agregar creación de usuarios de prueba

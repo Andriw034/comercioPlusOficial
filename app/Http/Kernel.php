@@ -41,7 +41,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -65,7 +65,13 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
-        // >>> NUEVO: alias para exigir que el usuario tenga tienda
-        'has.store' => \App\Http\Middleware\EnsureUserHasStore::class,
+        // --- Middlewares de la aplicación ---
+        'has.store' => \App\Http\Middleware\HasStore::class, // Redirige al dashboard si NO tiene tienda
+        'redirect.if.has.store' => \App\Http\Middleware\RedirectIfHasStore::class, // Redirige a crear tienda si ya tiene
+
+        // --- Middlewares de Spatie para roles y permisos ---
+        'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+        'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+        'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
     ];
 }

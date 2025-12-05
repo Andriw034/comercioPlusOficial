@@ -1,90 +1,52 @@
-@extends('layouts.marketing')
+<x-guest-layout>
+    <form method="POST" action="{{ route('register') }}">
+        @csrf
 
-@section('title', 'Crear cuenta — ComercioPlus')
+        <!-- Name -->
+        <div>
+            <x-input-label for="name" :value="__('Name')" />
+            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
+            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+        </div>
 
-@section('content')
-<div class="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-md w-full space-y-8">
-    <div>
-      <h2 class="mt-6 text-center text-3xl font-bold text-orange-500">Crear cuenta ComercioPlus</h2>
-      <p class="mt-2 text-center text-sm text-gray-300">Regístrate para comenzar</p>
-    </div>
-    <form class="mt-8 space-y-6 bg-gray-800 rounded-lg p-6" method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
-      @csrf
+        <!-- Email Address -->
+        <div class="mt-4">
+            <x-input-label for="email" :value="__('Email')" />
+            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
+            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        </div>
 
-      <!-- Name -->
-      <div>
-        <label for="name" class="block text-sm font-medium text-gray-300">Nombre completo</label>
-        <input id="name" name="name" type="text" value="{{ old('name') }}" required
-               class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm">
-        @error('name')
-          <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-      </div>
+        <!-- Password -->
+        <div class="mt-4">
+            <x-input-label for="password" :value="__('Password')" />
 
-      <!-- Email -->
-      <div>
-        <label for="email" class="block text-sm font-medium text-gray-300">Correo electrónico</label>
-        <input id="email" name="email" type="email" value="{{ old('email') }}" required
-               class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm">
-        @error('email')
-          <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-      </div>
+            <x-text-input id="password" class="block mt-1 w-full"
+                            type="password"
+                            name="password"
+                            required autocomplete="new-password" />
 
-      <!-- Password -->
-      <div>
-        <label for="password" class="block text-sm font-medium text-gray-300">Contraseña</label>
-        <input id="password" name="password" type="password" required minlength="8"
-               class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm">
-        @error('password')
-          <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-      </div>
+            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        </div>
 
-      <!-- Password Confirmation -->
-      <div>
-        <label for="password_confirmation" class="block text-sm font-medium text-gray-300">Confirmar contraseña</label>
-        <input id="password_confirmation" name="password_confirmation" type="password" required
-               class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm">
-      </div>
+        <!-- Confirm Password -->
+        <div class="mt-4">
+            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
 
-      <!-- Role -->
-      <div>
-        <label for="role" class="block text-sm font-medium text-gray-300">Tipo de cuenta</label>
-        <select id="role" name="role" required
-                class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 sm:text-sm">
-          <option value="cliente" {{ old('role') == 'cliente' ? 'selected' : '' }}>Cliente comprador</option>
-          <option value="comerciante" {{ old('role') == 'comerciante' ? 'selected' : '' }}>Comerciante</option>
-        </select>
-        @error('role')
-          <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-      </div>
+            <x-text-input id="password_confirmation" class="block mt-1 w-full"
+                            type="password"
+                            name="password_confirmation" required autocomplete="new-password" />
 
-      <!-- Profile Photo -->
-      <div>
-        <label for="profile_photo" class="block text-sm font-medium text-gray-300">Foto de perfil (opcional)</label>
-        <input id="profile_photo" name="profile_photo" type="file" accept="image/*"
-               class="mt-1 block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100">
-        @error('profile_photo')
-          <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-      </div>
+            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+        </div>
 
-      <div>
-        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-          Crear cuenta
-        </button>
-      </div>
+        <div class="flex items-center justify-end mt-4">
+            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
+                {{ __('Already registered?') }}
+            </a>
 
-      <div class="text-center">
-        <p class="text-sm text-gray-300">
-          ¿Ya tienes cuenta?
-          <a href="{{ route('login') }}" class="font-medium text-orange-500 hover:text-orange-400 ml-1">Inicia sesión</a>
-        </p>
-      </div>
+            <x-primary-button class="ms-4">
+                {{ __('Register') }}
+            </x-primary-button>
+        </div>
     </form>
-  </div>
-</div>
-@endsection
+</x-guest-layout>

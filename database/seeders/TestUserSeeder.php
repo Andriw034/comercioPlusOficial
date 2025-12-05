@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class TestUserSeeder extends Seeder
 {
@@ -30,7 +31,6 @@ class TestUserSeeder extends Seeder
                 'name' => 'Test Store',
                 'slug' => 'test-store-' . uniqid(),
                 'description' => 'Test store description',
-                'estado' => 'activa',
                 'visits' => 0,
             ]
         );
@@ -38,6 +38,7 @@ class TestUserSeeder extends Seeder
         // Create a category for the store
         $category = \App\Models\Category::create([
             'name' => 'Test Category',
+            'slug' => Str::slug('Test Category'), // Generar slug a partir del nombre
             'description' => 'Test category description',
             'store_id' => $store->id,
         ]);

@@ -1,18 +1,21 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ComercioPlus</title>
-    @vite('resources/js/app.js')
-</head>
-<body class="antialiased">
-    <div id="app"></div>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    @if (session('store_branding'))
-      <script>
-        window.__STORE_BRANDING__ = @json(session('store_branding'));
-      </script>
-    @endif
-</body>
+        <title inertia>{{ config('app.name', 'ComercioPlus') }}</title>
+
+        <!-- Fonts -->
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
+
+        <!-- Scripts -->
+        @routes
+        @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
+        @inertiaHead
+    </head>
+    <body class="font-sans antialiased bg-cp-bg text-cp-text">
+        @inertia
+    </body>
 </html>

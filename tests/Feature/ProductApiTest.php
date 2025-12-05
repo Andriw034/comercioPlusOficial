@@ -7,6 +7,7 @@ use Tests\TestCase;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
+use App\Models\Category;
 use Laravel\Sanctum\Sanctum;
 
 class ProductApiTest extends TestCase
@@ -22,8 +23,9 @@ class ProductApiTest extends TestCase
     public function test_can_create_product()
     {
         $user = User::factory()->create();
+        $user->assignRole('comerciante');
         $store = Store::factory()->create(['user_id' => $user->id]);
-        $category = \App\Models\Category::factory()->create();
+        $category = Category::factory()->create();
 
         $payload = [
             'name' => 'Test Product',
@@ -52,7 +54,9 @@ class ProductApiTest extends TestCase
     public function test_can_update_product()
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create(['user_id' => $user->id]);
+        $user->assignRole('comerciante');
+        $store = Store::factory()->create(['user_id' => $user->id]);
+        $product = Product::factory()->create(['store_id' => $store->id]);
 
         $payload = [
             'name' => 'Updated Product',
@@ -68,7 +72,9 @@ class ProductApiTest extends TestCase
     public function test_can_delete_product()
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create(['user_id' => $user->id]);
+        $user->assignRole('comerciante');
+        $store = Store::factory()->create(['user_id' => $user->id]);
+        $product = Product::factory()->create(['store_id' => $store->id]);
 
         Sanctum::actingAs($user, ['*']);
         $response = $this->deleteJson("/api/products/{$product->id}");

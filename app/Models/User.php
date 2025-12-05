@@ -56,9 +56,9 @@ class User extends Authenticatable
         'role_id'
     ];
 
-    public function stores()
+    public function store()
     {
-        return $this->hasMany(Store::class);
+        return $this->hasOne(Store::class);
     }
     protected $allowSort = [
         'name',
@@ -212,7 +212,7 @@ class User extends Authenticatable
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginación
+                return $query->paginate($perPage);
             }
         }
 

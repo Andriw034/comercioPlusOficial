@@ -17,13 +17,13 @@ class StorefrontController extends Controller
     {
         $store = auth()->user()->store ?? null;
 
-        if (!$store || $store->estado !== 'activa') {
+        if (!$store) { 
             return redirect()->route('dashboard')->with('error', 'Tu tienda no está activa.');
         }
 
         $query = Product::where('store_id', $store->id)
             ->with(['category'])
-            ->published()
+            ->active() // Corrected from ->published()
             ->inStock();
 
         // Filtros
@@ -38,7 +38,7 @@ class StorefrontController extends Controller
         $products = $query->paginate(12);
 
         $categories = $store->categories()->whereHas('products', function($q) use ($store) {
-            $q->where('store_id', $store->id)->published()->inStock();
+            $q->where('store_id', $store->id)->active()->inStock(); // Corrected from ->published()
         })->get();
 
         return view('storefront.index', compact('store', 'products', 'categories'));
@@ -51,7 +51,7 @@ class StorefrontController extends Controller
     {
         $store = $product->store;
 
-        if (!$store || $store->estado !== 'activa' || !$product->isPublished() || $product->stock <= 0) {
+        if (!$store || !$product->isActive() || $product->stock <= 0) { // Corrected from ->isPublished()
             abort(404);
         }
 
@@ -68,17 +68,12 @@ class StorefrontController extends Controller
     {
         $store = Store::where('slug', $slug)->firstOrFail();
 
-        // Verificar que la tienda esté activa
-        if ($store->estado !== 'activa') {
-            abort(404);
-        }
-
         $q = trim((string)$request->get('q'));
         $catId = $request->integer('category_id');
 
         $products = Product::query()
-            ->forStore($store->id)
-            ->published()
+            ->where('store_id', $store->id)
+            ->active() // Corrected from ->published()
             ->inStock()
             ->when($q, fn($qb) => $qb->where('name', 'like', "%{$q}%"))
             ->when($catId, fn($qb) => $qb->where('category_id', $catId))
@@ -100,7 +95,7 @@ class StorefrontController extends Controller
 
         // Seguridad: el producto debe pertenecer a la tienda y estar visible
         abort_unless($product->store_id === $store->id, 404);
-        abort_if($store->estado !== 'activa' || !$product->isPublished() || $product->stock <= 0, 404);
+        abort_if(!$product->isActive() || $product->stock <= 0, 404); // Corrected from ->isPublished()
 
         // Incrementar visitas
         $product->increment('visits');

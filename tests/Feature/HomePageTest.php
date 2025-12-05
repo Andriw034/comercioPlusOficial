@@ -1,17 +1,18 @@
 <?php
 
+// Test that the home page renders the 'Welcome' Inertia component.
 test('muestra la Home con Inertia', function () {
-    $response = $this->get('/');
-    $response->assertStatus(200)
-             ->assertInertia(fn ($page) => $page->component('Home'));
+    $this->get('/')
+         ->assertStatus(200)
+         ->assertInertia(fn ($page) => $page->component('Welcome'));
 });
 
+// Test that the public products API endpoint is working.
 test('API de productos funciona', function () {
-    $response = $this->get('/api/products');
-    $response->assertStatus(200);
+    $this->get('/api/products')->assertStatus(200);
 });
 
+// Test that the public categories API endpoint is working.
 test('API de categorías funciona', function () {
-    $response = $this->get('/api/categories');
-    $response->assertStatus(200);
+    $this->get('/api/categories')->assertStatus(200);
 });

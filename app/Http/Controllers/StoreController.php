@@ -125,4 +125,19 @@ class StoreController extends Controller
             ->route('admin.store.appearance')
             ->with('status', 'Apariencia actualizada correctamente.');
     }
+
+    /**
+     * Eliminar la tienda del usuario (soft delete).
+     * Ruta esperada: route('admin.store.destroy') [DELETE]
+     */
+    public function destroy()
+    {
+        $user  = Auth::user();
+        $store = $user->stores()->firstOrFail();
+
+        // Soft delete de la tienda
+        $store->delete();
+
+        return redirect()->route('admin.dashboard')->with('success', 'Tu tienda ha sido eliminada.');
+    }
 }

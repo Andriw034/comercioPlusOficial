@@ -85,5 +85,28 @@
       </a>
     </div>
   </form>
+
+  {{-- Delete Store Section --}}
+  <div class="mt-8 rounded-2xl border border-red-500 bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold text-red-700">Eliminar tienda</h2>
+    <p class="mt-2 text-sm text-gray-600">
+      Esta acción es irreversible. Se eliminarán todos los datos de tu tienda, incluyendo productos, categorías y pedidos.
+    </p>
+    <form
+      action="{{ route('admin.store.destroy') }}"
+      method="POST"
+      class="mt-4"
+      onsubmit="return confirm('¿Estás seguro de que quieres eliminar tu tienda? Esta acción no se puede deshacer.');"
+    >
+      @csrf
+      @method('DELETE')
+      <button
+        type="submit"
+        class="rounded-xl bg-red-600 px-5 py-2.5 font-medium text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-white"
+      >
+        Eliminar mi tienda permanentemente
+      </button>
+    </form>
+  </div>
 </div>
 @endsection

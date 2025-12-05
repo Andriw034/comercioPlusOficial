@@ -216,6 +216,26 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')->with('success', 'Producto eliminado correctamente.');
     }
+    /**
+     * Activa o desactiva la promoción de un producto.
+     */
+    public function togglePromotion(Product $product)
+    {
+        $user = Auth::user();
+        $store = $this->getUserStore($user);
+
+        // Verificar que el producto pertenece a la tienda del usuario
+        if (!$store || $product->store_id !== $store->id) {
+            abort(403, 'No tienes permiso para modificar este producto.');
+        }
+
+        // Cambiar el estado de la promoción
+        $product->is_promo = !$product->is_promo;
+        $product->save();
+
+        return back()->with('success', 'El estado de la promoción ha sido actualizado.');
+    }
+
 
     /* -------------------------
        Helpers

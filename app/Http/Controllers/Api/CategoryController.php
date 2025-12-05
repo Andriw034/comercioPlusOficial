@@ -3,109 +3,96 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use App\Models\Category;
-use App\Models\Store;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    public function __construct()
+    // Public: List all categories
+    public function index()
     {
-        // Protección: requiere sesión / usuario autenticado
-        $this->middleware('auth');
+        return Category::all();
     }
 
-    /**
-     * Store a newly created category via AJAX/API.
-     *
-     * Endpoint expected: POST /api/categories
-     * Body: { name, short_description?, is_popular?, popularity? }
-     *
-     * Returns JSON only:
-     *  - 201 created on success: { message: "...", data: { ...category... } }
-     *  - 422 validation errors: standard Laravel validation JSON
-     *  - 403 if user has no store
-     */
+    // Public: Show a single category
+    public function show(Category $category)
+    {
+        return $category;
+    }
+
+    // Protected: Store a new category
     public function store(Request $request)
     {
         $user = Auth::user();
-
-        // Obtener la tienda del usuario (flexible)
-        $store = $this->getUserStore($user);
-
-        if (! $store) {
-            return response()->json([
-                'message' => 'Necesitas crear una tienda antes de agregar categorías.'
-            ], 403);
+        if (!$user->hasRole(['comerciante', 'admin'])) {
+            return response()->json(['message' => 'No tienes permisos para crear categorías.'], 403);
         }
 
-        // Validación
-        $payload = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'short_description' => ['nullable', 'string', 'max:255'],
-            'is_popular' => ['nullable', 'boolean'],
-            'popularity' => ['nullable', 'integer', 'min:0'],
+        $store = $user->store;
+        if (!$store) {
+            return response()->json(['message' => 'Necesitas una tienda para crear una categoría.'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
         ]);
 
-        // Normalizar valores
-        $payload['is_popular'] = (bool) ($payload['is_popular'] ?? false);
-        $payload['popularity'] = $payload['popularity'] ?? 0;
-
-        // Generar slug único dentro de la tienda
-        $base = Str::slug($payload['name']);
-        $slug = $base;
-        $i = 1;
-        while (Category::where('store_id', $store->id)->where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i;
-            $i++;
+        // Generate a unique slug for the category within the store
+        $baseSlug = Str::slug($validated['name']);
+        $slug = $baseSlug;
+        $counter = 1;
+        while ($store->categories()->where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter++;
         }
 
-        // Crear la categoría asociada a la tienda
-        $category = Category::create([
-            'name' => $payload['name'],
+        $category = $store->categories()->create([
+            'name' => $validated['name'],
             'slug' => $slug,
-            'short_description' => $payload['short_description'] ?? null,
-            'is_popular' => $payload['is_popular'],
-            'popularity' => $payload['popularity'],
-            'store_id' => $store->id,
+            'description' => $validated['description'] ?? null,
         ]);
 
-        // Respuesta JSON minimalista — ideal para AJAX: no redirecciones ni views
-        return response()->json([
-            'message' => 'Categoría creada correctamente.',
-            'data' => $category,
-        ], 201);
+        return response()->json($category, 201);
     }
 
-    /**
-     * Helper: obtener la tienda del usuario (works with store/storeS)
-     */
-    protected function getUserStore($user): ?Store
+    // Protected: Update a category
+    public function update(Request $request, Category $category)
     {
-        if (! $user) return null;
-
-        if (method_exists($user, 'store')) {
-            try {
-                $s = $user->store;
-                if ($s) return $s;
-            } catch (\Throwable $e) {}
+        $user = Auth::user();
+        if ($category->store->user_id !== $user->id) {
+            return response()->json(['message' => 'No autorizado para actualizar esta categoría.'], 403);
         }
 
-        if (method_exists($user, 'stores')) {
-            try {
-                $s = $user->stores()->first();
-                if ($s) return $s;
-            } catch (\Throwable $e) {}
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        if (isset($validated['name'])) {
+            $validated['slug'] = Str::slug($validated['name']);
         }
 
-        if (isset($user->store) && $user->store) return $user->store;
-        if (isset($user->stores) && $user->stores instanceof \Illuminate\Support\Collection) {
-            return $user->stores->first();
+        $category->update($validated);
+
+        return response()->json($category, 200);
+    }
+
+    // Protected: Delete a category
+    public function destroy(Category $category)
+    {
+        $user = Auth::user();
+        if ($category->store->user_id !== $user->id) {
+            return response()->json(['message' => 'No autorizado para eliminar esta categoría.'], 403);
         }
 
-        return null;
+        if ($category->products()->exists()) {
+            return response()->json(['message' => 'No se puede eliminar la categoría porque tiene productos asociados.'], 422);
+        }
+
+        $category->delete();
+
+        return response()->json(null, 204);
     }
 }
