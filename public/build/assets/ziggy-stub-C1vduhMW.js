@@ -1,0 +1,1 @@
+const s=window.Ziggy||{namedRoutes:{},baseUrl:""},g={install(r){r.config.globalProperties.$route=function(e,t={},n=!0){if(!e)return"";let o=Object.keys(t).length?`?${new URLSearchParams(t).toString()}`:"";return console.warn(`[ziggy-stub] Se usó route("${e}") — revisa cuando Ziggy esté presente.`),`${s.baseUrl||""}/${e}${o}`}}};export{s as Ziggy,g as ZiggyVue};
