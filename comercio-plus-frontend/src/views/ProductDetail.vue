@@ -113,13 +113,13 @@
             <div class="flex items-center space-x-4">
               <button
                 @click="addToCart"
-                class="flex-1 bg-orange-600 border border-transparent rounded-md py-3 px-8 flex items-center justify-center text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                class="btn-primary flex-1 py-3 px-8 flex items-center justify-center text-base"
               >
                 Agregar al carrito
               </button>
               <button
                 @click="toggleWishlist"
-                class="ml-4 p-3 border border-gray-300 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                class="btn-secondary ml-4 p-3 flex items-center justify-center text-gray-200"
               >
                 <svg class="w-6 h-6" :class="isInWishlist ? 'fill-current text-red-500' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -167,7 +167,7 @@
         <div class="mt-6">
           <router-link
             to="/products"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+            class="btn-primary inline-flex items-center text-sm"
           >
             Ver todos los productos
           </router-link>
