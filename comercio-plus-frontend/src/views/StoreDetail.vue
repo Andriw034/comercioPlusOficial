@@ -66,8 +66,8 @@
             <div v-for="product in storeProducts" :key="product.id" class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
               <div class="aspect-w-1 aspect-h-1 bg-gray-200">
                 <img
-                  v-if="product.image"
-                  :src="product.image"
+                  v-if="product.image_url || product.image"
+                  :src="product.image_url || product.image"
                   :alt="product.name"
                   class="w-full h-48 object-cover"
                 />
@@ -94,7 +94,7 @@
                     </div>
                   </div>
                   <router-link
-                    :to="`/product/${product.slug}`"
+                    :to="`/product/${product.id}`"
                     class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-orange-600 bg-orange-100 hover:bg-orange-200"
                   >
                     Ver detalle
@@ -156,15 +156,15 @@ export default {
         loading.value = true
         error.value = ''
 
-        const slug = route.params.slug
+        const storeId = route.params.id
 
         // Fetch store details
-        const storeResponse = await API.get(`/public-stores/${slug}`)
+        const storeResponse = await API.get(`/public-stores/${storeId}`)
         store.value = storeResponse.data
 
         // Fetch products for this store
         const productsResponse = await API.get('/products', {
-          params: { store_id: store.value.id }
+          params: { store_id: store.value.id, per_page: 20 }
         })
         storeProducts.value = productsResponse.data.data || []
 

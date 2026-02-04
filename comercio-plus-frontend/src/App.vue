@@ -1,20 +1,22 @@
 <template>
-  <div id="app">
-    <h1>ComercioPlus - Frontend independiente</h1>
-    <!-- quitar v-if -->
-    <router-view></router-view>
-
-    <!-- Si quieres un mensaje cuando no hay rutas registradas, hazlo en una ruta "fallback" -->
-  </div>
+  <component :is="layoutComponent">
+    <router-view />
+  </component>
 </template>
 
-<script>
-export default {
-  name: 'App'
-}
-</script>
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import PublicLayout from './layouts/PublicLayout.vue'
+import AuthLayout from './layouts/AuthLayout.vue'
+import DashboardLayout from './layouts/DashboardLayout.vue'
 
-<style>
-/* estilos básicos */
-#app { padding: 20px; font-family: Inter, system-ui, Arial; }
-</style>
+const route = useRoute()
+const layouts = {
+  public: PublicLayout,
+  auth: AuthLayout,
+  dashboard: DashboardLayout
+}
+
+const layoutComponent = computed(() => layouts[route.meta.layout] || PublicLayout)
+</script>

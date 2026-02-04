@@ -1,97 +1,71 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Iniciar sesión en ComercioPlus
-        </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          O
-          <router-link to="/register" class="font-medium text-orange-600 hover:text-orange-500">
-            crear una nueva cuenta
-          </router-link>
-        </p>
-      </div>
-      <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
-        <input type="hidden" name="remember" value="true" />
-        <div class="rounded-md shadow-sm -space-y-px">
-          <div>
-            <label for="email" class="sr-only">Correo electrónico</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autocomplete="email"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-              placeholder="Correo electrónico"
-              v-model="form.email"
-            />
-          </div>
-          <div>
-            <label for="password" class="sr-only">Contraseña</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-              placeholder="Contraseña"
-              v-model="form.password"
-            />
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-            />
-            <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-              Recordarme
-            </label>
-          </div>
-
-          <div class="text-sm">
-            <a href="#" class="font-medium text-orange-600 hover:text-orange-500">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
-        </div>
-
-        <div>
-          <button
-            type="submit"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-            :disabled="loading"
-          >
-            <span v-if="loading" class="absolute left-1/2 transform -translate-x-1/2">
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </span>
-            <span v-else>Iniciar sesión</span>
-          </button>
-        </div>
-      </form>
+  <div class="space-y-6">
+    <div class="space-y-1">
+      <p class="text-sm text-muted">Accede para comprar o gestionar tu tienda</p>
+      <h1 class="text-3xl font-semibold text-white">Iniciar sesión</h1>
     </div>
+
+    <form class="space-y-5" @submit.prevent="handleSubmit">
+      <div class="space-y-4">
+        <div class="space-y-1">
+          <label for="email" class="text-sm text-muted">Correo electrónico</label>
+          <input id="email" name="email" type="email" autocomplete="email" required class="input-dark"
+            placeholder="tu@correo.com" v-model="form.email" />
+        </div>
+        <div class="space-y-1">
+          <label for="password" class="text-sm text-muted">Contraseña</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required class="input-dark"
+            placeholder="********" v-model="form.password" />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between text-sm text-muted">
+        <label class="inline-flex items-center gap-2">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            class="h-4 w-4 rounded border-white/20 bg-white/5 text-brand-500 focus:ring-brand-500/60"
+            v-model="form.remember"
+          />
+          Recordarme
+        </label>
+        <a href="#" class="text-brand-200 hover:text-white">¿Olvidaste tu contraseña?</a>
+      </div>
+
+      <div v-if="error" class="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+        {{ error }}
+      </div>
+
+      <button type="submit" class="btn-primary w-full md:w-auto justify-center" :disabled="loading">
+        <span v-if="loading" class="flex items-center gap-2">
+          <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          Iniciando...
+        </span>
+        <span v-else>Entrar</span>
+      </button>
+
+      <p class="text-center text-sm text-muted">
+        ¿No tienes cuenta?
+        <router-link to="/register" class="text-brand-200 hover:text-white font-medium">Crear cuenta</router-link>
+      </p>
+    </form>
   </div>
 </template>
 
 <script>
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import API from '../services/api.js'
 
 export default {
   name: 'Login',
   setup() {
     const router = useRouter()
+    const route = useRoute()
     const loading = ref(false)
     const error = ref('')
     const form = reactive({
@@ -105,23 +79,20 @@ export default {
       error.value = ''
 
       try {
-        // Login con API de Laravel
-        const response = await API.post('/login', {
+        const { data } = await API.post('/login', {
           email: form.email,
           password: form.password,
           remember: form.remember
         })
 
-        if (response.data) {
-          // Guardar información del usuario
-          localStorage.setItem('user', JSON.stringify(response.data.user))
-
-          // Redirigir según el rol del usuario
-          if (response.data.user.role === 'comerciante') {
-            router.push('/dashboard')
-          } else {
-            router.push('/')
+        if (data) {
+          localStorage.setItem('user', JSON.stringify(data.user))
+          if (data.token) {
+            localStorage.setItem('token', data.token)
+            API.defaults.headers.common.Authorization = `Bearer ${data.token}`
           }
+          const redirect = route.query.redirect || '/dashboard'
+          router.push(redirect)
         }
       } catch (err) {
         console.error('Login error:', err)

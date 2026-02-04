@@ -1,45 +1,56 @@
 // src/services/api.js
 import axios from 'axios';
 
-// Configurar axios global para Sanctum
-axios.defaults.baseURL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/$/, '');
+const SANCTUM_URL = API_BASE_URL.replace(/\/api$/, '');
+
+axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 axios.defaults.headers.common['Accept'] = 'application/json';
-axios.defaults.withCredentials = true; // Necesario para Sanctum
+axios.defaults.withCredentials = true;
 
 const API = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: API_BASE_URL,
   headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
   },
-  withCredentials: true
+  withCredentials: true,
 });
 
-// Interceptor para obtener CSRF cookie automáticamente
-API.interceptors.request.use(async config => {
-  // Obtener CSRF cookie antes de cada petición POST/PUT/PATCH/DELETE
-  if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
-    try {
-      await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', { withCredentials: true });
-    } catch (error) {
-      console.warn('No se pudo obtener CSRF cookie:', error);
-    }
-  }
-  return config;
-}, error => Promise.reject(error));
+let csrfFetched = false;
 
-// Interceptor para manejar errores de respuesta
+API.interceptors.request.use(
+  async (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    const method = (config.method || '').toLowerCase();
+    if (!csrfFetched && ['post', 'put', 'patch', 'delete'].includes(method)) {
+      try {
+        await axios.get(`${SANCTUM_URL}/sanctum/csrf-cookie`, { withCredentials: true });
+        csrfFetched = true;
+      } catch (error) {
+        console.warn('No se pudo obtener CSRF cookie:', error);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
 API.interceptors.response.use(
-  response => response,
-  error => {
+  (response) => response,
+  (error) => {
     if (error.response?.status === 401) {
-      // Token expirado o no autorizado
       localStorage.removeItem('user');
+      localStorage.removeItem('token');
       window.location.href = '/login';
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default API;

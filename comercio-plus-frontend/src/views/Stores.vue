@@ -41,8 +41,8 @@
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="store in stores" :key="store.id" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-300">
-          <div class="p-6">
+        <div v-for="store in stores" :key="store.id" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-300 flex">
+          <div class="p-6 flex flex-col h-full w-full">
             <div class="flex items-center">
               <div class="flex-shrink-0">
                 <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -78,9 +78,9 @@
               </div>
             </div>
 
-            <div class="mt-6">
+            <div class="mt-auto pt-4">
               <router-link
-                :to="`/store/${store.slug}`"
+                :to="`/store/${store.id}`"
                 class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
               >
                 Ver tienda

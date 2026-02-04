@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 text-gray-900">
     <!-- Header -->
     <div class="bg-white shadow">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -25,7 +25,7 @@
                 @input="debouncedSearch"
                 type="text"
                 placeholder="Buscar productos..."
-                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
               />
             </div>
           </div>
@@ -35,7 +35,7 @@
             <select
               v-model="selectedCategory"
               @change="fetchProducts(1)"
-              class="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              class="select-light block w-full py-2 px-3 border border-gray-300 bg-white text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
             >
               <option value="">Todas las categorías</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">
@@ -49,12 +49,11 @@
             <select
               v-model="sortBy"
               @change="fetchProducts(1)"
-              class="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              class="select-light block w-full py-2 px-3 border border-gray-300 bg-white text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
             >
-              <option value="name">Ordenar por nombre</option>
+              <option value="recent">Más recientes</option>
               <option value="price_asc">Precio: menor a mayor</option>
               <option value="price_desc">Precio: mayor a menor</option>
-              <option value="created_at">Más recientes</option>
             </select>
           </div>
         </div>
@@ -202,20 +201,21 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
-import API from '../services/api'
-import { debounce } from 'lodash'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
+import API from '../services/api.js'
 
 export default {
   name: 'Products',
   setup() {
+    const route = useRoute()
     const products = ref([])
     const categories = ref([])
     const loading = ref(true)
     const error = ref('')
     const searchQuery = ref('')
     const selectedCategory = ref('')
-    const sortBy = ref('name')
+    const sortBy = ref('recent')
     const pagination = ref({
       current_page: 1,
       last_page: 1,
@@ -260,8 +260,8 @@ export default {
           page,
           per_page: 12,
           search: searchQuery.value,
-          category_id: selectedCategory.value,
-          sort_by: sortBy.value
+          category: selectedCategory.value || undefined,
+          sort: sortBy.value === 'recent' ? undefined : sortBy.value
         }
 
         const response = await API.get('/products', { params })
@@ -289,9 +289,11 @@ export default {
       }
     }
 
-    const debouncedSearch = debounce(() => {
-      fetchProducts(1)
-    }, 500)
+    let searchTimeout = null
+    const debouncedSearch = () => {
+      clearTimeout(searchTimeout)
+      searchTimeout = setTimeout(() => fetchProducts(1), 450)
+    }
 
     const goToPage = (page) => {
       if (page >= 1 && page <= pagination.value.last_page) {
@@ -307,8 +309,13 @@ export default {
     }
 
     onMounted(() => {
+      selectedCategory.value = route.query.category || route.query.category_id || ''
       fetchCategories()
       fetchProducts()
+    })
+
+    onBeforeUnmount(() => {
+      clearTimeout(searchTimeout)
     })
 
     return {
@@ -329,5 +336,3 @@ export default {
   }
 }
 </script>
-
-

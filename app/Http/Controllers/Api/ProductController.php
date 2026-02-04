@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -15,7 +16,11 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = (int) $request->get('per_page', 12);
+        $perPage = ($perPage > 0 && $perPage <= 50) ? $perPage : 12;
+
         $query = Product::query()
+            ->included() // permite ?included=store,category
             ->with(['category', 'store']);
 
         // 🔍 Búsqueda por nombre
@@ -23,25 +28,35 @@ class ProductController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // 📂 Filtro por categoría
-        if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+        // 📂 Filtro por categoría (acepta category o category_id)
+        if ($request->filled('category') || $request->filled('category_id')) {
+            $query->where('category_id', $request->get('category', $request->get('category_id')));
+        }
+
+        // 🏪 Filtro por tienda
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // 🎯 Estado / visibilidad
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
         // ⭐ Ordenamiento seguro
-        if ($request->filled('sort')) {
-            match ($request->sort) {
-                'price_asc'  => $query->orderBy('price', 'asc'),
-                'price_desc' => $query->orderBy('price', 'desc'),
-                default      => $query->latest(),
-            };
-        } else {
-            $query->latest();
-        }
+        $sort = $request->get('sort', 'recent');
+        match ($sort) {
+            'price_asc'  => $query->orderBy('price', 'asc'),
+            'price_desc' => $query->orderBy('price', 'desc'),
+            default      => $query->latest(),
+        };
 
-        return response()->json(
-            $query->paginate(12)
-        );
+        $paginated = $query->paginate($perPage);
+        $paginated->getCollection()->transform(function ($item) {
+            return $this->withImageUrl($item);
+        });
+
+        return response()->json($paginated);
     }
 
     /**
@@ -56,6 +71,8 @@ class ProductController extends Controller
             'stock'       => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
+            'status'      => 'nullable|in:draft,active',
+            'image'       => 'nullable|image|max:2048',
         ]);
 
         // 🔐 Obtener tienda del usuario autenticado
@@ -82,11 +99,17 @@ class ProductController extends Controller
             $data['slug'] = $slug;
         }
 
+        // Cargar imagen si se envía
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products/' . $store->id, 'public');
+            $data['image_path'] = $path;
+        }
+
         $product = Product::create($data);
 
         return response()->json([
             'status' => 'created',
-            'data'   => $product->load('category', 'store'),
+            'data'   => $this->withImageUrl($product->load('category', 'store')),
         ], 201);
     }
 
@@ -97,7 +120,7 @@ class ProductController extends Controller
     {
         return response()->json([
             'status' => 'ok',
-            'data'   => $product->load('category', 'store'),
+            'data'   => $this->withImageUrl($product->load('category', 'store')),
         ]);
     }
 
@@ -118,6 +141,8 @@ class ProductController extends Controller
             'stock'       => 'sometimes|required|integer|min:0',
             'category_id' => 'sometimes|required|exists:categories,id',
             'description' => 'sometimes|nullable|string',
+            'status'      => 'sometimes|in:draft,active',
+            'image'       => 'sometimes|nullable|image|max:2048',
         ]);
 
         if (array_key_exists('description', $data) && $data['description'] === null) {
@@ -141,11 +166,19 @@ class ProductController extends Controller
             $data['slug'] = $slug;
         }
 
+        // Reemplazar imagen si viene
+        if ($request->hasFile('image')) {
+            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+            $data['image_path'] = $request->file('image')->store('products/' . $product->store_id, 'public');
+        }
+
         $product->update($data);
 
         return response()->json([
             'status' => 'updated',
-            'data'   => $product->load('category', 'store'),
+            'data'   => $this->withImageUrl($product->load('category', 'store')),
         ]);
     }
 
@@ -159,11 +192,23 @@ class ProductController extends Controller
             abort(403, 'No autorizado');
         }
 
+        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
         $product->delete();
 
         return response()->json([
             'status'  => 'deleted',
             'message' => 'Producto eliminado correctamente',
         ]);
+    }
+
+    private function withImageUrl(Product $product): Product
+    {
+        if ($product->image_path) {
+            $product->image_url = Storage::disk('public')->url($product->image_path);
+        }
+        return $product;
     }
 }

@@ -1,12 +1,13 @@
 <template>
-  <div class="min-h-screen p-8">
-    <h1 class="text-3xl font-bold">Crear mi tienda</h1>
-    <p>Página de creación de tienda (vacía por ahora)</p>
+  <div class="min-h-screen p-8 text-white">
+    <p>Redirigiendo al gestor de tienda...</p>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'CreateStore'
-}
+<script setup>
+import { useRouter } from 'vue-router'
+import { onMounted } from 'vue'
+
+const router = useRouter()
+onMounted(() => router.replace({ name: 'dashboard-store' }))
 </script>

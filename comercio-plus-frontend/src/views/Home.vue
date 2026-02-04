@@ -210,7 +210,7 @@ onMounted(async () => {
     // Cargar categorías y productos destacados en paralelo
     const [categoriesResponse, productsResponse] = await Promise.all([
       API.get('/categories'),
-      API.get('/products?per_page=8&sort=rating') // Productos destacados
+      API.get('/products', { params: { per_page: 8, sort: 'recent' } })
     ])
 
     categories.value = categoriesResponse.data || []
@@ -223,5 +223,4 @@ onMounted(async () => {
   }
 })
 </script>
-
 

@@ -10,7 +10,7 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'price', 'category_id', 'store_id', 'stock', 'status', 'slug', 'is_promo', 'promo_price'];
+    protected $fillable = ['name', 'description', 'price', 'category_id', 'store_id', 'stock', 'status', 'slug', 'is_promo', 'promo_price', 'image_path'];
 
     protected $allowIncluded = ['store', 'category', 'ratings'];
 

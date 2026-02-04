@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class StoreController extends Controller
 {
@@ -16,7 +17,7 @@ class StoreController extends Controller
     */
     public function index(Request $request)
     {
-        $stores = Store::where('user_id', $request->user()->id)->get();
+        $stores = Store::where('user_id', $request->user()->id)->get()->map(fn ($store) => $this->withMediaUrls($store));
 
         return response()->json($stores);
     }
@@ -28,7 +29,7 @@ class StoreController extends Controller
     */
     public function publicStores()
     {
-        $stores = Store::where('is_visible', true)->get();
+        $stores = Store::where('is_visible', true)->get()->map(fn ($store) => $this->withMediaUrls($store));
 
         return response()->json($stores);
     }
@@ -44,6 +45,9 @@ class StoreController extends Controller
             'name'        => 'required|string|max:255',
             'slug'        => 'nullable|string|max:255|unique:stores,slug',
             'description' => 'nullable|string',
+            'is_visible'  => 'nullable|boolean',
+            'logo'        => 'nullable|image|max:2048',
+            'cover'       => 'nullable|image|max:4096',
         ]);
 
         $data['slug'] = isset($data['slug'])
@@ -55,7 +59,10 @@ class StoreController extends Controller
             'name'        => $data['name'],
             'slug'        => $data['slug'],
             'description' => $data['description'] ?? null,
+            'is_visible'  => $data['is_visible'] ?? true,
         ]);
+
+        $this->handleMedia($request, $store);
 
         return response()->json($store, 201);
     }
@@ -71,7 +78,7 @@ class StoreController extends Controller
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
-        return response()->json($store);
+        return response()->json($this->withMediaUrls($store));
     }
 
     /*
@@ -101,8 +108,9 @@ class StoreController extends Controller
         }
 
         $store->update($data);
+        $this->handleMedia($request, $store);
 
-        return response()->json($store);
+        return response()->json($this->withMediaUrls($store));
     }
 
     /*
@@ -125,5 +133,42 @@ class StoreController extends Controller
         $store->delete();
 
         return response()->json(null, 204);
+    }
+
+    private function handleMedia(Request $request, Store $store): void
+    {
+        // Logo
+        if ($request->hasFile('logo')) {
+            if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
+                Storage::disk('public')->delete($store->logo_path);
+            }
+            $path = $request->file('logo')->store('stores/' . $store->id . '/logo', 'public');
+            $store->logo_path = $path;
+        }
+
+        // Cover
+        if ($request->hasFile('cover')) {
+            if ($store->cover_path && Storage::disk('public')->exists($store->cover_path)) {
+                Storage::disk('public')->delete($store->cover_path);
+            }
+            $path = $request->file('cover')->store('stores/' . $store->id . '/cover', 'public');
+            $store->cover_path = $path;
+        }
+
+        $store->save();
+
+        // Adjuntar URLs virtuales para el response
+        $this->withMediaUrls($store);
+    }
+
+    private function withMediaUrls(Store $store): Store
+    {
+        if ($store->logo_path) {
+            $store->logo_url = Storage::disk('public')->url($store->logo_path);
+        }
+        if ($store->cover_path) {
+            $store->cover_url = Storage::disk('public')->url($store->cover_path);
+        }
+        return $store;
     }
 }

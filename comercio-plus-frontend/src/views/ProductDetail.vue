@@ -199,7 +199,7 @@ const loadProduct = async () => {
 
     const productId = route.params.id
     const response = await API.get(`/products/${productId}`)
-    product.value = response.data
+    product.value = response.data?.data || response.data
   } catch (err) {
     console.error('Error loading product:', err)
     error.value = err.response?.data?.message || 'Error al cargar el producto. Inténtalo de nuevo.'
