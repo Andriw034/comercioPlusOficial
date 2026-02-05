@@ -47,7 +47,7 @@ export default function Products() {
     }
 
     return rangeWithDots.filter(
-      (item, index, self) => item !== '...' || self.indexOf(item) === self.lastIndexOf(item),
+      (item, _index, self) => item !== '...' || self.indexOf(item) === self.lastIndexOf(item),
     )
   }, [pagination.current_page, pagination.last_page])
 

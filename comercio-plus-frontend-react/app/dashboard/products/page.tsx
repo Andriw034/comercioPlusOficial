@@ -137,7 +137,7 @@ export default function ManageProducts() {
     try {
       const payload = new FormData()
       Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== '') payload.append(key, value)
+        if (value !== null && value !== '') payload.append(key, String(value))
       })
       if (imageFile) payload.append('image', imageFile)
 
