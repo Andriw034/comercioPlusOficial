@@ -24,7 +24,7 @@ return new class extends Migration
             $table->boolean('is_visible')->default(1);
             $table->timestamps();
 
-            // Relación con usuarios
+            // RelaciÃ³n con usuarios
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }

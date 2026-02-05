@@ -10,23 +10,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // Añadir store_id si no existe
+            // AÃ±adir store_id si no existe
             if (! Schema::hasColumn('products', 'store_id')) {
                 // Nullable para no romper creaciones previas; null = producto sin tienda (si las hay)
                 $table->foreignId('store_id')->nullable()->after('user_id')
                       ->constrained('stores')->nullOnDelete();
             }
 
-            // Si no existe índice sobre store_id, crearlo
+            // Si no existe Ã­ndice sobre store_id, crearlo
             if (! Schema::hasColumn('products', 'store_id')) {
-                // la condición anterior ya añadió la columna; aquí por seguridad intentamos index
+                // la condiciÃ³n anterior ya aÃ±adiÃ³ la columna; aquÃ­ por seguridad intentamos index
                 try {
                     $table->index('store_id', 'products_store_id_index');
                 } catch (\Throwable $e) {
-                    // ignorar si el índice ya existe o DB no lo soporta de la misma forma
+                    // ignorar si el Ã­ndice ya existe o DB no lo soporta de la misma forma
                 }
             } else {
-                // Si la columna ya existía (raro), aseguramos el índice por nombre si no existe
+                // Si la columna ya existÃ­a (raro), aseguramos el Ã­ndice por nombre si no existe
                 try {
                     $sm = Schema::getConnection()->getDoctrineSchemaManager();
                     $indexes = array_map(fn($i) => $i->getName(), $sm->listTableIndexes('products'));
@@ -50,7 +50,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // Eliminar índice si existe
+            // Eliminar Ã­ndice si existe
             try {
                 $table->dropIndex('products_store_id_index');
             } catch (\Throwable $e) {

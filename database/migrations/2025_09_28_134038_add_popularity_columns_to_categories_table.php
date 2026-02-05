@@ -9,19 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Añade campos necesarios para soportar la lógica de categorías populares:
-     * - slug (único)
+     * AÃ±ade campos necesarios para soportar la lÃ³gica de categorÃ­as populares:
+     * - slug (Ãºnico)
      * - sales_count (contador de ventas)
      * - popularity (score para ordenar)
      * - is_popular (marcado manual)
-     * - short_description (descripción corta)
+     * - short_description (descripciÃ³n corta)
      *
-     * Nota: si tu tabla ya tiene 'slug' (u otros), puedes comentar la línea correspondiente.
+     * Nota: si tu tabla ya tiene 'slug' (u otros), puedes comentar la lÃ­nea correspondiente.
      */
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // Añadimos columnas sólo si no existen (protección si vuelves a ejecutar)
+            // AÃ±adimos columnas sÃ³lo si no existen (protecciÃ³n si vuelves a ejecutar)
             if (!Schema::hasColumn('categories', 'slug')) {
                 $table->string('slug')->unique()->after('name');
             }
@@ -42,8 +42,8 @@ return new class extends Migration
                 $table->string('short_description')->nullable()->after('is_popular');
             }
 
-            // Índice compuesto opcional para consultas por popularidad
-            // Evitamos crear índice duplicado si ya existe
+            // Ãndice compuesto opcional para consultas por popularidad
+            // Evitamos crear Ã­ndice duplicado si ya existe
             try {
                 $sm = Schema::getConnection()->getDoctrineSchemaManager();
                 $indexes = array_map(fn($i) => $i->getName(), $sm->listTableIndexes('categories'));
@@ -63,13 +63,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // Eliminamos los índices antes de columnas si existen
+            // Eliminamos los Ã­ndices antes de columnas si existen
             if (Schema::hasColumn('categories', 'popularity') && Schema::hasColumn('categories', 'sales_count')) {
-                // Intentamos eliminar índice por nombre; si no existe, no falla
+                // Intentamos eliminar Ã­ndice por nombre; si no existe, no falla
                 try {
                     $table->dropIndex('categories_popularity_sales_count_index');
                 } catch (\Throwable $e) {
-                    // índice no existe o DB diferente; ignorar
+                    // Ã­ndice no existe o DB diferente; ignorar
                 }
             }
 

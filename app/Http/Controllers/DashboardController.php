@@ -15,7 +15,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Si el comerciante aún NO tiene tienda, lo llevamos a crearla
+        // Si el comerciante aÃºn NO tiene tienda, lo llevamos a crearla
         $tieneTienda = Store::where('user_id', $user->id)->exists();
         if (!$tieneTienda) {
             return redirect()
@@ -23,7 +23,7 @@ class DashboardController extends Controller
                 ->with('info', 'Crea tu tienda para comenzar.');
         }
 
-        // Estadísticas del dashboard
+        // EstadÃ­sticas del dashboard
         $store = $user->stores->first();
         $totalProducts = Product::where('store_id', $store->id)->count();
         $activeProducts = Product::where('store_id', $store->id)->where('status', 1)->count();

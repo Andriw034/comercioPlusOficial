@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('total', 10, 2);
             $table->dateTime('date');
             $table->string('payment_method');
-            $table->string('status')->default('pendiente'); // <-- CORRECCIÓN
+            $table->string('status')->default('pendiente'); // <-- CORRECCIÃ“N
             $table->timestamps();
         });
     }

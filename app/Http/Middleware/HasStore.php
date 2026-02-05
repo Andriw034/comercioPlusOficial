@@ -10,7 +10,7 @@ class HasStore
 {
     /**
      * Requiere que un comerciante tenga tienda (Store/PublicStore).
-     * Si no la tiene, lo envía a crearla.
+     * Si no la tiene, lo envÃ­a a crearla.
      */
     public function handle(Request $request, Closure $next)
     {
@@ -20,7 +20,7 @@ class HasStore
 
         $user = Auth::user();
 
-        // Si es comerciante y no tiene tienda (ni pública), lo mandamos a crear tienda
+        // Si es comerciante y no tiene tienda (ni pÃºblica), lo mandamos a crear tienda
         if ($user->esComerciante() && !$user->hasStore() && !$user->hasPublicStore()) {
             return redirect()
                 ->route('store.create')

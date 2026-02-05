@@ -10,7 +10,7 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'price', 'category_id', 'store_id', 'stock', 'status', 'slug', 'is_promo', 'promo_price', 'image_path'];
+    protected $fillable = ['name', 'description', 'price', 'category_id', 'store_id', 'user_id', 'stock', 'status', 'slug', 'is_promo', 'promo_price', 'image_path'];
 
     protected $allowIncluded = ['store', 'category', 'ratings'];
 
@@ -29,21 +29,21 @@ class Product extends Model
         return $this->hasMany(Rating::class);
     }
 
-    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colección
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relación pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relación no está permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones válidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 }

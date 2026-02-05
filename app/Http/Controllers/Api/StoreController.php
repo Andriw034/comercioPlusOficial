@@ -22,6 +22,20 @@ class StoreController extends Controller
         return response()->json($stores);
     }
 
+    /**
+     * Obtener mi tienda (merchant)
+     */
+    public function myStore(Request $request)
+    {
+        $store = Store::where('user_id', $request->user()->id)->first();
+
+        if (!$store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        return response()->json($this->withMediaUrls($store));
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Public stores

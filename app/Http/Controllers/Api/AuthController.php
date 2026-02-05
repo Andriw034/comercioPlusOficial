@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -16,13 +17,19 @@ class AuthController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email:rfc,dns|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
+            'role'     => 'required|string|in:merchant,client,comerciante,cliente',
         ]);
+
+        $role = $this->normalizeRole($data['role']);
 
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
+            'role'     => $role,
             'password' => Hash::make($data['password']),
         ]);
+
+        $this->assignRole($user, $role);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -31,6 +38,7 @@ class AuthController extends Controller
                 'id'    => $user->id,
                 'name'  => $user->name,
                 'email' => $user->email,
+                'role'  => $user->role,
             ],
             'token' => $token,
         ], 201);
@@ -51,7 +59,7 @@ class AuthController extends Controller
             ]);
         }
 
-        // 🔒 Producción: invalidar tokens anteriores
+        // Producción: invalidar tokens anteriores
         $user->tokens()->delete();
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -61,6 +69,7 @@ class AuthController extends Controller
                 'id'    => $user->id,
                 'name'  => $user->name,
                 'email' => $user->email,
+                'role'  => $user->role,
             ],
             'token' => $token,
         ]);
@@ -75,5 +84,30 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Sesión cerrada correctamente'
         ]);
+    }
+
+    private function normalizeRole(string $role): string
+    {
+        $role = strtolower($role);
+        if ($role === 'comerciante') {
+            return 'merchant';
+        }
+        if ($role === 'cliente') {
+            return 'client';
+        }
+        return $role === 'merchant' ? 'merchant' : 'client';
+    }
+
+    private function assignRole(User $user, string $role): void
+    {
+        $spatieRole = $role === 'merchant' ? 'comerciante' : 'cliente';
+        try {
+            if (!Role::where('name', $spatieRole)->exists()) {
+                Role::create(['name' => $spatieRole, 'guard_name' => 'web']);
+            }
+            $user->assignRole($spatieRole);
+        } catch (\Throwable $e) {
+            // Ignore if Spatie tables are not ready
+        }
     }
 }

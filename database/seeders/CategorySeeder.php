@@ -15,7 +15,7 @@ class CategorySeeder extends Seeder
     public function run()
     {
         DB::table('categories')->insert([
-            ['name' => 'Tecnología', 'slug' => 'tecnologia'],
+            ['name' => 'TecnologÃ­a', 'slug' => 'tecnologia'],
             ['name' => 'Hogar', 'slug' => 'hogar'],
             ['name' => 'Moda', 'slug' => 'moda'],
             ['name' => 'Deportes', 'slug' => 'deportes'],

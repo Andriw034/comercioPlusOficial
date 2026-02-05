@@ -24,6 +24,6 @@ class HomeController extends Controller
             ->get(['id','nombre_tienda as name','slug','logo','calificacion_promedio','categoria_principal']);
 
         return view('welcome', compact('categories','products','stores'))
-            ->with('title', 'ComercioPlus — Bienvenido');
+            ->with('title', 'ComercioPlus â€” Bienvenido');
     }
 }

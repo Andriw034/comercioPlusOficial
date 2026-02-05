@@ -13,7 +13,7 @@ class EnsureStoreExists
     {
         if (Auth::check()) {
             $hasStore = Store::where('user_id', Auth::id())->exists();
-            // Permitir acceder a la creación si no tiene tienda
+            // Permitir acceder a la creaciÃ³n si no tiene tienda
             if (!$hasStore && !$request->routeIs('store.create') && !$request->routeIs('store.store')) {
                 return redirect()->route('store.create');
             }

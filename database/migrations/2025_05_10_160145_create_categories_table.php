@@ -10,37 +10,37 @@ return new class extends Migration
      * Run the migrations.
      *
      * Esta migration extiende la tabla categories para soportar:
-     * - slug único para URLs/consistencia
-     * - popularity (score) y sales_count para identificar categorías populares
-     * - is_popular boolean para marcar manualmente una categoría como destacada
-     * - índices útiles para búsquedas y ordenamiento
+     * - slug Ãºnico para URLs/consistencia
+     * - popularity (score) y sales_count para identificar categorÃ­as populares
+     * - is_popular boolean para marcar manualmente una categorÃ­a como destacada
+     * - Ã­ndices Ãºtiles para bÃºsquedas y ordenamiento
      *
-     * Con estos campos podrás, desde el controlador de creación de productos,
+     * Con estos campos podrÃ¡s, desde el controlador de creaciÃ³n de productos,
      * hacer queries como: Category::orderByDesc('popularity')->limit(8)->get()
      * o Category::where('is_popular', true)->get() para llenar el <select>
-     * con las categorías más populares.
+     * con las categorÃ­as mÃ¡s populares.
      */
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
 
-            // Nombre visible de la categoría (ej: Lubricantes, Frenos...)
+            // Nombre visible de la categorÃ­a (ej: Lubricantes, Frenos...)
             $table->string('name')->index();
 
-            // Slug para url amigables y búsquedas rápidas (único)
+            // Slug para url amigables y bÃºsquedas rÃ¡pidas (Ãºnico)
             $table->string('slug')->unique();
 
-            // Contador de ventas relacionadas (puedes actualizarlo desde lógica de órdenes)
+            // Contador de ventas relacionadas (puedes actualizarlo desde lÃ³gica de Ã³rdenes)
             $table->unsignedBigInteger('sales_count')->default(0);
 
-            // Puntuación de popularidad (puede combinar ventas, views, conversiones...)
+            // PuntuaciÃ³n de popularidad (puede combinar ventas, views, conversiones...)
             $table->unsignedInteger('popularity')->default(0)->comment('Score de popularidad para ordenar categorieas');
 
-            // Marca manual para destacar categorías en UI
+            // Marca manual para destacar categorÃ­as en UI
             $table->boolean('is_popular')->default(false)->index();
 
-            // Texto opcional con descripción corta (útil para tooltips)
+            // Texto opcional con descripciÃ³n corta (Ãºtil para tooltips)
             $table->string('short_description')->nullable();
 
             // Orden manual para listados si se requiere prioridad personalizada
@@ -49,7 +49,7 @@ return new class extends Migration
             // Timestamps
             $table->timestamps();
 
-            // Índices compuestos si buscas por popularidad y orden
+            // Ãndices compuestos si buscas por popularidad y orden
             $table->index(['popularity', 'sales_count']);
         });
     }

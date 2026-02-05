@@ -17,11 +17,11 @@
                 @error('name')
                     <p class="text-red-400 text-sm mt-2 font-medium">{{ $message }}</p>
                 @enderror
-            </div>ñ
+            </div>Ã±
 
             <div class="mb-6">
-                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">Descripción</label>
-                <textarea name="description" id="description" rows="5" placeholder="Ingrese la descripción detallada del producto"
+                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">DescripciÃ³n</label>
+                <textarea name="description" id="description" rows="5" placeholder="Ingrese la descripciÃ³n detallada del producto"
                           class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('description') ring-red-400 border-red-400 @enderror transition-all resize-vertical"
                           required>{{ old('description') }}</textarea>
                 @error('description')
@@ -51,9 +51,9 @@
                 </div>
             </div>
 
-            {{-- BLOQUE: Categorías populares --}}
+            {{-- BLOQUE: CategorÃ­as populares --}}
             <div class="mb-4">
-                <p class="text-sm text-gray-300 mb-2">Categorías más populares</p>
+                <p class="text-sm text-gray-300 mb-2">CategorÃ­as mÃ¡s populares</p>
 
                 @if(isset($popularCategories) && $popularCategories->count() > 0)
                     <div class="flex flex-wrap gap-2 mb-3">
@@ -67,22 +67,22 @@
                         @endforeach
                     </div>
                 @else
-                    <div class="text-sm text-gray-500 mb-3">No hay categorías populares para mostrar.</div>
+                    <div class="text-sm text-gray-500 mb-3">No hay categorÃ­as populares para mostrar.</div>
                 @endif
             </div>
 
-            {{-- SELECT de categorías con optgroups: "Más populares" + "Todas" --}}
+            {{-- SELECT de categorÃ­as con optgroups: "MÃ¡s populares" + "Todas" --}}
             <div class="mb-6">
-                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">Categoría</label>
+                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">CategorÃ­a</label>
 
                 <select name="category_id" id="category_id"
                         class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 @error('category_id') ring-red-400 border-red-400 @enderror transition-all"
                         required>
-                    <option value="" class="text-gray-500">Seleccionar categoría</option>
+                    <option value="" class="text-gray-500">Seleccionar categorÃ­a</option>
 
                     {{-- Optgroup populares (si existen) --}}
                     @if(isset($popularCategories) && $popularCategories->count() > 0)
-                        <optgroup label="Más populares">
+                        <optgroup label="MÃ¡s populares">
                             @foreach($popularCategories as $pc)
                                 <option value="{{ $pc->id }}" {{ old('category_id') == $pc->id ? 'selected' : '' }}>
                                     {{ $pc->name }}
@@ -91,8 +91,8 @@
                         </optgroup>
                     @endif
 
-                    {{-- Optgroup todas las categorías (sin repetir las populares) --}}
-                    <optgroup label="Todas las categorías">
+                    {{-- Optgroup todas las categorÃ­as (sin repetir las populares) --}}
+                    <optgroup label="Todas las categorÃ­as">
                         @php
                             $popularIds = isset($popularCategories) ? $popularCategories->pluck('id')->toArray() : [];
                         @endphp
@@ -121,7 +121,7 @@
                     </label>
                     <span id="file-name" class="text-gray-300 text-sm">No file chosen</span>
                 </div>
-                <p class="text-sm text-gray-400 mt-2">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB. La imagen se mostrará en tu vitrina.</p>
+                <p class="text-sm text-gray-400 mt-2">Formatos permitidos: JPG, PNG, GIF. TamaÃ±o mÃ¡ximo: 2MB. La imagen se mostrarÃ¡ en tu vitrina.</p>
                 @error('image')
                     <p class="text-red-400 text-sm mt-2 font-medium">{{ $message }}</p>
                 @enderror
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Quick-select de categorías (chips)
+    // Quick-select de categorÃ­as (chips)
     const popularButtons = document.querySelectorAll('.btn-popular');
     const select = document.getElementById('category_id');
 

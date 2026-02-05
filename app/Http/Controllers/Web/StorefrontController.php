@@ -18,7 +18,7 @@ class StorefrontController extends Controller
         $store = auth()->user()->store ?? null;
 
         if (!$store) { 
-            return redirect()->route('dashboard')->with('error', 'Tu tienda no está activa.');
+            return redirect()->route('dashboard')->with('error', 'Tu tienda no estÃ¡ activa.');
         }
 
         $query = Product::where('store_id', $store->id)

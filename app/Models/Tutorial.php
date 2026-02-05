@@ -16,16 +16,16 @@ class Tutorial extends Model
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se envió ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colección Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica búsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -39,7 +39,7 @@ class Tutorial extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginación
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 

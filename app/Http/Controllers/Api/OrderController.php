@@ -11,13 +11,16 @@ class OrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $orden = Order::with('user', 'ordenproducts')->get();
+        $user = $request->user();
+        $orden = Order::with('user', 'ordenproducts')
+            ->where('user_id', $user->id)
+            ->get();
 
         return response()->json([
             'status' => 'ok',
-            'message' => 'Lista de ordenes',
+            'message' => 'Lista de órdenes',
             'data' => $orden,
         ]);
     }
@@ -36,10 +39,20 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'date' => 'required|date',
+            'store_id' => 'required|exists:stores,id',
+            'total' => 'required|numeric|min:0',
+            'date' => 'nullable|date',
             'payment_method' => 'required|string|max:255',
+            'status' => 'nullable|in:pending,paid,cancelled,completed',
         ]);
+
+        $validated['user_id'] = $request->user()->id;
+        if (empty($validated['date'])) {
+            $validated['date'] = now();
+        }
+        if (empty($validated['status'])) {
+            $validated['status'] = 'pending';
+        }
 
         $order = Order::create($validated);
 
@@ -83,12 +96,11 @@ class OrderController extends Controller
         }
 
         $validated = $request->validate([
-            'user_id' => 'sometimes|exists:users,id',
             'store_id' => 'sometimes|exists:stores,id',
             'total' => 'sometimes|numeric|min:0',
             'date' => 'sometimes|date',
             'payment_method' => 'sometimes|string|max:255',
-            'status' => 'sometimes|in:pending,processing,completed,cancelled',
+            'status' => 'sometimes|in:pending,paid,cancelled,completed',
         ]);
 
         $order->update($validated);
@@ -114,6 +126,54 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Orden eliminada correctamente.',
+        ]);
+    }
+
+    /**
+     * Historial de órdenes del comerciante (por su tienda)
+     */
+    public function merchantIndex(Request $request)
+    {
+        $store = $request->user()->store()->first();
+        if (!$store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        $orders = Order::with('user', 'ordenproducts')
+            ->where('store_id', $store->id)
+            ->get();
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Lista de órdenes',
+            'data' => $orders,
+        ]);
+    }
+
+    /**
+     * Actualizar estado de orden (comerciante)
+     */
+    public function updateStatus(Request $request, string $id)
+    {
+        $order = Order::find($id);
+        if (!$order) {
+            return response()->json(['message' => 'Orden no encontrada'], 404);
+        }
+
+        $store = $request->user()->store()->first();
+        if (!$store || $order->store_id !== $store->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:pending,paid,cancelled,completed',
+        ]);
+
+        $order->update(['status' => $validated['status']]);
+
+        return response()->json([
+            'message' => 'Estado actualizado correctamente.',
+            'data' => $order,
         ]);
     }
 }

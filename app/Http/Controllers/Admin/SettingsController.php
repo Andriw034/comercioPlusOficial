@@ -24,7 +24,7 @@ class SettingsController extends Controller
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'Configuración general actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n general actualizada.');
     }
 
     public function updateAppearance(UpdateAppearanceRequest $request)
@@ -55,27 +55,27 @@ class SettingsController extends Controller
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'Configuración de pagos actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de pagos actualizada.');
     }
 
     public function updateShipping(UpdateShippingRequest $request)
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'Configuración de envíos actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de envÃ­os actualizada.');
     }
 
     public function updateTaxes(UpdateTaxesRequest $request)
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'Configuración de impuestos actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de impuestos actualizada.');
     }
 
     public function updateNotifications(UpdateNotificationsRequest $request)
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'Configuración de notificaciones actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de notificaciones actualizada.');
     }
 }

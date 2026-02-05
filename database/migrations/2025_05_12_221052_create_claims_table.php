@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('claims', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('title'); // <-- CORRECCIÓN
+            $table->string('title'); // <-- CORRECCIÃ“N
             $table->text('description');
             $table->string('status')->default('pendiente');
             $table->timestamps();

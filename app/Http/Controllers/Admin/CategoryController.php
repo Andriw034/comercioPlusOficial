@@ -44,7 +44,7 @@ class CategoryController extends Controller
 
         return redirect()
             ->route('admin.categories.index')
-            ->with('status', 'Categoría creada correctamente.');
+            ->with('status', 'CategorÃ­a creada correctamente.');
     }
 
     public function edit(Category $category)
@@ -65,7 +65,7 @@ class CategoryController extends Controller
 
         return redirect()
             ->route('admin.categories.index')
-            ->with('status', 'Categoría actualizada.');
+            ->with('status', 'CategorÃ­a actualizada.');
     }
 
     public function destroy(Category $category)
@@ -74,17 +74,17 @@ class CategoryController extends Controller
 
         // Si prefieres bloquear cuando tiene productos, cambia este bloque:
         if ($category->products()->exists()) {
-            return back()->with('error', 'No puedes eliminar una categoría con productos.');
+            return back()->with('error', 'No puedes eliminar una categorÃ­a con productos.');
         }
 
         $category->delete();
 
         return redirect()
             ->route('admin.categories.index')
-            ->with('status', 'Categoría eliminada.');
+            ->with('status', 'CategorÃ­a eliminada.');
     }
 
-    // Endpoint JSON para creación "en vivo" desde Productos
+    // Endpoint JSON para creaciÃ³n "en vivo" desde Productos
     public function storeJson(Request $request)
     {
         $request->validate(['name' => ['required','string','max:80']]);
@@ -97,7 +97,7 @@ class CategoryController extends Controller
         if ($exists) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Ya existe una categoría con ese nombre.',
+                'message' => 'Ya existe una categorÃ­a con ese nombre.',
             ], 422);
         }
 
@@ -111,7 +111,7 @@ class CategoryController extends Controller
             'ok'   => true,
             'id'   => $category->id,
             'name' => $category->name,
-            'message' => 'Categoría creada.',
+            'message' => 'CategorÃ­a creada.',
         ]);
     }
 

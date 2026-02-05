@@ -27,6 +27,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'role',
         'password',
         'phone',
         'avatar_path',
@@ -140,12 +141,22 @@ class User extends Authenticatable
     */
     public function esComerciante(): bool
     {
-        return $this->hasRole('comerciante');
+        return $this->role === 'merchant' || $this->hasRole('comerciante') || $this->hasRole('merchant');
     }
 
     public function esCliente(): bool
     {
-        return $this->hasRole('cliente');
+        return $this->role === 'client' || $this->hasRole('cliente') || $this->hasRole('client');
+    }
+
+    public function isMerchant(): bool
+    {
+        return $this->esComerciante();
+    }
+
+    public function isClient(): bool
+    {
+        return $this->esCliente();
     }
 
     /*

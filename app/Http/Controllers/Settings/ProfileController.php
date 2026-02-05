@@ -29,7 +29,7 @@ class ProfileController extends Controller
 
         // Manejo del avatar
         if ($request->hasFile('avatar')) {
-            // Si ya tenía un avatar, lo borramos del storage
+            // Si ya tenÃ­a un avatar, lo borramos del storage
             if ($user->avatar_path && Storage::disk('public')->exists($user->avatar_path)) {
                 Storage::disk('public')->delete($user->avatar_path);
             }

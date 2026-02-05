@@ -10,8 +10,8 @@ class StatsPageController extends Controller
     {
         // Requiere login; agrega otros middlewares si usas roles/permisos
         $this->middleware('auth');
-        // $this->middleware('verified');           // si usas verificación de email
-        // $this->middleware('role:admin');        // si usas Spatie Permissions y solo admin ve estadísticas
+        // $this->middleware('verified');           // si usas verificaciÃ³n de email
+        // $this->middleware('role:admin');        // si usas Spatie Permissions y solo admin ve estadÃ­sticas
     }
 
     public function index()

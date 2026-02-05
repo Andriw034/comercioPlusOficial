@@ -9,24 +9,24 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Añade store_id (foreign key) a la tabla categories y crea un índice único compuesto (store_id, slug)
+     * AÃ±ade store_id (foreign key) a la tabla categories y crea un Ã­ndice Ãºnico compuesto (store_id, slug)
      * para permitir slugs iguales en diferentes tiendas. Es seguro si la tabla ya tiene datos.
      */
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // Añadir store_id si no existe
+            // AÃ±adir store_id si no existe
             if (!Schema::hasColumn('categories', 'store_id')) {
-                // nullable() permite categorías globales (null = global)
+                // nullable() permite categorÃ­as globales (null = global)
                 $table->foreignId('store_id')->nullable()->constrained('stores')->nullOnDelete()->after('id');
             }
 
-            // Añadir slug si no existe (no obligamos si ya existe)
+            // AÃ±adir slug si no existe (no obligamos si ya existe)
             if (!Schema::hasColumn('categories', 'slug')) {
                 $table->string('slug')->after('name')->nullable();
             }
 
-            // Crear índice único compuesto store_id + slug (si no existe)
+            // Crear Ã­ndice Ãºnico compuesto store_id + slug (si no existe)
             // Usamos try/catch para evitar fallos en distintos motores/estado de BD
             try {
                 $sm = Schema::getConnection()->getDoctrineSchemaManager();
@@ -36,7 +36,7 @@ return new class extends Migration
             }
 
             if (!in_array('categories_store_slug_unique', $indexes)) {
-                // Si slug es nullable, MySQL permite múltiples NULL; el índice único funcionará por store_id+slug
+                // Si slug es nullable, MySQL permite mÃºltiples NULL; el Ã­ndice Ãºnico funcionarÃ¡ por store_id+slug
                 $table->unique(['store_id', 'slug'], 'categories_store_slug_unique');
             }
         });
@@ -48,7 +48,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // Eliminar índice compuesto si existe
+            // Eliminar Ã­ndice compuesto si existe
             try {
                 $table->dropUnique('categories_store_slug_unique');
             } catch (\Throwable $e) {

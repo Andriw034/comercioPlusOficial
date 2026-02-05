@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Password;
 class ForgotPasswordController extends Controller
 {
     /**
-     * Mostrar el formulario para solicitar el enlace de restablecimiento de contraseña.
+     * Mostrar el formulario para solicitar el enlace de restablecimiento de contraseÃ±a.
      */
     public function showLinkRequestForm()
     {
@@ -17,7 +17,7 @@ class ForgotPasswordController extends Controller
     }
 
     /**
-     * Enviar el enlace de restablecimiento de contraseña por correo.
+     * Enviar el enlace de restablecimiento de contraseÃ±a por correo.
      */
     public function sendResetLinkEmail(Request $request)
     {

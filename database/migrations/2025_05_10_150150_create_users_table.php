@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
 
-            // Básicos
+            // BÃ¡sicos
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable(); // verificación de correo
+            $table->timestamp('email_verified_at')->nullable(); // verificaciÃ³n de correo
             $table->string('password');
 
             // Perfil
@@ -29,7 +29,7 @@ return new class extends Migration
             // Rol (opcional) - si borran el rol, queda null
             $table->foreignId('role_id')->nullable()->constrained('roles')->nullOnDelete();
 
-            // Tokens de sesión “recuérdame”
+            // Tokens de sesiÃ³n â€œrecuÃ©rdameâ€
             $table->rememberToken();
 
             $table->timestamps();

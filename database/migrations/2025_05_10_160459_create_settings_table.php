@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('key');        // Ej: 'theme', 'notifications'
             $table->text('value');        // Ej: 'dark', 'enabled'
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
-            $table->enum('role', ['admin', 'user', 'all'])->default('all'); // Para qué rol aplica
+            $table->enum('role', ['admin', 'user', 'all'])->default('all'); // Para quÃ© rol aplica
             $table->timestamps();
         });
     }

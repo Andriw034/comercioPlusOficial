@@ -26,7 +26,7 @@ class BrandingController extends Controller
     {
         $user = $request->user();
 
-        // Guardar imágenes
+        // Guardar imÃ¡genes
         $logoPath  = $request->file('logo')->store('stores/'. $user->id .'/branding', 'public');
         $coverPath = $request->file('cover')->store('stores/'. $user->id .'/branding', 'public');
 

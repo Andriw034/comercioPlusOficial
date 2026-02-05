@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Store; // ✅ para verificar si el usuario ya tiene tienda
+use App\Models\Store; // âœ… para verificar si el usuario ya tiene tienda
 
 class LoginController extends Controller
 {
@@ -19,8 +19,8 @@ class LoginController extends Controller
 
     /**
      * Autentica al usuario (web) y redirige:
-     * - Si NO tiene tienda → a crear tienda (/stores/create).
-     * - Si SÍ tiene tienda → al panel admin (/admin).
+     * - Si NO tiene tienda â†’ a crear tienda (/stores/create).
+     * - Si SÃ tiene tienda â†’ al panel admin (/admin).
      *
      * Si existe una URL "intended" previa de Laravel, se respeta,
      * pero usando el destino calculado como fallback.
@@ -37,18 +37,18 @@ class LoginController extends Controller
 
             $user = Auth::user();
 
-            // ✅ Verificamos si el usuario es comerciante y ya tiene tienda
+            // âœ… Verificamos si el usuario es comerciante y ya tiene tienda
             $isMerchant = $user->hasRole('comerciante');
             $tieneTienda = Store::where('user_id', $user->id)->exists();
 
-            // ✅ Elegimos el destino por defecto
+            // âœ… Elegimos el destino por defecto
             if ($isMerchant && !$tieneTienda) {
-                $fallback = route('store.create');  // comerciante sin tienda → crear tienda
+                $fallback = route('store.create');  // comerciante sin tienda â†’ crear tienda
             } else {
-                $fallback = route('admin.dashboard');  // tiene tienda o no es comerciante → panel
+                $fallback = route('admin.dashboard');  // tiene tienda o no es comerciante â†’ panel
             }
 
-            // ✅ Redirige a la intended si existe, si no al fallback
+            // âœ… Redirige a la intended si existe, si no al fallback
             return redirect()->intended($fallback);
         }
 
@@ -58,7 +58,7 @@ class LoginController extends Controller
     }
 
     /**
-     * Cierra sesión (web).
+     * Cierra sesiÃ³n (web).
      */
     public function logout(Request $request)
     {
@@ -94,7 +94,7 @@ class LoginController extends Controller
         }
 
         return response()->json([
-            'message' => 'Credenciales inválidas'
+            'message' => 'Credenciales invÃ¡lidas'
         ], 401);
     }
 }

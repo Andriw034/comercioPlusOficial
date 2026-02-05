@@ -8,7 +8,7 @@ class UpdateProfileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // ✅ Permitimos que cualquier usuario autenticado use este request
+        // âœ… Permitimos que cualquier usuario autenticado use este request
         return true;
     }
 

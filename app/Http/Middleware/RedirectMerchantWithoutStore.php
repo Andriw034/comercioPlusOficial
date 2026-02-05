@@ -37,7 +37,7 @@ class RedirectMerchantWithoutStore
                 $hasStore = true;
             }
 
-            // 2) por relación user_id en stores
+            // 2) por relaciÃ³n user_id en stores
             if (!$hasStore) {
                 $hasStore = Store::where('user_id', $user->id)->exists();
             }

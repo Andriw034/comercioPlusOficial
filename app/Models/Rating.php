@@ -43,38 +43,38 @@ public function product()
 {
     return $this->belongsTo(Product::class);
 }
-   public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinámicamente
+   public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitó ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colección
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relación pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relación no está permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones válidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se envió ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colección Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica búsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -88,7 +88,7 @@ public function product()
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginación
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 

@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 class ResetPasswordController extends Controller
 {
     /**
-     * Mostrar el formulario para restablecer la contraseña.
+     * Mostrar el formulario para restablecer la contraseÃ±a.
      */
     public function showResetForm(Request $request, $token = null)
     {
@@ -22,7 +22,7 @@ class ResetPasswordController extends Controller
     }
 
     /**
-     * Restablecer la contraseña.
+     * Restablecer la contraseÃ±a.
      */
     public function reset(Request $request)
     {

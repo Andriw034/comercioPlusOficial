@@ -17,12 +17,12 @@ class EnsureUserHasStore
     {
         $user = Auth::user();
 
-        // Si no está logueado, que siga el flujo normal de auth.
+        // Si no estÃ¡ logueado, que siga el flujo normal de auth.
         if (!$user) {
             return $next($request);
         }
 
-        // Evitar bucle: permitir acceder/guardar la creación de tienda.
+        // Evitar bucle: permitir acceder/guardar la creaciÃ³n de tienda.
         if ($request->routeIs('store.create') || $request->routeIs('store.store')) {
             return $next($request);
         }

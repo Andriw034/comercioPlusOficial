@@ -14,7 +14,7 @@ class ColorPaletteService
         // 1) Primary = color dominante del logo (1er color de la paleta)
         $primary = $logoPalette[0] ?? '#FFA14F';
 
-        // 2) Background = color más claro de la portada
+        // 2) Background = color mÃ¡s claro de la portada
         $background = $this->pickLightest($coverPalette) ?? '#ffffff';
 
         // 3) Text color con contraste suficiente frente a background

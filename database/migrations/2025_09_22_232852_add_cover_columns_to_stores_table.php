@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('stores', function (Blueprint $table) {
             // No necesitamos agregar cover_path y cover_url porque ya existen como background_path y background_url
-            // Esta migración se puede usar para otros fines si es necesario
+            // Esta migraciÃ³n se puede usar para otros fines si es necesario
         });
     }
 

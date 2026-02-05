@@ -9,9 +9,8 @@
   <h1 class="mt-8 text-3xl md:text-4xl font-semibold">Página no encontrada</h1>
   <p class="mt-3 opacity-80">La ruta que intentas abrir no existe o fue movida.</p>
   <div class="mt-8 flex items-center justify-center gap-3">
-    <a href="{{ route('welcome') }}" class="px-5 py-3 rounded-xl bg-[var(--cp-primary)] hover:bg-[var(--cp-primary-2)] transition font-medium">Ir al inicio</a>
+    <a href="{{ url('/') }}" class="px-5 py-3 rounded-xl bg-[var(--cp-primary)] hover:bg-[var(--cp-primary-2)] transition font-medium">Ir al inicio</a>
     <a href="{{ url()->previous() }}" class="px-5 py-3 rounded-xl border border-white/15 hover:bg-white/5 transition">Regresar</a>
   </div>
 </div>
 @endsection
-

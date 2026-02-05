@@ -37,7 +37,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar formulario de creación de producto.
+     * Mostrar formulario de creaciÃ³n de producto.
      */
     public function create()
     {
@@ -82,11 +82,11 @@ class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', '✅ Producto creado correctamente.');
+            ->with('success', 'âœ… Producto creado correctamente.');
     }
 
     /**
-     * Mostrar formulario de edición.
+     * Mostrar formulario de ediciÃ³n.
      */
     public function edit(Product $product)
     {
@@ -137,7 +137,7 @@ class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', '✅ Producto actualizado correctamente.');
+            ->with('success', 'âœ… Producto actualizado correctamente.');
     }
 
     /**
@@ -156,11 +156,11 @@ class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', '🗑️ Producto eliminado correctamente.');
+            ->with('success', 'ðŸ—‘ï¸ Producto eliminado correctamente.');
     }
 
     /**
-     * Genera un slug único por tienda.
+     * Genera un slug Ãºnico por tienda.
      */
     protected function generateUniqueSlug(string $name, int $storeId, ?int $ignoreId = null): string
     {

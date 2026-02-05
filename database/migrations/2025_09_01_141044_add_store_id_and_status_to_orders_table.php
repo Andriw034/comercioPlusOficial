@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1) Asegúrate de no petar si aún no existe 'stores'
+        // 1) AsegÃºrate de no petar si aÃºn no existe 'stores'
         if (!Schema::hasTable('stores') || !Schema::hasTable('orders')) {
-            return; // o lanza excepción si prefieres
+            return; // o lanza excepciÃ³n si prefieres
         }
 
         Schema::table('orders', function (Blueprint $table) {
@@ -21,8 +21,8 @@ return new class extends Migration
             if (!Schema::hasColumn('orders', 'store_id')) {
                 $table->foreignId('store_id')->constrained('stores')->cascadeOnDelete();
             } else {
-                // Si existe store_id pero sin FK, intentamos añadir FK
-                // Laravel no tiene helper "if FK exists", así que si llega a fallar, se maneja en down()
+                // Si existe store_id pero sin FK, intentamos aÃ±adir FK
+                // Laravel no tiene helper "if FK exists", asÃ­ que si llega a fallar, se maneja en down()
                 try {
                     $table->foreign('store_id')->references('id')->on('stores')->cascadeOnDelete();
                 } catch (\Throwable $e) { /* ignora si ya existe */ }

@@ -11,12 +11,12 @@ use App\Models\Product;
 class ProductController extends Controller
 {
     /**
-     * Listado público de productos (solo de tiendas visibles y productos activos)
+     * Listado pÃºblico de productos (solo de tiendas visibles y productos activos)
      */
     public function index()
     {
         $products = Product::with(['category', 'store'])
-            // En admin el status es tinyint 0/1; aquí usamos 1 = activo
+            // En admin el status es tinyint 0/1; aquÃ­ usamos 1 = activo
             ->where('status', 1)
             ->whereHas('store', fn ($q) => $q->where('is_visible', true))
             ->latest()
@@ -30,7 +30,7 @@ class ProductController extends Controller
                     'status'     => (int) $p->status,
                     'category'   => $p->category?->name,
                     'store'      => $p->store?->name,
-                    // usar el campo correcto y convertirlo en URL pública
+                    // usar el campo correcto y convertirlo en URL pÃºblica
                     'image_url'  => $p->image_path ? Storage::url($p->image_path) : null,
                     'slug'       => $p->slug,
                     'created_at' => optional($p->created_at)->toISOString(),
@@ -44,7 +44,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Página de creación pública (si la usas con Inertia).
+     * PÃ¡gina de creaciÃ³n pÃºblica (si la usas con Inertia).
      * Si no la usas, puedes ignorarla.
      */
     public function create()
@@ -53,7 +53,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar detalle público
+     * Mostrar detalle pÃºblico
      */
     public function show(string $id)
     {
@@ -79,7 +79,7 @@ class ProductController extends Controller
         ]);
     }
 
-    // Si en público no creas/actualizas, puedes dejar store/update/destroy vacíos o eliminarlos.
+    // Si en pÃºblico no creas/actualizas, puedes dejar store/update/destroy vacÃ­os o eliminarlos.
     public function store(Request $request) {}
     public function edit(string $id) {}
     public function update(Request $request, string $id) {}

@@ -33,6 +33,8 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::apiResource('products', ProductController::class)->only(['index', 'show']);
 Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
 
+Route::get('stores', [StoreController::class, 'publicStores']);
+Route::get('stores/{store}', [StoreController::class, 'show']);
 Route::get('public-stores', [StoreController::class, 'publicStores']);
 Route::get('public-stores/{id}', [StoreController::class, 'show']);
 
@@ -51,6 +53,8 @@ Route::middleware('auth:sanctum')->group(function () {
             'id'    => $user->id,
             'name'  => $user->name,
             'email' => $user->email,
+            'role'  => $user->role,
+            'has_store' => $user->hasStore(),
         ]);
     });
 
@@ -59,10 +63,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('cart', CartController::class);
     Route::apiResource('cart-products', CartProductController::class);
-    Route::apiResource('orders', OrderController::class);
+    // Client orders
+    Route::middleware('role.key:client')->group(function () {
+        Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);
+    });
+
+    // Merchant orders
+    Route::middleware('role.key:merchant')->group(function () {
+        Route::get('merchant/orders', [OrderController::class, 'merchantIndex']);
+        Route::put('merchant/orders/{id}/status', [OrderController::class, 'updateStatus']);
+    });
     Route::apiResource('subscriptions', SubscriptionController::class);
 
     Route::apiResource('products', ProductController::class)->except(['index', 'show']);
     Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
-    Route::apiResource('stores', StoreController::class);
+    Route::apiResource('stores', StoreController::class)->except(['index', 'show']);
+    Route::get('my/store', [StoreController::class, 'myStore'])->middleware('role.key:merchant');
 });

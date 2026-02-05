@@ -16,7 +16,7 @@ class StoreController extends Controller
     }
 
     /**
-     * Mostrar formulario para crear tienda (wizard básico).
+     * Mostrar formulario para crear tienda (wizard bÃ¡sico).
      * Ruta esperada: route('store.create')
      */
     public function create()
@@ -38,14 +38,14 @@ class StoreController extends Controller
     {
         $user = Auth::user();
 
-        // Validaciones básicas
+        // Validaciones bÃ¡sicas
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'primary_color' => 'nullable|string|size:7', // ej. #ff6600
         ]);
 
-        // Generar slug único
+        // Generar slug Ãºnico
         $baseSlug = Str::slug($data['name']);
         $slug = $baseSlug;
         $i = 1;

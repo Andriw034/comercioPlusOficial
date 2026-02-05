@@ -74,7 +74,7 @@ class ExtProductDashboardController extends Controller
                 return redirect()->back()->with('warning', 'Este producto ya ha sido importado anteriormente.');
             }
 
-            // Crear o encontrar categoría
+            // Crear o encontrar categorÃ­a
             $category = null;
             if (!empty($externalProduct['category'])) {
                 $category = Category::firstOrCreate(

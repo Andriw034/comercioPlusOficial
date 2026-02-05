@@ -12,7 +12,7 @@ class UserController extends Controller
     // Mostrar la lista de usuarios
     public function index()
     {
-        // Obtener usuarios con su rol relacionado y paginación
+        // Obtener usuarios con su rol relacionado y paginaciÃ³n
         $users = User::with('roles')->paginate(10);
 
         // Enviar datos a la vista
@@ -22,7 +22,7 @@ class UserController extends Controller
     public function create()
     {
 
-        $roles = Role::all(); // Asegúrate de importar el modelo Role
+        $roles = Role::all(); // AsegÃºrate de importar el modelo Role
 
         return view('users.create', compact('roles'));
     }

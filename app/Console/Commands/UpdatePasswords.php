@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 class UpdatePasswords extends Command
 {
     protected $signature = 'users:update-passwords';
-    protected $description = 'Actualizar contraseñas antiguas no hasheadas a bcrypt';
+    protected $description = 'Actualizar contraseÃ±as antiguas no hasheadas a bcrypt';
 
     public function handle()
     {
@@ -19,16 +19,16 @@ class UpdatePasswords extends Command
         foreach ($users as $user) {
             $password = $user->password;
 
-            // Verificar si la contraseña parece no estar hasheada (no empieza con $2y$ o $2a$)
+            // Verificar si la contraseÃ±a parece no estar hasheada (no empieza con $2y$ o $2a$)
             if (!str_starts_with($password, '$2y$') && !str_starts_with($password, '$2a$')) {
                 $user->password = Hash::make($password);
                 $user->save();
                 $updatedCount++;
-                $this->info("Contraseña actualizada para usuario ID: {$user->id}");
+                $this->info("ContraseÃ±a actualizada para usuario ID: {$user->id}");
             }
         }
 
-        $this->info("Proceso completado. Total de contraseñas actualizadas: {$updatedCount}");
+        $this->info("Proceso completado. Total de contraseÃ±as actualizadas: {$updatedCount}");
         return 0;
     }
 }

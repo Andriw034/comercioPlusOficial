@@ -17,7 +17,7 @@ class WebController extends Controller
 
     public function dashboard(): Response
     {
-        // Asegúrate de crear resources/js/Pages/Dashboard/Index.vue más adelante
+        // AsegÃºrate de crear resources/js/Pages/Dashboard/Index.vue mÃ¡s adelante
         return Inertia::render('Dashboard/Index', [
             'title' => 'Dashboard - Comercio Plus',
         ]);

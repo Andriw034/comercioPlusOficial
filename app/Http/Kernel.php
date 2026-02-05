@@ -42,6 +42,7 @@ class Kernel extends HttpKernel
         // --- Middlewares propios ---
         'has.store' => \App\Http\Middleware\HasStore::class,
         'redirect.if.has.store' => \App\Http\Middleware\RedirectIfHasStore::class,
+        'role.key' => \App\Http\Middleware\EnsureRole::class,
 
         // --- Spatie ---
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,

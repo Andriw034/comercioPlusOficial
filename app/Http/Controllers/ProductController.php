@@ -27,7 +27,7 @@ class ProductController extends Controller
         $store = $this->getUserStore($user);
 
         if (! $store) {
-            return redirect()->route('admin.dashboard')->with('info', 'Crea tu tienda para ver el catálogo.');
+            return redirect()->route('admin.dashboard')->with('info', 'Crea tu tienda para ver el catÃ¡logo.');
         }
 
         $products = Product::with('category')
@@ -39,7 +39,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar formulario de creación
+     * Mostrar formulario de creaciÃ³n
      */
     public function create()
     {
@@ -56,7 +56,7 @@ class ProductController extends Controller
             return redirect()->route('admin.dashboard')->with('info', 'Necesitas crear una tienda antes de agregar productos.');
         }
 
-        // Sólo categorías de la tienda
+        // SÃ³lo categorÃ­as de la tienda
         $categories = Category::where('store_id', $store->id)
             ->orderByDesc('is_popular')
             ->orderByDesc('popularity')
@@ -121,7 +121,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar formulario edición
+     * Mostrar formulario ediciÃ³n
      */
     public function edit(Product $product)
     {
@@ -217,7 +217,7 @@ class ProductController extends Controller
         return redirect()->route('admin.products.index')->with('success', 'Producto eliminado correctamente.');
     }
     /**
-     * Activa o desactiva la promoción de un producto.
+     * Activa o desactiva la promociÃ³n de un producto.
      */
     public function togglePromotion(Product $product)
     {
@@ -229,11 +229,11 @@ class ProductController extends Controller
             abort(403, 'No tienes permiso para modificar este producto.');
         }
 
-        // Cambiar el estado de la promoción
+        // Cambiar el estado de la promociÃ³n
         $product->is_promo = !$product->is_promo;
         $product->save();
 
-        return back()->with('success', 'El estado de la promoción ha sido actualizado.');
+        return back()->with('success', 'El estado de la promociÃ³n ha sido actualizado.');
     }
 
 
@@ -272,7 +272,7 @@ class ProductController extends Controller
     {
         if (! $user) return null;
 
-        // preferencias por método
+        // preferencias por mÃ©todo
         if (method_exists($user, 'store')) {
             try {
                 $s = $user->store;

@@ -14,10 +14,10 @@ class RedirectAfterLogin
     {
         $user = Auth::user();
         if (!$user) {
-            return $next($request); // No debería pasar, pero por si acaso
+            return $next($request); // No deberÃ­a pasar, pero por si acaso
         }
 
-        // Evitar redirección infinita en rutas de dashboard/admin
+        // Evitar redirecciÃ³n infinita en rutas de dashboard/admin
         if ($request->routeIs('dashboard') || $request->routeIs('admin.*')) {
             return $next($request);
         }
@@ -62,7 +62,7 @@ class RedirectAfterLogin
             }
         }
 
-        // Usuario sin rol específico → dashboard genérico
+        // Usuario sin rol especÃ­fico â†’ dashboard genÃ©rico
         return redirect()->route('dashboard');
     }
 }

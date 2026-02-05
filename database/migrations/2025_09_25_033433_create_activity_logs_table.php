@@ -16,19 +16,19 @@ return new class extends Migration
             $table->string('action'); // login, logout, create, update, delete, etc.
             $table->string('model_type')->nullable(); // App\Models\User, App\Models\Product, etc.
             $table->unsignedBigInteger('model_id')->nullable(); // ID del modelo afectado
-            $table->unsignedBigInteger('user_id')->nullable(); // Usuario que realizó la acción
-            $table->string('user_name')->nullable(); // Nombre del usuario para logs históricos
+            $table->unsignedBigInteger('user_id')->nullable(); // Usuario que realizÃ³ la acciÃ³n
+            $table->string('user_name')->nullable(); // Nombre del usuario para logs histÃ³ricos
             $table->json('old_values')->nullable(); // Valores anteriores (para updates)
             $table->json('new_values')->nullable(); // Valores nuevos (para updates/creates)
             $table->string('ip_address')->nullable(); // IP del usuario
             $table->text('user_agent')->nullable(); // User agent del navegador
-            $table->string('url')->nullable(); // URL donde ocurrió la acción
+            $table->string('url')->nullable(); // URL donde ocurriÃ³ la acciÃ³n
             $table->string('method')->nullable(); // GET, POST, PUT, DELETE
-            $table->text('description')->nullable(); // Descripción legible de la actividad
-            $table->json('metadata')->nullable(); // Información adicional
+            $table->text('description')->nullable(); // DescripciÃ³n legible de la actividad
+            $table->json('metadata')->nullable(); // InformaciÃ³n adicional
             $table->timestamps();
 
-            // Índices para mejor performance
+            // Ãndices para mejor performance
             $table->index(['user_id', 'created_at']);
             $table->index(['model_type', 'model_id']);
             $table->index(['action', 'created_at']);

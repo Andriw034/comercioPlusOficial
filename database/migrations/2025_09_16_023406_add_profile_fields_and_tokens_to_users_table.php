@@ -34,12 +34,12 @@ return new class extends Migration
                 }
             });
 
-            // Copiar datos antiguos de "avatar" hacia "avatar_path" (si existían)
+            // Copiar datos antiguos de "avatar" hacia "avatar_path" (si existÃ­an)
             try {
                 DB::statement('UPDATE users SET avatar = avatar WHERE avatar IS NOT NULL');
             } catch (\Throwable $e) {
-                // Si falla por cualquier motivo, no rompemos la migración.
-                // (Opcionalmente podrías loguear el error)
+                // Si falla por cualquier motivo, no rompemos la migraciÃ³n.
+                // (Opcionalmente podrÃ­as loguear el error)
             }
         }
     }

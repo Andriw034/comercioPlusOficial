@@ -23,27 +23,30 @@ class ProductController extends Controller
             ->included() // permite ?included=store,category
             ->with(['category', 'store']);
 
-        // 🔍 Búsqueda por nombre
+        // ðŸ” Búsqueda por nombre
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // 📂 Filtro por categoría (acepta category o category_id)
+        // ðŸ“‚ Filtro por categoría (acepta category o category_id)
         if ($request->filled('category') || $request->filled('category_id')) {
             $query->where('category_id', $request->get('category', $request->get('category_id')));
         }
 
-        // 🏪 Filtro por tienda
+        // ðŸª Filtro por tienda
         if ($request->filled('store_id')) {
             $query->where('store_id', $request->store_id);
         }
 
-        // 🎯 Estado / visibilidad
+        // ðŸŽ¯ Estado / visibilidad
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $status = $this->normalizeStatus($request->status);
+            if ($status !== null) {
+                $query->where('status', $status);
+            }
         }
 
-        // ⭐ Ordenamiento seguro
+        // â­ Ordenamiento seguro
         $sort = $request->get('sort', 'recent');
         match ($sort) {
             'price_asc'  => $query->orderBy('price', 'asc'),
@@ -71,15 +74,24 @@ class ProductController extends Controller
             'stock'       => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
-            'status'      => 'nullable|in:draft,active',
+            'status'      => 'nullable|in:draft,active,0,1,true,false',
             'image'       => 'nullable|image|max:2048',
         ]);
 
-        // 🔐 Obtener tienda del usuario autenticado
+        // ðŸ” Obtener tienda del usuario autenticado
         $store = Store::where('user_id', $request->user()->id)->firstOrFail();
 
         $data['store_id'] = $store->id;
         $data['user_id']  = $request->user()->id;
+
+        if (array_key_exists('status', $data)) {
+            $normalized = $this->normalizeStatus($data['status']);
+            if ($normalized !== null) {
+                $data['status'] = $normalized;
+            } else {
+                unset($data['status']);
+            }
+        }
 
         // Evitar error NOT NULL
         if (!isset($data['description'])) {
@@ -129,7 +141,7 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        // 🔐 Seguridad: solo dueño
+        // ðŸ” Seguridad: solo dueño
         if ($product->user_id !== $request->user()->id) {
             abort(403, 'No autorizado');
         }
@@ -141,12 +153,21 @@ class ProductController extends Controller
             'stock'       => 'sometimes|required|integer|min:0',
             'category_id' => 'sometimes|required|exists:categories,id',
             'description' => 'sometimes|nullable|string',
-            'status'      => 'sometimes|in:draft,active',
+            'status'      => 'sometimes|in:draft,active,0,1,true,false',
             'image'       => 'sometimes|nullable|image|max:2048',
         ]);
 
         if (array_key_exists('description', $data) && $data['description'] === null) {
             $data['description'] = '';
+        }
+
+        if (array_key_exists('status', $data)) {
+            $normalized = $this->normalizeStatus($data['status']);
+            if ($normalized !== null) {
+                $data['status'] = $normalized;
+            } else {
+                unset($data['status']);
+            }
         }
 
         // Regenerar slug si viene vacío
@@ -187,7 +208,7 @@ class ProductController extends Controller
      */
     public function destroy(Request $request, Product $product)
     {
-        // 🔐 Seguridad: solo dueño
+        // ðŸ” Seguridad: solo dueño
         if ($product->user_id !== $request->user()->id) {
             abort(403, 'No autorizado');
         }
@@ -209,6 +230,27 @@ class ProductController extends Controller
         if ($product->image_path) {
             $product->image_url = Storage::disk('public')->url($product->image_path);
         }
+        if (isset($product->status)) {
+            $product->status = $product->status ? 'active' : 'draft';
+        }
         return $product;
+    }
+
+    private function normalizeStatus($value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_bool($value)) {
+            return $value ? 1 : 0;
+        }
+        $value = strtolower((string) $value);
+        if (in_array($value, ['active', '1', 'true', 'on'], true)) {
+            return 1;
+        }
+        if (in_array($value, ['draft', '0', 'false', 'off'], true)) {
+            return 0;
+        }
+        return null;
     }
 }

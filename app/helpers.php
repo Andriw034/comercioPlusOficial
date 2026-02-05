@@ -1,6 +1,6 @@
 <?php
 // Archivo helpers.php creado para evitar error de carga en Composer.
-// Aquí puedes agregar funciones helper globales si es necesario.
+// AquÃ­ puedes agregar funciones helper globales si es necesario.
 
 
 

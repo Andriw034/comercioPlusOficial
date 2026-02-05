@@ -35,7 +35,7 @@ class ActivityLog extends Model
     ];
 
     /**
-     * Relación con el usuario que realizó la actividad
+     * RelaciÃ³n con el usuario que realizÃ³ la actividad
      */
     public function user(): BelongsTo
     {
@@ -54,7 +54,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Scope para filtrar por acción
+     * Scope para filtrar por acciÃ³n
      */
     public function scopeAction($query, $action)
     {
@@ -98,7 +98,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Obtener descripción formateada de la actividad
+     * Obtener descripciÃ³n formateada de la actividad
      */
     public function getFormattedDescriptionAttribute()
     {
@@ -106,18 +106,18 @@ class ActivityLog extends Model
             return $this->description;
         }
 
-        // Generar descripción automática basada en la acción y modelo
+        // Generar descripciÃ³n automÃ¡tica basada en la acciÃ³n y modelo
         $modelName = $this->getModelName();
         $userName = $this->user_name ?: 'Usuario desconocido';
 
         return match ($this->action) {
-            'login' => "{$userName} inició sesión",
-            'logout' => "{$userName} cerró sesión",
-            'create' => "{$userName} creó un nuevo {$modelName}",
-            'update' => "{$userName} actualizó un {$modelName}",
-            'delete' => "{$userName} eliminó un {$modelName}",
-            'view' => "{$userName} visualizó un {$modelName}",
-            default => "{$userName} realizó la acción '{$this->action}' en {$modelName}",
+            'login' => "{$userName} iniciÃ³ sesiÃ³n",
+            'logout' => "{$userName} cerrÃ³ sesiÃ³n",
+            'create' => "{$userName} creÃ³ un nuevo {$modelName}",
+            'update' => "{$userName} actualizÃ³ un {$modelName}",
+            'delete' => "{$userName} eliminÃ³ un {$modelName}",
+            'view' => "{$userName} visualizÃ³ un {$modelName}",
+            default => "{$userName} realizÃ³ la acciÃ³n '{$this->action}' en {$modelName}",
         };
     }
 
@@ -135,14 +135,14 @@ class ActivityLog extends Model
             'App\Models\Product' => 'producto',
             'App\Models\Store' => 'tienda',
             'App\Models\Order' => 'pedido',
-            'App\Models\Category' => 'categoría',
+            'App\Models\Category' => 'categorÃ­a',
             'App\Models\Cart' => 'carrito',
             default => strtolower(class_basename($this->model_type)),
         };
     }
 
     /**
-     * Verificar si la actividad es crítica
+     * Verificar si la actividad es crÃ­tica
      */
     public function isCritical()
     {

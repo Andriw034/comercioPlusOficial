@@ -110,7 +110,7 @@ class ComercioPlusSeeder extends Seeder
         }
 
         // -------------------------
-        // ASIGNAR PERMISOS A ROLES (Spatie tables) -- CORREGIDO OPCIÓN A
+        // ASIGNAR PERMISOS A ROLES (Spatie tables) -- CORREGIDO OPCIÃ“N A
         // -------------------------
         if (Schema::hasTable('roles') && Schema::hasTable('permissions') && Schema::hasTable('role_has_permissions')) {
             $roleAdminId = DB::table('roles')->where('name', 'admin')->value('id');
@@ -277,8 +277,8 @@ class ComercioPlusSeeder extends Seeder
                 ['name' => 'Ropa Moto', 'slug' => 'ropa-moto', 'description' => 'Ropa para motociclistas'],
                 ['name' => 'Aceites y Lubricantes', 'slug' => 'aceites-lubricantes', 'description' => 'Aceites y lubricantes para motos'],
                 ['name' => 'Frenos', 'slug' => 'frenos', 'description' => 'Sistema de frenos'],
-                ['name' => 'Transmisión', 'slug' => 'transmision', 'description' => 'Cadenas y transmisión'],
-                ['name' => 'Iluminación', 'slug' => 'iluminacion', 'description' => 'Luces y accesorios eléctricos'],
+                ['name' => 'TransmisiÃ³n', 'slug' => 'transmision', 'description' => 'Cadenas y transmisiÃ³n'],
+                ['name' => 'IluminaciÃ³n', 'slug' => 'iluminacion', 'description' => 'Luces y accesorios elÃ©ctricos'],
                 ['name' => 'Accesorios', 'slug' => 'accesorios', 'description' => 'Accesorios varios'],
                 ['name' => 'Herramientas', 'slug' => 'herramientas', 'description' => 'Herramientas para mantenimiento'],
                 ['name' => 'Llantas y Rines', 'slug' => 'llantas-rines', 'description' => 'Llantas y rines para motos'],
@@ -499,12 +499,12 @@ class ComercioPlusSeeder extends Seeder
 
             $comments = [
                 'Excelente producto, muy recomendado',
-                'Buena calidad, llegó a tiempo',
+                'Buena calidad, llegÃ³ a tiempo',
                 'Producto como se describe',
                 'Muy satisfecho con la compra',
-                'Calidad superior, volveré a comprar',
+                'Calidad superior, volverÃ© a comprar',
                 'Perfecto estado, excelente servicio',
-                'Me encantó, superó expectativas',
+                'Me encantÃ³, superÃ³ expectativas',
                 'Buen precio por la calidad',
                 'Producto funcional y resistente',
                 'Recomiendo ampliamente'
@@ -567,27 +567,27 @@ class ComercioPlusSeeder extends Seeder
             $clientEmails = ['ana@cliente.com', 'luis1@cliente.com', 'marta2@cliente.com', 'diego3@cliente.com', 'sofia4@cliente.com', 'jorge5@cliente.com'];
             $titles = [
                 'Producto defectuoso',
-                'Producto no llegó',
+                'Producto no llegÃ³',
                 'Producto diferente al pedido',
                 'Problema con el embalaje',
-                'Producto dañado en envío',
+                'Producto daÃ±ado en envÃ­o',
                 'Talla incorrecta',
                 'Color diferente al mostrado',
                 'Falta accesorio',
                 'Producto no funciona',
-                'Problema con la garantía'
+                'Problema con la garantÃ­a'
             ];
             $descriptions = [
-                'El casco llegó con rasguños',
-                'El pedido nunca llegó a mi dirección',
-                'Recibí un producto diferente al que ordené',
-                'El embalaje estaba muy dañado',
-                'El producto llegó roto por el envío',
+                'El casco llegÃ³ con rasguÃ±os',
+                'El pedido nunca llegÃ³ a mi direcciÃ³n',
+                'RecibÃ­ un producto diferente al que ordenÃ©',
+                'El embalaje estaba muy daÃ±ado',
+                'El producto llegÃ³ roto por el envÃ­o',
                 'La talla no corresponde a la pedida',
                 'El color es diferente al de la foto',
                 'Faltaba un accesorio importante',
                 'El producto no enciende ni funciona',
-                'Problemas con la garantía del fabricante'
+                'Problemas con la garantÃ­a del fabricante'
             ];
 
             foreach ($clientEmails as $index => $email) {
@@ -623,16 +623,16 @@ class ComercioPlusSeeder extends Seeder
         // -------------------------
         if (Schema::hasTable('tutorials')) {
             $tutorials = [
-                ['language' => 'es', 'content' => 'Tutorial básico para registrarse en la plataforma'],
-                ['language' => 'es', 'content' => 'Cómo crear y gestionar tu tienda en línea'],
-                ['language' => 'es', 'content' => 'Guía para agregar productos a tu catálogo'],
-                ['language' => 'es', 'content' => 'Tutorial de gestión de pedidos y envíos'],
-                ['language' => 'es', 'content' => 'Cómo configurar métodos de pago'],
-                ['language' => 'es', 'content' => 'Guía de promociones y descuentos'],
-                ['language' => 'es', 'content' => 'Tutorial de atención al cliente'],
-                ['language' => 'es', 'content' => 'Cómo analizar reportes de ventas'],
-                ['language' => 'es', 'content' => 'Guía de seguridad y privacidad'],
-                ['language' => 'es', 'content' => 'Tutorial avanzado de personalización de tienda'],
+                ['language' => 'es', 'content' => 'Tutorial bÃ¡sico para registrarse en la plataforma'],
+                ['language' => 'es', 'content' => 'CÃ³mo crear y gestionar tu tienda en lÃ­nea'],
+                ['language' => 'es', 'content' => 'GuÃ­a para agregar productos a tu catÃ¡logo'],
+                ['language' => 'es', 'content' => 'Tutorial de gestiÃ³n de pedidos y envÃ­os'],
+                ['language' => 'es', 'content' => 'CÃ³mo configurar mÃ©todos de pago'],
+                ['language' => 'es', 'content' => 'GuÃ­a de promociones y descuentos'],
+                ['language' => 'es', 'content' => 'Tutorial de atenciÃ³n al cliente'],
+                ['language' => 'es', 'content' => 'CÃ³mo analizar reportes de ventas'],
+                ['language' => 'es', 'content' => 'GuÃ­a de seguridad y privacidad'],
+                ['language' => 'es', 'content' => 'Tutorial avanzado de personalizaciÃ³n de tienda'],
             ];
 
             foreach ($tutorials as $index => $tutorial) {
@@ -657,7 +657,7 @@ class ComercioPlusSeeder extends Seeder
                     'name' => $st->name,
                     'nombre_tienda' => $st->name,
                     'slug' => Str::slug($st->name),
-                    'descripcion' => 'Tienda pública de ejemplo',
+                    'descripcion' => 'Tienda pÃºblica de ejemplo',
                     'logo' => $st->logo ?? null,
                     'cover' => $st->cover ?? null,
                     'direccion' => $st->address ?? null,
@@ -682,14 +682,14 @@ class ComercioPlusSeeder extends Seeder
             $user_id = DB::table('users')->where('email', 'ana@cliente.com')->value('id');
             if ($user_id) {
                 $act = $this->setIfColumnExists('activity_logs', [
-                    'action' => 'Inició sesión',
+                    'action' => 'IniciÃ³ sesiÃ³n',
                     'model_type' => 'User',
                     'model_id' => $user_id,
                     'user_id' => $user_id,
                     'user_name' => 'Ana Cliente'
                 ]);
                 $act = array_merge($act, ['created_at' => now(), 'updated_at' => now()]);
-                DB::table('activity_logs')->updateOrInsert(['user_id' => $user_id, 'action' => 'Inició sesión'], $act);
+                DB::table('activity_logs')->updateOrInsert(['user_id' => $user_id, 'action' => 'IniciÃ³ sesiÃ³n'], $act);
             }
         }
 
@@ -759,16 +759,16 @@ class ComercioPlusSeeder extends Seeder
         // -------------------------
         if (Schema::hasTable('locations')) {
             $locations = [
-                ['name' => 'Bogotá', 'type' => 'city', 'parent_id' => null],
-                ['name' => 'Medellín', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'BogotÃ¡', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'MedellÃ­n', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Cali', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Barranquilla', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Cartagena', 'type' => 'city', 'parent_id' => null],
-                ['name' => 'Cúcuta', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'CÃºcuta', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Bucaramanga', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Pereira', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Santa Marta', 'type' => 'city', 'parent_id' => null],
-                ['name' => 'Ibagué', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'IbaguÃ©', 'type' => 'city', 'parent_id' => null],
             ];
 
             foreach ($locations as $location) {

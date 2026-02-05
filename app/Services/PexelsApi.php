@@ -19,10 +19,10 @@ class PexelsApi
     }
 
     /**
-     * Busca imágenes en Pexels.
-     * - $query: términos (ej: "motorcycle parts", "motorcycle accessories", "helmets").
+     * Busca imÃ¡genes en Pexels.
+     * - $query: tÃ©rminos (ej: "motorcycle parts", "motorcycle accessories", "helmets").
      * - $limit: cantidad de resultados (1-80).
-     * - $ttl: segundos de caché (por defecto 600s = 10min).
+     * - $ttl: segundos de cachÃ© (por defecto 600s = 10min).
      */
     public function search(string $query = 'motorcycle parts', int $limit = 12, int $ttl = 600): array
     {
