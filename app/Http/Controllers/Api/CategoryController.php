@@ -13,7 +13,16 @@ class CategoryController extends Controller
     // Public: List all categories
     public function index()
     {
-        return Category::all();
+        $allowed = [
+            'cascos-y-proteccion',
+            'accesorios-para-moto',
+            'frenos-y-suspension',
+            'llantas-y-rines',
+            'lubricantes-y-mantenimiento',
+            'repuestos-generales',
+        ];
+
+        return Category::whereIn('slug', $allowed)->orderBy('name')->get();
     }
 
     // Public: Show a single category

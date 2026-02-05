@@ -5,14 +5,16 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  --cp-primary: #EE471B;
-  --cp-secondary: #2A2A2A;
-  --cp-danger: #C20000;
-  --cp-bg-dark: #0F172A;
-  --cp-bg-input: #1E293B;
-  --cp-border: #374151;
-  --cp-text: #E7DBCB;
+  color-scheme: dark;
+  --cp-orange: #ff6600;
+  --cp-bg1: #111827;
+  --cp-bg2: #1a2333;
+  --cp-surface: rgba(255, 255, 255, 0.06);
+  --cp-border: rgba(255, 255, 255, 0.12);
+  --cp-text: rgba(255, 255, 255, 0.92);
+  --cp-muted: rgba(255, 255, 255, 0.65);
+  --cp-danger: #ef4444;
+  --cp-success: #22c55e;
 }
 
 * {
@@ -20,7 +22,9 @@
 }
 
 body {
-  @apply bg-ink text-slate-100 min-h-screen;
+  @apply min-h-screen antialiased;
+  background-color: var(--cp-bg1);
+  color: var(--cp-text);
   font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -29,81 +33,52 @@ a {
 }
 
 .bg-mesh {
-  background: radial-gradient(80% 60% at 10% 10%, rgba(255, 107, 61, 0.18), transparent 50%),
-    radial-gradient(70% 60% at 80% 0%, rgba(168, 85, 247, 0.12), transparent 50%),
-    radial-gradient(60% 50% at 50% 80%, rgba(56, 189, 248, 0.12), transparent 50%),
-    #0a0f1f;
+  background:
+    radial-gradient(70% 60% at 10% 10%, rgba(255, 122, 26, 0.24), transparent 55%),
+    radial-gradient(80% 60% at 85% 10%, rgba(96, 165, 250, 0.2), transparent 55%),
+    radial-gradient(60% 50% at 50% 90%, rgba(255, 255, 255, 0.08), transparent 60%),
+    linear-gradient(140deg, #121a2a 0%, #151f33 45%, #1a2333 100%);
 }
 
 .glass {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-card;
+  @apply bg-white/5 border border-white/10 backdrop-blur-md shadow-glass;
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center px-5 py-2 rounded-lg font-semibold shadow-md transition-all duration-200;
-  background-color: var(--cp-primary);
-  color: #fff;
+  @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold text-white shadow-lg shadow-black/25 transition-all duration-200;
+  background: linear-gradient(90deg, #ff6600 0%, #ff7a1a 100%);
 }
 .btn-primary:hover {
-  background-color: #d63f18;
-}
-
-.btn-ghost {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-full text-slate-100 border border-white/10 hover:border-brand-400/60 hover:text-white transition-colors;
+  filter: brightness(1.05);
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center px-5 py-2 rounded-lg font-semibold transition-all duration-200 border border-gray-600;
-  background-color: var(--cp-secondary);
-  color: var(--cp-text);
+  @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold text-white/90 border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-200;
 }
-.btn-secondary:hover { background-color: #3a3a3a; }
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200;
+}
 
 .btn-danger {
-  @apply inline-flex items-center justify-center px-5 py-2 rounded-lg font-semibold transition-all duration-200;
-  background-color: var(--cp-danger);
-  color: #fff;
-}
-.btn-danger:hover { background-color: #991b1b; }
-
-.select-light,
-.select-light option {
-  color: #0f172a;
-}
-
-.select-contrast {
-  color: #0f172a;
-  background-color: #ffffff;
-}
-
-.select-contrast option {
-  color: #0f172a;
-  background-color: #ffffff;
-}
-
-.select-dark {
-  color: #fff;
-  background-color: var(--cp-bg-input);
-  border-color: var(--cp-border);
-}
-.select-dark option {
-  color: #0f172a;
-  background-color: #ffffff;
+  @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold text-white shadow-lg shadow-black/25 transition-all duration-200;
+  background: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
 }
 
 .input-dark {
-  background-color: var(--cp-bg-input);
-  color: #fff;
-  border-color: var(--cp-border);
-  @apply rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#EE471B] outline-none w-full;
+  @apply w-full rounded-xl px-4 py-3 text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400;
 }
 
-.file-label {
-  @apply inline-flex items-center gap-2 cursor-pointer;
+.select-dark {
+  @apply w-full rounded-xl px-4 py-3 text-sm bg-white/5 border border-white/10 text-white/90 focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400;
+}
+
+.textarea-dark {
+  @apply w-full rounded-xl px-4 py-3 text-sm bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400;
 }
 
 .chip {
-  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-slate-200;
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-white/80;
 }
 
 .section-heading {
@@ -111,5 +86,5 @@ a {
 }
 
 .section-subtitle {
-  @apply text-sm md:text-base text-muted;
+  @apply text-sm md:text-base text-white/60;
 }

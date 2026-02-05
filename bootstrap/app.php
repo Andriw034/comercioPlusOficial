@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'has.store' => \App\Http\Middleware\HasStore::class,
             'redirect.after.login' => \App\Http\Middleware\RedirectAfterLogin::class,
+            'role.key' => \App\Http\Middleware\EnsureRole::class,
             // Aquí puedes añadir otros alias que necesites en el futuro.
         ]);
     })
@@ -37,3 +38,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Configuración para el manejo de excepciones.
         // Puedes personalizar cómo se reportan o renderizan las excepciones aquí.
     })->create();
+
+
+

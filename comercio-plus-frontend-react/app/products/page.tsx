@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import API from '@/lib/api'
 import type { Category as CategoryType, Product } from '@/types/api'
+import GlassCard from '@/components/ui/GlassCard'
+import Badge from '@/components/ui/Badge'
+import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
+import { buttonVariants } from '@/components/ui/Button'
 
 export default function Products() {
   const [searchParams] = useSearchParams()
@@ -74,7 +79,7 @@ export default function Products() {
       })
     } catch (err: any) {
       console.error('Error fetching products:', err)
-      setError(err.response?.data?.message || 'Error al cargar los productos. Int√©ntalo de nuevo.')
+      setError(err.response?.data?.message || 'Error al cargar los productos. IntÈntalo de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -124,192 +129,127 @@ export default function Products() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Productos</h1>
-          <p className="mt-2 text-sm text-gray-600">Descubre los mejores repuestos para moto</p>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-semibold text-white">Productos</h1>
+        <p className="text-sm text-white/60">Descubre los mejores repuestos para moto.</p>
       </div>
 
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  type="text"
-                  placeholder="Buscar productos..."
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                />
-              </div>
-            </div>
-
-            <div className="w-full md:w-48">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="select-light block w-full py-2 px-3 border border-gray-300 bg-white text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              >
-                <option value="">Todas las categor√≠as</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="w-full md:w-48">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="select-light block w-full py-2 px-3 border border-gray-300 bg-white text-gray-900 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              >
-                <option value="recent">M√°s recientes</option>
-                <option value="price_asc">Precio: menor a mayor</option>
-                <option value="price_desc">Precio: mayor a menor</option>
-              </select>
-            </div>
-          </div>
+      <GlassCard className="flex flex-col gap-4 md:flex-row md:items-center">
+        <div className="flex-1">
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            type="text"
+            placeholder="Buscar productos..."
+          />
         </div>
-      </div>
+
+        <div className="w-full md:w-56">
+          <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+            <option value="">Todas las categorÌas</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="w-full md:w-56">
+          <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="recent">M·s recientes</option>
+            <option value="price_asc">Precio: menor a mayor</option>
+            <option value="price_desc">Precio: mayor a menor</option>
+          </Select>
+        </div>
+      </GlassCard>
 
       {loading && (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+        <div className="flex justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-brand-500" />
         </div>
       )}
 
       {!loading && error && (
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error al cargar productos</h3>
-                <div className="mt-2 text-sm text-red-700">{error}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <GlassCard className="border-red-500/30 bg-red-500/10 text-red-100">
+          {error}
+        </GlassCard>
       )}
 
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <p className="text-sm text-gray-700">
-              Mostrando {products.length} de {pagination.total} productos
-            </p>
-          </div>
+        <div className="space-y-6">
+          <p className="text-sm text-white/60">
+            Mostrando {products.length} de {pagination.total} productos
+          </p>
 
           {products.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron productos</h3>
-              <p className="mt-1 text-sm text-gray-500">Intenta cambiar los filtros de b√∫squeda.</p>
-            </div>
+            <GlassCard className="text-center text-white/60">No se encontraron productos.</GlassCard>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => (
-                <div key={product.id} className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-300">
-                  <div className="aspect-w-1 aspect-h-1 bg-gray-200">
+                <GlassCard key={product.id} className="flex flex-col gap-4">
+                  <div className="aspect-[4/3] overflow-hidden rounded-xl border border-white/10 bg-white/5">
                     <img
                       src={product.image_url || '/placeholder-product.png'}
                       alt={product.name}
-                      className="w-full h-48 object-center object-cover"
+                      className="h-full w-full object-cover"
                     />
                   </div>
 
-                  <div className="p-4">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-gray-900 truncate">{product.name}</h3>
-                      <p className="text-sm font-medium text-gray-900">${product.price}</p>
+                      <h3 className="text-sm font-semibold text-white truncate">{product.name}</h3>
+                      <p className="text-sm font-semibold text-brand-200">${product.price}</p>
                     </div>
-
-                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">{product.description}</p>
-
-                    <div className="mt-2">
-                      {product.category && (
-                        <p className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full inline-block">
-                          {product.category.name}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="flex items-center">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <svg
-                              key={i}
-                              className={`w-3 h-3 ${i + 1 <= Math.floor(product.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <span className="ml-1 text-xs text-gray-600">{product.rating || '0.0'}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex gap-2">
-                      <Link
-                        to={`/product/${product.id}`}
-                        className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-sm font-medium text-center hover:bg-gray-200 transition-colors"
-                      >
-                        Ver detalles
-                      </Link>
-                      <button
-                        onClick={() => alert(`Producto "${product.name}" agregado al carrito (funcionalidad pendiente)`)}
-                        className="flex-1 bg-orange-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-orange-700 transition-colors"
-                      >
-                        Agregar
-                      </button>
-                    </div>
+                    <p className="text-xs text-white/60 line-clamp-2">{product.description}</p>
+                    {product.category && <Badge variant="neutral">{product.category.name}</Badge>}
                   </div>
-                </div>
+
+                  <div className="flex items-center justify-between text-xs text-white/50">
+                    <span>{product.rating || '0.0'} ?</span>
+                    <span>{product.stock} en stock</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Link to={`/product/${product.id}`} className={buttonVariants('secondary')}>
+                      Ver detalles
+                    </Link>
+                    <button
+                      onClick={() => alert(`Producto "${product.name}" agregado al carrito (funcionalidad pendiente)`) }
+                      className={buttonVariants('primary')}
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                </GlassCard>
               ))}
             </div>
           )}
 
           {pagination.last_page > 1 && (
-            <div className="mt-8 flex justify-center">
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+            <div className="flex justify-center">
+              <nav className="inline-flex items-center gap-2">
                 <button
                   onClick={() => goToPage(pagination.current_page - 1)}
                   disabled={pagination.current_page === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={buttonVariants('ghost')}
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
+                  Anterior
                 </button>
 
                 {visiblePages.map((page) => (
                   <button
                     key={String(page)}
                     onClick={() => (typeof page === 'number' ? goToPage(page) : null)}
-                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                      page === pagination.current_page
-                        ? 'z-10 bg-orange-50 border-orange-500 text-orange-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                    } ${typeof page === 'string' ? 'cursor-default' : 'cursor-pointer'}`}
+                    className={
+                      typeof page === 'number'
+                        ? `px-4 py-2 rounded-xl text-sm font-medium border border-white/10 ${
+                            page === pagination.current_page ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white'
+                          }`
+                        : 'px-3 py-2 text-white/40'
+                    }
+                    disabled={typeof page !== 'number'}
                   >
                     {page}
                   </button>
@@ -318,11 +258,9 @@ export default function Products() {
                 <button
                   onClick={() => goToPage(pagination.current_page + 1)}
                   disabled={pagination.current_page === pagination.last_page}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={buttonVariants('ghost')}
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
+                  Siguiente
                 </button>
               </nav>
             </div>
@@ -332,5 +270,3 @@ export default function Products() {
     </div>
   )
 }
-
-

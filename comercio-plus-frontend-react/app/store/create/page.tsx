@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import AppShell from '@/components/layouts/AppShell'
+import GlassCard from '@/components/ui/GlassCard'
 
 export default function CreateStore() {
   const navigate = useNavigate()
@@ -9,9 +11,8 @@ export default function CreateStore() {
   }, [navigate])
 
   return (
-    <div className="min-h-screen p-8 text-white">
-      <p>Redirigiendo al gestor de tienda...</p>
-    </div>
+    <AppShell variant="dashboard">
+      <GlassCard className="text-center text-white/70">Redirigiendo al gestor de tienda...</GlassCard>
+    </AppShell>
   )
 }
-

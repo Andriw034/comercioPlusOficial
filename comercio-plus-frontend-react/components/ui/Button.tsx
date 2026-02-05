@@ -15,6 +15,9 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode
 }
 
+export const buttonVariants = (variant: ButtonVariant = 'primary', className = '') =>
+  `${variants[variant]} disabled:opacity-60 disabled:cursor-not-allowed ${className}`.trim()
+
 export default function Button({
   variant = 'primary',
   loading = false,
@@ -24,7 +27,7 @@ export default function Button({
 }: Props) {
   return (
     <button
-      className={`${variants[variant]} ${className}`.trim()}
+      className={buttonVariants(variant, className)}
       disabled={loading || props.disabled}
       {...props}
     >

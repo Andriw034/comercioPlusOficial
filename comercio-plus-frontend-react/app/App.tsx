@@ -17,6 +17,8 @@ import Products from './products/page'
 import Register from './register/page'
 import StoreDetail from './store/page'
 import Stores from './stores/page'
+import Privacy from './privacy/page'
+import Terms from './terms/page'
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/category/:id" element={<Category />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
         </Route>
 
         <Route element={<AuthLayout />}>

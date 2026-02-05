@@ -4,6 +4,8 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Textarea from '@/components/ui/Textarea'
+import GlassCard from '@/components/ui/GlassCard'
+import Badge from '@/components/ui/Badge'
 import type { Category, Product, Store } from '@/types/api'
 
 export default function ManageProducts() {
@@ -200,34 +202,34 @@ export default function ManageProducts() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-muted">Productos de mi tienda</p>
-          <h1 className="text-2xl font-semibold text-white">Gestión de productos</h1>
+          <p className="text-sm text-white/60">Productos de mi tienda</p>
+          <h1 className="text-2xl font-semibold text-white">Gestion de productos</h1>
         </div>
         <Button onClick={startCreate}>Nuevo producto</Button>
       </div>
 
-      <div className="glass rounded-3xl p-6 space-y-4">
+      <GlassCard className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <input
+          <Input
             value={filters.search}
             onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-            className="w-full md:w-64 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/60"
+            className="w-full md:w-64"
             placeholder="Buscar por nombre"
           />
-          <select
+          <Select
             value={filters.status}
             onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-            className="select-dark rounded-2xl border px-4 py-2 text-sm"
+            className="w-full md:w-48"
           >
             <option value="">Todos</option>
             <option value="active">Activos</option>
             <option value="draft">Borrador</option>
-          </select>
+          </Select>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-slate-200">
-            <thead className="text-muted border-b border-white/10">
+          <table className="min-w-full text-sm text-white/70">
+            <thead className="text-white/50 border-b border-white/10">
               <tr>
                 <th className="py-3 text-left">Producto</th>
                 <th className="py-3 text-left">Precio</th>
@@ -238,112 +240,102 @@ export default function ManageProducts() {
             </thead>
             <tbody>
               {products.map((item) => (
-                <tr key={item.id} className="border-b border-white/5">
+                <tr key={item.id} className="border-b border-white/10">
                   <td className="py-3 flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden">
+                    <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden border border-white/10">
                       {item.image_url && <img src={item.image_url} className="w-full h-full object-cover" />}
                     </div>
                     <div>
                       <p className="font-semibold text-white">{item.name}</p>
-                      <p className="text-xs text-muted">{item.category?.name || 'Sin categoría'}</p>
+                      <p className="text-xs text-white/50">{item.category?.name || 'Sin categoria'}</p>
                     </div>
                   </td>
                   <td className="py-3">${item.price}</td>
                   <td className="py-3">{item.stock}</td>
-                  <td className="py-3 capitalize">{item.status || 'draft'}</td>
+                  <td className="py-3 capitalize">
+                    <Badge variant={item.status === 'active' ? 'success' : 'neutral'}>{item.status || 'draft'}</Badge>
+                  </td>
                   <td className="py-3 text-right space-x-2">
                     <button className="btn-ghost text-sm" onClick={() => startEdit(item)}>Editar</button>
-                    <button className="btn-ghost text-sm text-red-200" onClick={() => remove(item)}>Eliminar</button>
+                    <button className="btn-ghost text-sm text-red-300" onClick={() => remove(item)}>Eliminar</button>
                   </td>
                 </tr>
               ))}
               {!products.length && !loading && (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-muted">Aún no tienes productos.</td>
+                  <td colSpan={5} className="py-6 text-center text-white/50">Aun no tienes productos.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {loading && <div className="text-sm text-muted">Cargando...</div>}
-        {error && <div className="text-sm text-red-200">{error}</div>}
-      </div>
+        {loading && <div className="text-sm text-white/60">Cargando...</div>}
+        {error && <div className="text-sm text-red-300">{error}</div>}
+      </GlassCard>
 
-      <div className="glass rounded-3xl p-6 space-y-4">
+      <GlassCard className="space-y-4">
         <h2 className="text-xl font-semibold text-white">{form.id ? 'Editar producto' : 'Nuevo producto'}</h2>
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={save}>
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
+          <Input
+            label="Nombre"
+            value={form.name}
+            required
+            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+          />
+          <Input
+            label="Slug (opcional)"
+            value={form.slug}
+            onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
+          />
+          <Input
+            label="Precio"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.price}
+            required
+            onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+          />
+          <Input
+            label="Stock"
+            type="number"
+            min="0"
+            step="1"
+            value={form.stock}
+            required
+            onChange={(e) => setForm((prev) => ({ ...prev, stock: e.target.value }))}
+          />
+          <Select
+            label="Categoria"
+            value={form.category_id}
+            required
+            onChange={(e) => setForm((prev) => ({ ...prev, category_id: e.target.value }))}
+          >
+            <option value="">Selecciona</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Estado"
+            value={form.status}
+            onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+          >
+            <option value="active">Activo</option>
+            <option value="draft">Borrador</option>
+          </Select>
+          <Textarea
+            label="Descripcion"
+            rows={3}
+            value={form.description}
+            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+            containerClassName="md:col-span-2"
+          />
           <div className="space-y-2">
-            <label className="text-sm text-muted">Nombre</label>
-            <Input
-              value={form.name}
-              required
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Slug (opcional)</label>
-            <Input value={form.slug} onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Precio</label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.price}
-              required
-              onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Stock</label>
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              value={form.stock}
-              required
-              onChange={(e) => setForm((prev) => ({ ...prev, stock: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Categoría</label>
-            <Select
-              value={form.category_id}
-              required
-              onChange={(e) => setForm((prev) => ({ ...prev, category_id: e.target.value }))}
-              className="w-full rounded-2xl border px-4 py-3 text-sm"
-            >
-              <option value="">Selecciona</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Estado</label>
-            <Select
-              value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-              className="w-full rounded-2xl border px-4 py-3 text-sm"
-            >
-              <option value="active">Activo</option>
-              <option value="draft">Borrador</option>
-            </Select>
-          </div>
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-sm text-muted">Descripción</label>
-            <Textarea
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Imagen</label>
+            <label className="text-sm text-white/70">Imagen</label>
             <label className="btn-secondary cursor-pointer w-fit">
               Subir imagen
               <input type="file" accept="image/*" onChange={onImage} className="hidden" />
@@ -359,12 +351,11 @@ export default function ManageProducts() {
             <Button type="submit" className="w-full md:w-auto" loading={saving}>
               {saving ? 'Guardando...' : form.id ? 'Actualizar' : 'Crear producto'}
             </Button>
-            {formMessage && <span className="text-sm text-green-200">{formMessage}</span>}
-            {formError && <span className="text-sm text-red-200">{formError}</span>}
+            {formMessage && <span className="text-sm text-green-300">{formMessage}</span>}
+            {formError && <span className="text-sm text-red-300">{formError}</span>}
           </div>
         </form>
-      </div>
+      </GlassCard>
     </div>
   )
 }
-

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\CartProductController;
+use App\Http\Controllers\Api\HeroImageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +38,7 @@ Route::get('stores', [StoreController::class, 'publicStores']);
 Route::get('stores/{store}', [StoreController::class, 'show']);
 Route::get('public-stores', [StoreController::class, 'publicStores']);
 Route::get('public-stores/{id}', [StoreController::class, 'show']);
+Route::get('hero-images', [HeroImageController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
@@ -76,7 +78,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('subscriptions', SubscriptionController::class);
 
     Route::apiResource('products', ProductController::class)->except(['index', 'show']);
-    Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
     Route::apiResource('stores', StoreController::class)->except(['index', 'show']);
     Route::get('my/store', [StoreController::class, 'myStore'])->middleware('role.key:merchant');
 });

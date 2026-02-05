@@ -9,6 +9,10 @@ export interface Store {
   name: string
   slug?: string
   description?: string
+  whatsapp?: string
+  support_email?: string
+  facebook?: string
+  instagram?: string
   address?: string
   phone?: string
   location?: { city?: string }

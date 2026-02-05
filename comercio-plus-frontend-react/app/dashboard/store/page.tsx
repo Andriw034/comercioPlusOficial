@@ -3,6 +3,8 @@ import API from '@/lib/api'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Textarea from '@/components/ui/Textarea'
+import GlassCard from '@/components/ui/GlassCard'
+import Badge from '@/components/ui/Badge'
 import type { Store } from '@/types/api'
 
 const emptyStore: Store = {
@@ -57,6 +59,12 @@ export default function ManageStore() {
       form.append('name', store.name)
       if (store.slug) form.append('slug', store.slug)
       form.append('description', store.description || '')
+      if (store.phone) form.append('phone', store.phone)
+      if (store.whatsapp) form.append('whatsapp', store.whatsapp)
+      if (store.support_email) form.append('support_email', store.support_email)
+      if (store.facebook) form.append('facebook', store.facebook)
+      if (store.instagram) form.append('instagram', store.instagram)
+      if (store.address) form.append('address', store.address)
       form.append('is_visible', store.is_visible ? '1' : '0')
       if (files.logo) form.append('logo', files.logo)
       if (files.cover) form.append('cover', files.cover)
@@ -69,11 +77,24 @@ export default function ManageStore() {
         response = await API.post('/stores', form, { headers: { 'Content-Type': 'multipart/form-data' } })
       }
 
-      setStore(response.data)
+      const cacheBuster = Date.now()
+      const updatedStore = {
+        ...response.data,
+        logo_url: response.data.logo_url
+          ? `${response.data.logo_url}${response.data.logo_url.includes('?') ? '&' : '?'}v=${cacheBuster}`
+          : response.data.logo_url,
+        cover_url: response.data.cover_url
+          ? `${response.data.cover_url}${response.data.cover_url.includes('?') ? '&' : '?'}v=${cacheBuster}`
+          : response.data.cover_url,
+      }
+
+      setStore(updatedStore)
       setPreviews((prev) => ({
-        logo: response.data.logo_url || prev.logo,
-        cover: response.data.cover_url || prev.cover,
+        logo: updatedStore.logo_url || prev.logo,
+        cover: updatedStore.cover_url || prev.cover,
       }))
+      localStorage.setItem('store', JSON.stringify(updatedStore))
+      window.dispatchEvent(new CustomEvent('store:updated', { detail: updatedStore }))
       setMessage('Guardado correctamente')
     } catch (err: any) {
       console.error('Store save', err)
@@ -89,87 +110,132 @@ export default function ManageStore() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted">Configura tu tienda</p>
+          <p className="text-sm text-white/60">Configura tu tienda</p>
           <h1 className="text-2xl font-semibold text-white">{store.id ? 'Editar tienda' : 'Crear tienda'}</h1>
         </div>
-        <span className={`chip ${store.is_visible ? 'border-green-400/60 text-green-200' : ''}`}>
-          {store.is_visible ? 'Visible' : 'Oculta'}
-        </span>
+        <Badge variant={store.is_visible ? 'success' : 'neutral'}>{store.is_visible ? 'Visible' : 'Oculta'}</Badge>
       </div>
 
-      <form className="glass rounded-3xl p-6 space-y-6" onSubmit={submit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Nombre</label>
-            <Input value={store.name} required onChange={(e) => setStore((prev) => ({ ...prev, name: e.target.value }))} />
+      <GlassCard>
+        <form className="space-y-6" onSubmit={submit}>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Input
+              label="Nombre"
+              value={store.name}
+              required
+              onChange={(e) => setStore((prev) => ({ ...prev, name: e.target.value }))}
+            />
+            <Input
+              label="Slug (opcional)"
+              value={store.slug || ''}
+              onChange={(e) => setStore((prev) => ({ ...prev, slug: e.target.value }))}
+            />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted">Slug (opcional)</label>
-            <Input value={store.slug || ''} onChange={(e) => setStore((prev) => ({ ...prev, slug: e.target.value }))} />
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <label className="text-sm text-muted">Descripción</label>
           <Textarea
+            label="Descripcion"
             rows={3}
             value={store.description || ''}
             onChange={(e) => setStore((prev) => ({ ...prev, description: e.target.value }))}
           />
-        </div>
 
-        <div className="flex items-center gap-3">
-          <label className="text-sm text-muted">Visible al público</label>
-          <input
-            type="checkbox"
-            checked={!!store.is_visible}
-            onChange={(e) => setStore((prev) => ({ ...prev, is_visible: e.target.checked }))}
-            className="h-4 w-4 rounded border-white/20 bg-white/5 text-brand-500 focus:ring-brand-500/60"
-          />
-        </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Input
+              label="Telefono"
+              value={store.phone || ''}
+              onChange={(e) => setStore((prev) => ({ ...prev, phone: e.target.value }))}
+              placeholder="Ej: 3001234567"
+            />
+            <Input
+              label="WhatsApp"
+              value={store.whatsapp || ''}
+              onChange={(e) => setStore((prev) => ({ ...prev, whatsapp: e.target.value }))}
+              placeholder="Ej: 3001234567"
+            />
+            <Input
+              label="Facebook (URL)"
+              value={store.facebook || ''}
+              onChange={(e) => setStore((prev) => ({ ...prev, facebook: e.target.value }))}
+              placeholder="https://facebook.com/tu-tienda"
+            />
+            <Input
+              label="Instagram (URL)"
+              value={store.instagram || ''}
+              onChange={(e) => setStore((prev) => ({ ...prev, instagram: e.target.value }))}
+              placeholder="https://instagram.com/tu-tienda"
+            />
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <p className="text-sm text-muted">Logo</p>
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-4 flex flex-col items-center gap-3">
-              <label className="btn-secondary cursor-pointer w-full text-center">
-                Subir logo
-                <input type="file" accept="image/*" onChange={(e) => onFileSelect(e, 'logo')} className="hidden" />
-              </label>
-              {previews.logo && (
-                <div className="w-24 h-24 rounded-2xl overflow-hidden border border-white/10">
-                  <img src={previews.logo} className="w-full h-full object-cover" />
-                </div>
-              )}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Input
+              type="email"
+              label="Correo de contacto"
+              value={store.support_email || ''}
+              onChange={(e) => setStore((prev) => ({ ...prev, support_email: e.target.value }))}
+              placeholder="correo@tienda.com"
+            />
+            <Input
+              label="Direccion"
+              value={store.address || ''}
+              onChange={(e) => setStore((prev) => ({ ...prev, address: e.target.value }))}
+              placeholder="Calle 123 #45-67"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 text-sm text-white/70">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!store.is_visible}
+                onChange={(e) => setStore((prev) => ({ ...prev, is_visible: e.target.checked }))}
+                className="h-4 w-4 rounded border-white/20 bg-white/10 text-brand-500 focus:ring-brand-500/60"
+              />
+              Visible al publico
+            </label>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3">
+              <p className="text-sm text-white/70">Logo</p>
+              <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-4 flex flex-col items-center gap-3">
+                <label className="btn-secondary cursor-pointer w-full text-center">
+                  Subir logo
+                  <input type="file" accept="image/*" onChange={(e) => onFileSelect(e, 'logo')} className="hidden" />
+                </label>
+                {previews.logo && (
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden border border-white/10">
+                    <img src={previews.logo} className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-white/70">Portada</p>
+              <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-4 flex flex-col items-center gap-3">
+                <label className="btn-secondary cursor-pointer w-full text-center">
+                  Subir portada
+                  <input type="file" accept="image/*" onChange={(e) => onFileSelect(e, 'cover')} className="hidden" />
+                </label>
+                {previews.cover && (
+                  <div className="w-full h-28 rounded-2xl overflow-hidden border border-white/10">
+                    <img src={previews.cover} className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="space-y-3">
-            <p className="text-sm text-muted">Portada</p>
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-4 flex flex-col items-center gap-3">
-              <label className="btn-secondary cursor-pointer w-full text-center">
-                Subir portada
-                <input type="file" accept="image/*" onChange={(e) => onFileSelect(e, 'cover')} className="hidden" />
-              </label>
-              {previews.cover && (
-                <div className="w-full h-28 rounded-2xl overflow-hidden border border-white/10">
-                  <img src={previews.cover} className="w-full h-full object-cover" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" className="w-full md:w-auto" loading={submitting}>
-            {submitting ? 'Guardando...' : store.id ? 'Actualizar tienda' : 'Crear tienda'}
-          </Button>
-          {message && <span className="text-sm text-green-200">{message}</span>}
-          {error && <span className="text-sm text-red-200">{error}</span>}
-        </div>
-      </form>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" className="w-full md:w-auto" loading={submitting}>
+              {submitting ? 'Guardando...' : store.id ? 'Actualizar tienda' : 'Crear tienda'}
+            </Button>
+            {message && <span className="text-sm text-green-300">{message}</span>}
+            {error && <span className="text-sm text-red-300">{error}</span>}
+          </div>
+        </form>
+      </GlassCard>
     </div>
   )
 }
-

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
-import Card from '@/components/ui/Card'
+import GlassCard from '@/components/ui/GlassCard'
 import Button from '@/components/ui/Button'
+import StatCard from '@/components/ui/StatCard'
+import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/format'
 import type { Product, Store } from '@/types/api'
 
@@ -127,96 +129,80 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted">Hola, {user?.name || 'comerciante'}</p>
+          <p className="text-sm text-white/60">Hola, {user?.name || 'comerciante'}</p>
           <h1 className="text-3xl font-semibold text-white">Panel del comerciante</h1>
         </div>
-        <Button variant="ghost" onClick={logout}>Cerrar sesión</Button>
+        <Button variant="ghost" onClick={logout}>Cerrar sesion</Button>
       </div>
 
       {loading && (
         <div className="flex justify-center py-10">
-          <div className="h-12 w-12 rounded-full border-2 border-white/20 border-t-brand-400 animate-spin"></div>
+          <div className="h-12 w-12 rounded-full border-2 border-white/20 border-t-brand-500 animate-spin" />
         </div>
       )}
 
       {!loading && error && (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+        <GlassCard className="border-red-500/30 bg-red-500/10 text-red-100">
           {error}
-        </div>
+        </GlassCard>
       )}
 
       {!loading && !error && (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-5">
-              <p className="text-sm text-muted">Tienda principal</p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">{primaryStore?.name || 'Sin tienda'}</h3>
-              <p className="text-sm text-muted mt-1">{primaryStore?.description || 'Aún no creas tu tienda'}</p>
-            </Card>
-            <Card className="p-5">
-              <p className="text-sm text-muted">Productos publicados</p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">{productsCount}</h3>
-              <p className="text-xs text-muted mt-1">Usa filtros en Productos para editarlos</p>
-            </Card>
-            <Card className="p-5">
-              <p className="text-sm text-muted">Ventas del mes</p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">${monthlySales.toLocaleString('es-CO')}</h3>
-              <p className="text-xs text-muted mt-1">{ordersCount} pedidos registrados</p>
-            </Card>
+          <div className="grid gap-4 md:grid-cols-3">
+            <StatCard label="Tienda principal" value={primaryStore?.name || 'Sin tienda'} hint={primaryStore?.description || 'Aun no creas tu tienda'} />
+            <StatCard label="Productos publicados" value={productsCount} hint="Gestiona tu catalogo" />
+            <StatCard label="Ventas del mes" value={`$${monthlySales.toLocaleString('es-CO')}`} hint={`${ordersCount} pedidos registrados`} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Acciones rápidas</h3>
-                  <p className="text-sm text-muted">Gestión diaria de tu tienda</p>
-                </div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <GlassCard className="lg:col-span-2 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Acciones rapidas</h3>
+                <p className="text-sm text-white/60">Gestion diaria de tu tienda</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {!primaryStore && (
                   <Link to="/dashboard/store" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
                     <p className="font-semibold text-white">Crear tienda</p>
-                    <p className="text-xs text-muted mt-1">Publica tu catálogo</p>
+                    <p className="text-xs text-white/60 mt-1">Publica tu catalogo</p>
                   </Link>
                 )}
                 <Link to="/dashboard/products" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
                   <p className="font-semibold text-white">Productos</p>
-                  <p className="text-xs text-muted mt-1">Crea, edita y elimina</p>
+                  <p className="text-xs text-white/60 mt-1">Crea, edita y elimina</p>
                 </Link>
                 <Link to="/stores" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
                   <p className="font-semibold text-white">Explorar tiendas</p>
-                  <p className="text-xs text-muted mt-1">Inspírate en otros catálogos</p>
+                  <p className="text-xs text-white/60 mt-1">Inspirate en otros catalogos</p>
                 </Link>
               </div>
-            </Card>
+            </GlassCard>
 
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-3">Actividad reciente</h3>
+            <GlassCard className="space-y-3">
+              <h3 className="text-lg font-semibold text-white">Actividad reciente</h3>
               {recentActivity.length === 0 ? (
-                <div className="text-sm text-muted">Aún no hay pedidos registrados.</div>
+                <p className="text-sm text-white/60">Aun no hay pedidos registrados.</p>
               ) : (
                 <div className="space-y-3">
                   {recentActivity.map((item) => (
-                    <div key={item.id} className="flex items-start justify-between border-b border-white/5 pb-3 last:border-b-0">
+                    <div key={item.id} className="flex items-start justify-between border-b border-white/10 pb-3 last:border-b-0">
                       <div>
                         <p className="text-sm text-white font-medium">Pedido #{item.id}</p>
-                        <p className="text-xs text-muted">{formatDate(item.date)}</p>
+                        <p className="text-xs text-white/50">{formatDate(item.date)}</p>
                       </div>
                       <div className="text-right">
-                        <span className="chip capitalize">{item.status}</span>
+                        <Badge variant="neutral" className="capitalize">{item.status}</Badge>
                         <p className="text-sm text-brand-200 font-semibold mt-1">${item.amount.toLocaleString('es-CO')}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </Card>
+            </GlassCard>
           </div>
         </div>
       )}
     </div>
   )
 }
-
-

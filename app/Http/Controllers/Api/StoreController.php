@@ -59,6 +59,12 @@ class StoreController extends Controller
             'name'        => 'required|string|max:255',
             'slug'        => 'nullable|string|max:255|unique:stores,slug',
             'description' => 'nullable|string',
+            'phone'       => 'nullable|string|max:50',
+            'whatsapp'    => 'nullable|string|max:50',
+            'support_email' => 'nullable|email|max:255',
+            'facebook'    => 'nullable|string|max:255',
+            'instagram'   => 'nullable|string|max:255',
+            'address'     => 'nullable|string|max:500',
             'is_visible'  => 'nullable|boolean',
             'logo'        => 'nullable|image|max:2048',
             'cover'       => 'nullable|image|max:4096',
@@ -73,6 +79,12 @@ class StoreController extends Controller
             'name'        => $data['name'],
             'slug'        => $data['slug'],
             'description' => $data['description'] ?? null,
+            'phone'       => $data['phone'] ?? null,
+            'whatsapp'    => $data['whatsapp'] ?? null,
+            'support_email' => $data['support_email'] ?? null,
+            'facebook'    => $data['facebook'] ?? null,
+            'instagram'   => $data['instagram'] ?? null,
+            'address'     => $data['address'] ?? null,
             'is_visible'  => $data['is_visible'] ?? true,
         ]);
 
@@ -110,6 +122,12 @@ class StoreController extends Controller
             'name'        => 'sometimes|required|string|max:255',
             'slug'        => 'nullable|string|max:255|unique:stores,slug,' . $store->id,
             'description' => 'nullable|string',
+            'phone'       => 'nullable|string|max:50',
+            'whatsapp'    => 'nullable|string|max:50',
+            'support_email' => 'nullable|email|max:255',
+            'facebook'    => 'nullable|string|max:255',
+            'instagram'   => 'nullable|string|max:255',
+            'address'     => 'nullable|string|max:500',
             'is_visible'  => 'sometimes|boolean',
         ]);
 

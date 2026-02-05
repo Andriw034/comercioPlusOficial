@@ -1,10 +1,30 @@
 import { forwardRef, type TextareaHTMLAttributes } from 'react'
 
-type Props = TextareaHTMLAttributes<HTMLTextAreaElement>
+type Props = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label?: string
+  hint?: string
+  error?: string
+  containerClassName?: string
+}
 
-const Textarea = forwardRef<HTMLTextAreaElement, Props>(({ className = '', ...props }, ref) => (
-  <textarea ref={ref} className={`input-dark ${className}`.trim()} {...props} />
-))
+const Textarea = forwardRef<HTMLTextAreaElement, Props>(
+  ({ className = '', label, hint, error, containerClassName = '', ...props }, ref) => {
+    const area = <textarea ref={ref} className={`textarea-dark ${className}`.trim()} {...props} />
+
+    if (!label && !hint && !error) {
+      return area
+    }
+
+    return (
+      <label className={`block space-y-2 ${containerClassName}`.trim()}>
+        {label && <span className="text-sm font-medium text-white/80">{label}</span>}
+        {area}
+        {hint && !error && <span className="text-xs text-white/50">{hint}</span>}
+        {error && <span className="text-xs text-red-300">{error}</span>}
+      </label>
+    )
+  },
+)
 
 Textarea.displayName = 'Textarea'
 

@@ -20,6 +20,10 @@ class Store extends Model
         'cover_path',
         'slug',
         'phone',
+        'whatsapp',
+        'support_email',
+        'facebook',
+        'instagram',
         'address',
         'is_visible'
     ];

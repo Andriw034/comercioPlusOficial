@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
+import GlassCard from './GlassCard'
 
 type Props = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
@@ -6,8 +7,8 @@ type Props = HTMLAttributes<HTMLDivElement> & {
 
 export default function Card({ className = '', children, ...props }: Props) {
   return (
-    <div className={`glass rounded-2xl ${className}`.trim()} {...props}>
+    <GlassCard className={className} {...props}>
       {children}
-    </div>
+    </GlassCard>
   )
 }

@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
+import { buttonVariants } from '@/components/ui/Button'
+import Badge from '@/components/ui/Badge'
+import AppShell from './AppShell'
 
 export default function PublicLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [isLogged, setIsLogged] = useState(!!localStorage.getItem('token'))
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     setIsLogged(!!localStorage.getItem('token'))
+    setMenuOpen(false)
   }, [location.pathname])
 
   const logout = async () => {
@@ -24,64 +29,131 @@ export default function PublicLayout() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-mesh text-slate-50 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -left-24 top-10 w-72 h-72 bg-brand-500/20 blur-3xl rounded-full" />
-        <div className="absolute right-0 top-32 w-80 h-80 bg-cyan-400/10 blur-3xl rounded-full" />
-        <div className="absolute -right-10 bottom-10 w-64 h-64 bg-purple-500/10 blur-3xl rounded-full" />
-      </div>
+  const navLinks = useMemo(
+    () => [
+      { label: 'Inicio', to: '/' },
+      { label: 'Productos', to: '/products' },
+      { label: 'Tiendas', to: '/stores' },
+      { label: 'Cómo funciona', to: '/how-it-works' },
+    ],
+    [],
+  )
 
-      <header className="sticky top-0 z-20 px-4 pt-4">
-        <nav className="max-w-7xl mx-auto flex items-center justify-between gap-6 bg-white/5 border border-white/10 backdrop-blur-xl rounded-full px-5 py-3 shadow-soft">
-          <Link to="/" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-xl font-bold shadow-soft">CP</span>
-            <div className="leading-tight">
-              <p className="font-semibold text-white">ComercioPlus</p>
-              <p className="text-xs text-muted">Repuestos y tiendas confiables</p>
-            </div>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-200">
-            <Link className="hover:text-white" to="/">Inicio</Link>
-            <Link className="hover:text-white" to="/products">Productos</Link>
-            <Link className="hover:text-white" to="/stores">Tiendas</Link>
-            <Link className="hover:text-white" to="/how-it-works">CÃ³mo funciona</Link>
+  const header = (
+    <header className="sticky top-0 z-30 px-4 pt-4">
+      <nav className="mx-auto max-w-7xl glass rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white shadow-soft">CP</span>
+          <div className="leading-tight">
+            <p className="font-semibold text-white">ComercioPlus</p>
+            <p className="text-xs text-white/60">Repuestos y tiendas confiables</p>
           </div>
+        </Link>
 
-          <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-5 text-sm font-medium text-white/70">
+          {navLinks.map((link) => (
+            <Link key={link.to} className="hover:text-white" to={link.to}>
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="hidden md:flex items-center gap-3">
+          {isLogged ? (
+            <Link to="/dashboard" className={buttonVariants('ghost')}>Panel</Link>
+          ) : (
+            <Link to="/login" className={buttonVariants('ghost')}>Entrar</Link>
+          )}
+          {isLogged ? (
+            <button onClick={logout} className={buttonVariants('secondary')}>Cerrar sesión</button>
+          ) : (
+            <Link to="/register" className={buttonVariants('primary')}>Vender en ComercioPlus</Link>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white"
+          aria-label="Abrir menú"
+        >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </nav>
+
+      {menuOpen && (
+        <div className="mt-3 mx-auto max-w-7xl glass rounded-2xl px-4 py-4 flex flex-col gap-4 text-sm text-white/80 md:hidden">
+          {navLinks.map((link) => (
+            <Link key={link.to} className="hover:text-white" to={link.to}>
+              {link.label}
+            </Link>
+          ))}
+          <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
             {isLogged ? (
-              <Link to="/dashboard" className="btn-ghost">Panel</Link>
+              <Link to="/dashboard" className={buttonVariants('ghost')}>Panel</Link>
             ) : (
-              <Link to="/login" className="btn-ghost">Entrar</Link>
+              <Link to="/login" className={buttonVariants('ghost')}>Entrar</Link>
             )}
             {isLogged ? (
-              <button onClick={logout} className="btn-primary">Cerrar sesiÃ³n</button>
+              <button onClick={logout} className={buttonVariants('secondary')}>Cerrar sesión</button>
             ) : (
-              <Link to="/register" className="btn-primary">Vender en ComercioPlus</Link>
+              <Link to="/register" className={buttonVariants('primary')}>Vender en ComercioPlus</Link>
             )}
-          </div>
-        </nav>
-      </header>
-
-      <main className="relative z-10 pt-10 pb-16">
-        <Outlet />
-      </main>
-
-      <footer className="relative z-10 border-t border-white/10 bg-white/5 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted">
-          <div className="flex items-center gap-2 text-slate-200">
-            <span className="font-semibold text-white">ComercioPlus</span>
-            <span className="text-muted">| Plataforma de repuestos y tiendas</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/products" className="hover:text-white">Productos</Link>
-            <Link to="/stores" className="hover:text-white">Tiendas</Link>
-            <Link to="/register" className="hover:text-white">Ser comerciante</Link>
           </div>
         </div>
-      </footer>
-    </div>
+      )}
+    </header>
+  )
+
+  const footer = (
+    <footer className="border-t border-white/10 bg-white/5 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm text-white/70">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-white">
+            <span className="font-semibold">ComercioPlus</span>
+          </div>
+          <p>Plataforma de repuestos y tiendas confiables para motociclistas.</p>
+        </div>
+        <div className="space-y-3">
+          <p className="text-white font-semibold">Explora</p>
+          <div className="flex flex-col gap-2">
+            <Link to="/products" className="hover:text-white">Productos</Link>
+            <Link to="/stores" className="hover:text-white">Tiendas</Link>
+            <Link to="/how-it-works" className="hover:text-white">Cómo funciona</Link>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <p className="text-white font-semibold">Legal</p>
+          <div className="flex flex-col gap-2">
+            <Link to="/register" className="hover:text-white">Ser comerciante</Link>
+            <Link to="/privacy" className="hover:text-white">Políticas de privacidad</Link>
+            <Link to="/terms" className="hover:text-white">Términos y condiciones</Link>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <p className="text-white font-semibold">Contacto</p>
+          <div className="flex flex-col gap-2">
+            <span>soporte@comercioplus.co</span>
+            <span>WhatsApp: +57 300 000 0000</span>
+            <span>Horario: 8:00 - 18:00</span>
+            <Badge variant="brand">Atención rápida</Badge>
+          </div>
+        </div>
+      </div>
+      <div className="border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-white/50 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>© {new Date().getFullYear()} ComercioPlus. Todos los derechos reservados.</span>
+          <span>Hecho para motociclistas.</span>
+        </div>
+      </div>
+    </footer>
+  )
+
+  return (
+    <AppShell header={header} footer={footer}>
+      <Outlet />
+    </AppShell>
   )
 }
-
