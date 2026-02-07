@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import API from '@/lib/api'
 import type { Category as CategoryType, Product } from '@/types/api'
 import GlassCard from '@/components/ui/GlassCard'
-import Badge from '@/components/ui/Badge'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { buttonVariants } from '@/components/ui/button'
+import ProductCard from '@/components/products/ProductCard'
+import ProductQuickViewModal from '@/components/products/ProductQuickViewModal'
 
 export default function Products() {
   const [searchParams] = useSearchParams()
@@ -17,6 +18,10 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [sortBy, setSortBy] = useState('recent')
+  const [quickViewOpen, setQuickViewOpen] = useState(false)
+  const [quickViewLoading, setQuickViewLoading] = useState(false)
+  const [quickViewError, setQuickViewError] = useState('')
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
   const [pagination, setPagination] = useState({
     current_page: 1,
     last_page: 1,
@@ -128,6 +133,32 @@ export default function Products() {
     }
   }
 
+  const handleAddToCart = (item: Product) => {
+    alert(`Producto "${item.name}" agregado al carrito (funcionalidad pendiente)`)
+  }
+
+  const openQuickView = async (item: Product) => {
+    setQuickViewOpen(true)
+    setQuickViewLoading(true)
+    setQuickViewError('')
+    setQuickViewProduct(item)
+
+    try {
+      const response = await API.get(`/products/${item.id}`)
+      setQuickViewProduct(response.data?.data || response.data || item)
+    } catch (err: any) {
+      console.error('quick view error', err)
+      setQuickViewError(err.response?.data?.message || 'No se pudo cargar el detalle del producto.')
+    } finally {
+      setQuickViewLoading(false)
+    }
+  }
+
+  const closeQuickView = () => {
+    setQuickViewOpen(false)
+    setQuickViewError('')
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -186,43 +217,14 @@ export default function Products() {
           {products.length === 0 ? (
             <GlassCard className="text-center text-white/60">No se encontraron productos.</GlassCard>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => (
-                <GlassCard key={product.id} className="flex flex-col gap-4">
-                  <div className="aspect-[4/3] overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                    <img
-                      src={product.image_url || '/placeholder-product.png'}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-white truncate">{product.name}</h3>
-                      <p className="text-sm font-semibold text-brand-200">${product.price}</p>
-                    </div>
-                    <p className="text-xs text-white/60 line-clamp-2">{product.description}</p>
-                    {product.category && <Badge variant="neutral">{product.category.name}</Badge>}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-white/50">
-                    <span>{product.rating || '0.0'} ?</span>
-                    <span>{product.stock} en stock</span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Link to={`/product/${product.id}`} className={buttonVariants('secondary')}>
-                      Ver detalles
-                    </Link>
-                    <button
-                      onClick={() => alert(`Producto "${product.name}" agregado al carrito (funcionalidad pendiente)`) }
-                      className={buttonVariants('primary')}
-                    >
-                      Agregar
-                    </button>
-                  </div>
-                </GlassCard>
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAdd={handleAddToCart}
+                  onImageClick={openQuickView}
+                />
               ))}
             </div>
           )}
@@ -267,6 +269,15 @@ export default function Products() {
           )}
         </div>
       )}
+
+      <ProductQuickViewModal
+        open={quickViewOpen}
+        product={quickViewProduct}
+        loading={quickViewLoading}
+        error={quickViewError}
+        onClose={closeQuickView}
+        onAdd={handleAddToCart}
+      />
     </div>
   )
 }

@@ -10,6 +10,7 @@ export default function PublicLayout() {
   const location = useLocation()
   const [isLogged, setIsLogged] = useState(!!localStorage.getItem('token'))
   const [menuOpen, setMenuOpen] = useState(false)
+  const [brandLogoError, setBrandLogoError] = useState(false)
 
   useEffect(() => {
     setIsLogged(!!localStorage.getItem('token'))
@@ -43,7 +44,16 @@ export default function PublicLayout() {
     <header className="sticky top-0 z-30 px-4 pt-4">
       <nav className="mx-auto max-w-7xl glass rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white shadow-soft">CP</span>
+          {!brandLogoError ? (
+            <img
+              src="/brand/logo-comercioplus.png"
+              alt="ComercioPlus"
+              className="h-10 w-10 rounded-2xl object-cover border border-white/15 bg-white/10 shadow-soft"
+              onError={() => setBrandLogoError(true)}
+            />
+          ) : (
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white shadow-soft">CP</span>
+          )}
           <div className="leading-tight">
             <p className="font-semibold text-white">ComercioPlus</p>
             <p className="text-xs text-white/60">Repuestos y tiendas confiables</p>

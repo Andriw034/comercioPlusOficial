@@ -61,10 +61,10 @@ export default function Register() {
   }
 
   return (
-    <div className="rounded-[32px] border border-white/25 bg-white/10 px-8 py-10 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+    <div className="rounded-[28px] border border-white/25 bg-white/10 px-6 py-7 sm:px-8 sm:py-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
       <div className="flex flex-col items-center text-center">
-        <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-white/40">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/60 text-white">
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/40">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/60 text-white">
             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M4 20c0-3.314 3.134-6 8-6s8 2.686 8 6" />
@@ -72,7 +72,7 @@ export default function Register() {
           </div>
         </div>
 
-        <div className="mt-5 flex w-full items-center gap-4 text-white/70">
+        <div className="mt-4 flex w-full items-center gap-4 text-white/70">
           <span className="h-px flex-1 bg-white/30" />
           <span className="text-[11px] uppercase tracking-[0.4em]">ComercioPlus</span>
           <span className="h-px flex-1 bg-white/30" />
@@ -87,10 +87,10 @@ export default function Register() {
         </span>
       </div>
 
-      <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm">
-            <span className="flex h-12 w-12 items-center justify-center bg-panel text-white/80">
+            <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M4 20c0-3.314 3.134-6 8-6s8 2.686 8 6" />
@@ -104,27 +104,27 @@ export default function Register() {
               autoComplete="name"
               required
               placeholder="Nombre completo"
-              className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-3 !px-4 focus:!border-0 focus:!ring-0"
+              className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
             />
           </div>
 
           <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm">
-            <span className="flex h-12 w-12 items-center justify-center bg-panel text-white/80">
+            <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M3 8l9 6 9-6M4 6h16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
               </svg>
             </span>
-            <label htmlFor="email" className="sr-only">Correo electrónico</label>
+            <label htmlFor="email" className="sr-only">Correo electrÃ³nico</label>
             <Input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
               required
-              placeholder="Correo electrónico"
-              className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-3 !px-4 focus:!border-0 focus:!ring-0"
+              placeholder="Correo electrÃ³nico"
+              className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
               value={form.email}
               onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             />
@@ -132,44 +132,44 @@ export default function Register() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm">
-              <span className="flex h-12 w-12 items-center justify-center bg-panel text-white/80">
+              <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M16 10V8a4 4 0 00-8 0v2" />
                   <rect x="5" y="10" width="14" height="10" rx="2" ry="2" strokeWidth="1.6" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 14v3" />
                 </svg>
               </span>
-              <label htmlFor="password" className="sr-only">Contraseña</label>
+              <label htmlFor="password" className="sr-only">ContraseÃ±a</label>
               <Input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="new-password"
                 required
-                placeholder="Contraseña"
-                className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-3 !px-4 focus:!border-0 focus:!ring-0"
+                placeholder="ContraseÃ±a"
+                className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
                 value={form.password}
                 onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
               />
             </div>
 
             <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm">
-              <span className="flex h-12 w-12 items-center justify-center bg-panel text-white/80">
+              <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M16 10V8a4 4 0 00-8 0v2" />
                   <rect x="5" y="10" width="14" height="10" rx="2" ry="2" strokeWidth="1.6" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 14v3" />
                 </svg>
               </span>
-              <label htmlFor="password_confirmation" className="sr-only">Confirmar contraseña</label>
+              <label htmlFor="password_confirmation" className="sr-only">Confirmar contraseÃ±a</label>
               <Input
                 id="password_confirmation"
                 name="password_confirmation"
                 type="password"
                 autoComplete="new-password"
                 required
-                placeholder="Confirmar contraseña"
-                className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-3 !px-4 focus:!border-0 focus:!ring-0"
+                placeholder="Confirmar contraseÃ±a"
+                className="!border-0 !bg-transparent !text-slate-900 !placeholder:text-slate-400 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
                 value={form.password_confirmation}
                 onChange={(e) => setForm((prev) => ({ ...prev, password_confirmation: e.target.value }))}
               />
@@ -183,7 +183,7 @@ export default function Register() {
                 type="button"
                 onClick={() => setForm((prev) => ({ ...prev, role: 'merchant' }))}
                 aria-pressed={form.role === 'merchant'}
-                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+                className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
                   form.role === 'merchant'
                     ? 'border-brand-400/80 bg-brand-300 !text-ink shadow-sm'
                     : 'border-white/40 bg-white/90 !text-ink hover:bg-white'
@@ -195,7 +195,7 @@ export default function Register() {
                 type="button"
                 onClick={() => setForm((prev) => ({ ...prev, role: 'client' }))}
                 aria-pressed={form.role === 'client'}
-                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
+                className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
                   form.role === 'client'
                     ? 'border-brand-400/80 bg-brand-300 !text-ink shadow-sm'
                     : 'border-white/40 bg-white/90 !text-ink hover:bg-white'
@@ -225,12 +225,12 @@ export default function Register() {
 
         <Button
           type="submit"
-          className="w-full inline-flex items-center justify-center rounded-xl !bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-3 text-sm font-semibold !text-ink shadow-lg shadow-brand-600/30 hover:from-brand-600 hover:to-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0 transition"
+          className="w-full inline-flex items-center justify-center rounded-xl !bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-2.5 text-sm font-semibold !text-white shadow-lg shadow-brand-600/30 hover:from-brand-600 hover:to-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0 transition"
           loading={loading}
         >
           {loading ? (
             <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4 text-ink" viewBox="0 0 24 24" fill="none">
+              <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
@@ -242,8 +242,8 @@ export default function Register() {
         </Button>
 
         <p className="text-center text-sm text-white/70">
-          ¿Ya tienes cuenta?
-          <Link to="/login" className="text-white font-semibold hover:text-white/90"> Inicia sesión</Link>
+          Â¿Ya tienes cuenta?
+          <Link to="/login" className="text-white font-semibold hover:text-white/90"> Inicia sesiÃ³n</Link>
         </p>
       </form>
     </div>

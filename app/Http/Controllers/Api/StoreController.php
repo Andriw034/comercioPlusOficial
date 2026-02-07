@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
+use App\Support\MediaUploader;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class StoreController extends Controller
 {
+    public function __construct(private readonly MediaUploader $mediaUploader)
+    {
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Private stores (owner)
@@ -90,7 +95,7 @@ class StoreController extends Controller
 
         $this->handleMedia($request, $store);
 
-        return response()->json($store, 201);
+        return response()->json($this->withMediaUrls($store), 201);
     }
 
     /*
@@ -169,38 +174,62 @@ class StoreController extends Controller
 
     private function handleMedia(Request $request, Store $store): void
     {
-        // Logo
         if ($request->hasFile('logo')) {
-            if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
-                Storage::disk('public')->delete($store->logo_path);
-            }
-            $path = $request->file('logo')->store('stores/' . $store->id . '/logo', 'public');
-            $store->logo_path = $path;
+            $this->deleteLocalFileIfNeeded($store->logo_path);
+            $upload = $this->mediaUploader->uploadImage($request->file('logo'), 'comercioplus/stores/logos');
+            $store->logo_path = $upload['path'];
+            $store->logo_url = $upload['url'];
         }
 
-        // Cover
         if ($request->hasFile('cover')) {
-            if ($store->cover_path && Storage::disk('public')->exists($store->cover_path)) {
-                Storage::disk('public')->delete($store->cover_path);
-            }
-            $path = $request->file('cover')->store('stores/' . $store->id . '/cover', 'public');
-            $store->cover_path = $path;
+            $this->deleteLocalFileIfNeeded($store->cover_path);
+            $this->deleteLocalFileIfNeeded($store->background_path);
+
+            $upload = $this->mediaUploader->uploadImage($request->file('cover'), 'comercioplus/stores/covers');
+            $store->cover_path = $upload['path'];
+            $store->background_path = $upload['path'];
+            $store->cover_url = $upload['url'];
+            $store->background_url = $upload['url'];
         }
 
         $store->save();
-
-        // Adjuntar URLs virtuales para el response
         $this->withMediaUrls($store);
     }
 
     private function withMediaUrls(Store $store): Store
     {
-        if ($store->logo_path) {
-            $store->logo_url = Storage::disk('public')->url($store->logo_path);
-        }
-        if ($store->cover_path) {
-            $store->cover_url = Storage::disk('public')->url($store->cover_path);
-        }
+        $store->logo_url = $this->resolveMediaUrl($store->logo_url, $store->logo_path);
+        $store->cover_url = $this->resolveMediaUrl($store->cover_url ?: $store->background_url, $store->cover_path ?: $store->background_path);
+        $store->background_url = $store->cover_url ?: $store->background_url;
+
         return $store;
+    }
+
+    private function resolveMediaUrl(?string $explicitUrl, ?string $path): ?string
+    {
+        if ($this->mediaUploader->isAbsoluteUrl($explicitUrl)) {
+            return $explicitUrl;
+        }
+
+        if ($this->mediaUploader->isAbsoluteUrl($path)) {
+            return $path;
+        }
+
+        if ($path) {
+            return Storage::disk('public')->url($path);
+        }
+
+        return $explicitUrl ?: null;
+    }
+
+    private function deleteLocalFileIfNeeded(?string $path): void
+    {
+        if (!$path || $this->mediaUploader->isAbsoluteUrl($path)) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

@@ -9,7 +9,7 @@ type Props = SelectHTMLAttributes<HTMLSelectElement> & {
 
 const Select = forwardRef<HTMLSelectElement, Props>(
   ({ className = '', label, hint, error, containerClassName = '', ...props }, ref) => {
-    const select = <select ref={ref} className={`select-dark ${className}`.trim()} {...props} />
+    const select = <select ref={ref} className={`select-dark native-select ${className}`.trim()} {...props} />
 
     if (!label && !hint && !error) {
       return select

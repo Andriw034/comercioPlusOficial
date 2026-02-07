@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '@/lib/api'
 import type { Store } from '@/types/api'
@@ -6,6 +6,7 @@ import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import Input from '@/components/ui/Input'
 import { buttonVariants } from '@/components/ui/button'
+import { resolveMediaUrl } from '@/lib/format'
 
 export default function Stores() {
   const [stores, setStores] = useState<Store[]>([])
@@ -22,7 +23,11 @@ export default function Stores() {
       setStores(response.data || [])
     } catch (err: any) {
       console.error('Error fetching stores:', err)
-      setError(err.response?.data?.message || 'Error al cargar las tiendas. Inténtalo de nuevo.')
+      if ([401, 403].includes(err.response?.status)) {
+        setError('No se pudieron cargar las tiendas publicas en este momento.')
+      } else {
+        setError(err.response?.data?.message || 'Error al cargar las tiendas. Intentalo de nuevo.')
+      }
     } finally {
       setLoading(false)
     }
@@ -76,40 +81,43 @@ export default function Stores() {
               <p className="text-white/70">No hay tiendas disponibles.</p>
             </GlassCard>
           ) : (
-            filteredStores.map((store) => (
-              <GlassCard key={store.id} className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  {store.logo_url ? (
-                    <img
-                      src={store.logo_url}
-                      alt={store.name}
-                      className="h-12 w-12 rounded-2xl object-cover border border-white/10 bg-white"
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-white/70">
-                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
+            filteredStores.map((store) => {
+              const logo = resolveMediaUrl(store.logo_url || store.logo_path || store.logo)
+
+              return (
+                <GlassCard key={store.id} className="flex flex-col gap-4">
+                  <div className="flex items-start gap-4">
+                    {logo ? (
+                      <img
+                        src={logo}
+                        alt={store.name}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border border-white/10 bg-black/20 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold shrink-0">
+                        {(store.name?.trim().charAt(0) || 'C').toUpperCase()}
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold leading-tight text-white">{store.name}</h3>
+                      <p className="mt-1 text-sm text-white/60 line-clamp-2">{store.description || 'Sin descripcion'}</p>
                     </div>
-                  )}
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{store.name}</h3>
-                    <p className="text-sm text-white/60">{store.description || 'Sin descripción'}</p>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between text-xs text-white/50">
-                  <span>{store.location?.city || 'Ubicación no especificada'}</span>
-                  <Badge variant="brand">Activa</Badge>
-                </div>
+                  <div className="flex items-center justify-between text-xs text-white/50">
+                    <span>{store.location?.city || 'Ubicacion no especificada'}</span>
+                    <Badge variant="brand">Activa</Badge>
+                  </div>
 
-                <div className="mt-auto">
-                  <Link to={`/store/${store.id}`} className={buttonVariants('secondary')}>
-                    Ver tienda
-                  </Link>
-                </div>
-              </GlassCard>
-            ))
+                  <div className="mt-auto">
+                    <Link to={`/store/${store.id}`} className={buttonVariants('secondary')}>
+                      Ver tienda
+                    </Link>
+                  </div>
+                </GlassCard>
+              )
+            })
           )}
         </div>
       )}

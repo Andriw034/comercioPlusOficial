@@ -13,3 +13,15 @@ export const formatDate = (value: string | Date | null | undefined) => {
     day: 'numeric',
   })
 }
+
+const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api')
+  .replace(/\/api\/?$/, '')
+  .replace(/\/$/, '')
+
+export const resolveMediaUrl = (value?: string | null) => {
+  if (!value) return ''
+  if (/^https?:\/\//i.test(value)) return value
+  if (value.startsWith('//')) return `https:${value}`
+  if (value.startsWith('/')) return `${API_ORIGIN}${value}`
+  return `${API_ORIGIN}/${value}`
+}

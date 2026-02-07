@@ -1,11 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import API from '@/lib/api'
 import type { Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
+import { resolveMediaUrl } from '@/lib/format'
 import AppShell from './AppShell'
 
 export default function DashboardLayout() {
+  type StoreMedia = Store & {
+    logo?: string
+    cover?: string
+    logo_path?: string
+    cover_path?: string
+    background_url?: string
+    background_path?: string
+  }
+
   const [store, setStore] = useState<Store | null>(() => {
     try {
       const cached = localStorage.getItem('store')
@@ -15,7 +25,7 @@ export default function DashboardLayout() {
     }
   })
 
-  const withCacheBust = (data: Store) => {
+  const withCacheBust = useCallback((data: StoreMedia): Store => {
     const cacheBuster = Date.now().toString()
     const addBust = (url?: string) => {
       if (!url) return url
@@ -25,12 +35,17 @@ export default function DashboardLayout() {
       return `${base}?${params.toString()}`
     }
 
+    const resolvedLogo = resolveMediaUrl(data.logo_url || data.logo_path || data.logo)
+    const resolvedCover = resolveMediaUrl(
+      data.cover_url || data.cover_path || data.background_url || data.background_path || data.cover,
+    )
+
     return {
       ...data,
-      logo_url: addBust(data.logo_url),
-      cover_url: addBust(data.cover_url),
+      logo_url: addBust(resolvedLogo),
+      cover_url: addBust(resolvedCover),
     }
-  }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -61,11 +76,12 @@ export default function DashboardLayout() {
       active = false
       window.removeEventListener('store:updated', handleStoreUpdate as EventListener)
     }
-  }, [])
+  }, [withCacheBust])
 
   const storeName = store?.name || 'ComercioPlus'
   const storeLogo = store?.logo_url
   const storeCover = store?.cover_url
+  const storeInitial = storeName.trim().charAt(0).toUpperCase() || 'C'
 
   const header = (
     <header className="sticky top-0 z-30 px-4 pt-4">
@@ -84,7 +100,7 @@ export default function DashboardLayout() {
               className="h-10 w-10 rounded-2xl object-cover border border-white/10 bg-white"
             />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white">CP</span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white">{storeInitial}</span>
           )}
           <div className="leading-tight">
             <p className="font-semibold text-white">{storeName}</p>

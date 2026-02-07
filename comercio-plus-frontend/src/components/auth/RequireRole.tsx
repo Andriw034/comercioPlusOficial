@@ -10,10 +10,9 @@ type Props = {
 
 export default function RequireRole({ role, children }: Props) {
   const location = useLocation()
-  const token = localStorage.getItem('token')
   const userData = localStorage.getItem('user')
 
-  if (!token || !userData) {
+  if (!userData) {
     const redirect = encodeURIComponent(`${location.pathname}${location.search}`)
     return <Navigate to={`/login?redirect=${redirect}`} replace />
   }
@@ -34,8 +33,7 @@ export default function RequireRole({ role, children }: Props) {
   }
 
   if (!allowed.includes(userRole)) {
-    const fallback = userRole === 'client' ? '/stores' : '/dashboard'
-    return <Navigate to={fallback} replace />
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>

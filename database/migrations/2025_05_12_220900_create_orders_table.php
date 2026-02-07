@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('store_id')->constrained()->onDelete('cascade'); // agregar store_id
+            $table->unsignedBigInteger('store_id')->nullable();
             $table->decimal('total', 10, 2);
             $table->dateTime('date');
             $table->string('payment_method');
-            $table->string('status')->default('pendiente'); // <-- CORRECCIÃ“N
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }

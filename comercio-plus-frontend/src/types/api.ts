@@ -18,6 +18,12 @@ export interface Store {
   location?: { city?: string }
   rating?: number
   reviews_count?: number
+  logo?: string
+  cover?: string
+  logo_path?: string
+  cover_path?: string
+  background_url?: string
+  background_path?: string
   logo_url?: string
   cover_url?: string
   is_visible?: boolean

@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Store;
+use App\Support\MediaUploader;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    public function __construct(private readonly MediaUploader $mediaUploader)
+    {
+    }
+
     /**
      * Listado público de productos
      */
@@ -113,8 +118,10 @@ class ProductController extends Controller
 
         // Cargar imagen si se envía
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products/' . $store->id, 'public');
-            $data['image_path'] = $path;
+            $upload = $this->mediaUploader->uploadImage($request->file('image'), 'comercioplus/products');
+            $data['image_path'] = $upload['path'];
+            $data['image_url'] = $upload['url'];
+            $data['image'] = $upload['url'];
         }
 
         $product = Product::create($data);
@@ -189,10 +196,11 @@ class ProductController extends Controller
 
         // Reemplazar imagen si viene
         if ($request->hasFile('image')) {
-            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-                Storage::disk('public')->delete($product->image_path);
-            }
-            $data['image_path'] = $request->file('image')->store('products/' . $product->store_id, 'public');
+            $this->deleteLocalFileIfNeeded($product->image_path);
+            $upload = $this->mediaUploader->uploadImage($request->file('image'), 'comercioplus/products');
+            $data['image_path'] = $upload['path'];
+            $data['image_url'] = $upload['url'];
+            $data['image'] = $upload['url'];
         }
 
         $product->update($data);
@@ -213,9 +221,7 @@ class ProductController extends Controller
             abort(403, 'No autorizado');
         }
 
-        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-            Storage::disk('public')->delete($product->image_path);
-        }
+        $this->deleteLocalFileIfNeeded($product->image_path);
 
         $product->delete();
 
@@ -227,13 +233,41 @@ class ProductController extends Controller
 
     private function withImageUrl(Product $product): Product
     {
-        if ($product->image_path) {
-            $product->image_url = Storage::disk('public')->url($product->image_path);
-        }
+        $product->image_url = $this->resolveMediaUrl($product->image_url, $product->image_path ?: $product->image);
+
         if (isset($product->status)) {
             $product->status = $product->status ? 'active' : 'draft';
         }
+
         return $product;
+    }
+
+    private function resolveMediaUrl(?string $explicitUrl, ?string $path): ?string
+    {
+        if ($this->mediaUploader->isAbsoluteUrl($explicitUrl)) {
+            return $explicitUrl;
+        }
+
+        if ($this->mediaUploader->isAbsoluteUrl($path)) {
+            return $path;
+        }
+
+        if ($path) {
+            return Storage::disk('public')->url($path);
+        }
+
+        return $explicitUrl ?: null;
+    }
+
+    private function deleteLocalFileIfNeeded(?string $path): void
+    {
+        if (!$path || $this->mediaUploader->isAbsoluteUrl($path)) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     private function normalizeStatus($value): ?int

@@ -22,8 +22,8 @@ use App\Http\Controllers\Api\HeroImageController;
 
 Route::get('/health', fn () => response()->json(['status' => 'ok']));
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -34,10 +34,8 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::apiResource('products', ProductController::class)->only(['index', 'show']);
 Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
 
-Route::get('stores', [StoreController::class, 'publicStores']);
-Route::get('stores/{store}', [StoreController::class, 'show']);
 Route::get('public-stores', [StoreController::class, 'publicStores']);
-Route::get('public-stores/{id}', [StoreController::class, 'show']);
+Route::get('public-stores/{store}', [StoreController::class, 'show']);
 Route::get('hero-images', [HeroImageController::class, 'index']);
 
 /*

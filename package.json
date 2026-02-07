@@ -2,8 +2,11 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "build": "npm --prefix comercio-plus-frontend run build",
+        "dev": "npm --prefix comercio-plus-frontend run dev",
+        "lint": "npm --prefix comercio-plus-frontend run lint",
+        "dev:legacy": "vite --config vite.legacy.config.js",
+        "build:legacy": "vite build --config vite.legacy.config.js"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.7",

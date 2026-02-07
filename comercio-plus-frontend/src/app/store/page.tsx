@@ -5,6 +5,7 @@ import type { Product, Store } from '@/types/api'
 import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import { buttonVariants } from '@/components/ui/button'
+import { resolveMediaUrl } from '@/lib/format'
 
 export default function StoreDetail() {
   const { id } = useParams()
@@ -13,6 +14,14 @@ export default function StoreDetail() {
   const [store, setStore] = useState<Store | null>(null)
   const [storeProducts, setStoreProducts] = useState<Product[]>([])
 
+  const normalizeStoreMedia = (value: any): Store => ({
+    ...value,
+    logo_url: resolveMediaUrl(value?.logo_url || value?.logo_path || value?.logo),
+    cover_url: resolveMediaUrl(
+      value?.cover_url || value?.cover_path || value?.background_url || value?.background_path || value?.cover,
+    ),
+  })
+
   useEffect(() => {
     const fetchStoreDetail = async () => {
       try {
@@ -20,20 +29,24 @@ export default function StoreDetail() {
         setError('')
 
         const storeResponse = await API.get(`/public-stores/${id}`)
-        const storeData = storeResponse.data
+        const storeData = normalizeStoreMedia(storeResponse.data)
         setStore(storeData)
 
         const productsResponse = await API.get('/products', {
           params: { store_id: storeData.id, per_page: 20 },
         })
         setStoreProducts(productsResponse.data.data || [])
-      } catch (err: any) {
-        console.error('Store detail loading error:', err)
+    } catch (err: any) {
+      console.error('Store detail loading error:', err)
+      if ([401, 403].includes(err.response?.status)) {
+        setError('Esta tienda no está disponible para vista pública.')
+      } else {
         setError(err.response?.data?.message || 'Error al cargar la tienda')
-      } finally {
-        setLoading(false)
       }
+    } finally {
+      setLoading(false)
     }
+  }
 
     fetchStoreDetail()
   }, [id])
