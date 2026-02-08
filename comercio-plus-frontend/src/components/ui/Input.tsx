@@ -17,7 +17,7 @@ const Input = forwardRef<HTMLInputElement, Props>(
     const input = leftIcon || rightIcon ? (
       <div className="relative">
         {leftIcon && (
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white/50">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-white/45">
             {leftIcon}
           </span>
         )}
@@ -27,7 +27,7 @@ const Input = forwardRef<HTMLInputElement, Props>(
           {...props}
         />
         {rightIcon && (
-          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-white/50">
+          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 dark:text-white/45">
             {rightIcon}
           </span>
         )}
@@ -42,10 +42,10 @@ const Input = forwardRef<HTMLInputElement, Props>(
 
     return (
       <label className={`block space-y-2 ${containerClassName}`.trim()}>
-        {label && <span className="text-sm font-medium text-white/80">{label}</span>}
+        {label && <span className="text-[13px] font-medium text-slate-700 dark:text-white/80">{label}</span>}
         {input}
-        {hint && !error && <span className="text-xs text-white/50">{hint}</span>}
-        {error && <span className="text-xs text-red-300">{error}</span>}
+        {hint && !error && <span className="text-xs text-slate-500 dark:text-white/50">{hint}</span>}
+        {error && <span className="text-xs text-red-600 dark:text-red-300">{error}</span>}
       </label>
     )
   },

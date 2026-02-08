@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import ThemeToggle from '@/components/theme/ThemeToggle'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -29,7 +30,7 @@ export default function Register() {
     return '/stores'
   }
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setLoading(true)
     setError('')
@@ -61,10 +62,15 @@ export default function Register() {
   }
 
   return (
-    <div className="rounded-[28px] border border-white/25 bg-white/10 px-6 py-7 sm:px-8 sm:py-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+    <div className="relative rounded-[28px] border border-white/25 bg-white/10 px-6 py-7 sm:px-8 sm:py-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      {/* Toggle sol/luna */}
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+
       <div className="flex flex-col items-center text-center">
         <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/40">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/60 text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/60 text-slate-900 dark:text-white">
             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M4 20c0-3.314 3.134-6 8-6s8 2.686 8 6" />
@@ -72,7 +78,7 @@ export default function Register() {
           </div>
         </div>
 
-        <div className="mt-4 flex w-full items-center gap-4 text-white/70">
+        <div className="mt-4 flex w-full items-center gap-4 text-slate-600 dark:text-white/70">
           <span className="h-px flex-1 bg-white/30" />
           <span className="text-[11px] uppercase tracking-[0.4em]">ComercioPlus</span>
           <span className="h-px flex-1 bg-white/30" />
@@ -80,9 +86,10 @@ export default function Register() {
       </div>
 
       <div className="mt-6 text-center">
-        <h1 className="text-2xl font-semibold text-white">Crear cuenta</h1>
-        <p className="text-sm text-white/70">Crea tu cuenta para vender o comprar</p>
-        <span className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/40 px-3 py-1 text-xs font-medium text-white/80">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Crear cuenta</h1>
+        <p className="text-sm text-slate-600 dark:text-white/70">Crea tu cuenta para vender o comprar</p>
+
+        <span className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/40 px-3 py-1 text-xs font-medium text-slate-700 dark:text-white/80">
           Comerciante o cliente
         </span>
       </div>
@@ -177,7 +184,8 @@ export default function Register() {
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-white/80">Rol</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-white/80">Rol</p>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
@@ -191,6 +199,7 @@ export default function Register() {
               >
                 Comerciante
               </button>
+
               <button
                 type="button"
                 onClick={() => setForm((prev) => ({ ...prev, role: 'client' }))}
@@ -204,6 +213,7 @@ export default function Register() {
                 Cliente
               </button>
             </div>
+
             <Select
               id="role"
               name="role"
@@ -217,11 +227,7 @@ export default function Register() {
           </div>
         </div>
 
-        {error && (
-          <div className="text-red-200 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="text-red-600 dark:text-red-200 text-sm">{error}</div>}
 
         <Button
           type="submit"
@@ -231,8 +237,8 @@ export default function Register() {
           {loading ? (
             <span className="flex items-center gap-2">
               <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               Creando...
             </span>
@@ -241,9 +247,12 @@ export default function Register() {
           )}
         </Button>
 
-        <p className="text-center text-sm text-white/70">
+        <p className="text-center text-sm text-slate-600 dark:text-white/70">
           ¿Ya tienes cuenta?
-          <Link to="/login" className="text-white font-semibold hover:text-white/90"> Inicia sesión</Link>
+          <Link to="/login" className="text-slate-900 dark:text-white font-semibold hover:opacity-90">
+            {' '}
+            Inicia sesión
+          </Link>
         </p>
       </form>
     </div>

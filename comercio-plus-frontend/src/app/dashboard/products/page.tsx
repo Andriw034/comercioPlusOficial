@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import API from '@/lib/api'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
@@ -7,6 +7,7 @@ import Textarea from '@/components/ui/Textarea'
 import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import type { Category, Product, Store } from '@/types/api'
+import { resolveMediaUrl, formatPrice } from '@/lib/format'
 
 export default function ManageProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -112,7 +113,7 @@ export default function ManageProducts() {
       description: item.description || '',
       status: item.status || 'active',
     })
-    setPreview(item.image_url || '')
+    setPreview(resolveMediaUrl(item.image_url || (item as any).image) || '')
     setImageFile(null)
     setFormError('')
     setFormMessage('')
@@ -121,9 +122,7 @@ export default function ManageProducts() {
   const onImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null
     setImageFile(file)
-    if (file) {
-      setPreview(URL.createObjectURL(file))
-    }
+    if (file) setPreview(URL.createObjectURL(file))
   }
 
   const save = async (event: React.FormEvent) => {
@@ -154,9 +153,7 @@ export default function ManageProducts() {
       setFormMessage('Guardado correctamente')
       await fetchProducts()
       const newProduct = response.data?.data || response.data
-      if (newProduct) {
-        startEdit(newProduct)
-      }
+      if (newProduct) startEdit(newProduct)
     } catch (err: any) {
       console.error('save', err)
       setFormError(err.response?.data?.message || 'No se pudo guardar')
@@ -184,26 +181,23 @@ export default function ManageProducts() {
   }, [])
 
   useEffect(() => {
-    if (debounceRef.current) {
-      window.clearTimeout(debounceRef.current)
-    }
+    if (debounceRef.current) window.clearTimeout(debounceRef.current)
     debounceRef.current = window.setTimeout(() => {
       fetchProducts()
     }, 400)
+
     return () => {
-      if (debounceRef.current) {
-        window.clearTimeout(debounceRef.current)
-      }
+      if (debounceRef.current) window.clearTimeout(debounceRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search, filters.status, storeId])
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-white/60">Productos de mi tienda</p>
-          <h1 className="text-2xl font-semibold text-white">Gestion de productos</h1>
+          <p className="text-[13px] text-slate-600 dark:text-white/60">Productos de mi tienda</p>
+          <h1 className="text-[22px] font-semibold text-slate-900 dark:text-white sm:text-[26px]">Gestion de productos</h1>
         </div>
         <Button onClick={startCreate}>Nuevo producto</Button>
       </div>
@@ -227,55 +221,65 @@ export default function ManageProducts() {
           </Select>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-white/70">
-            <thead className="text-white/50 border-b border-white/10">
-              <tr>
-                <th className="py-3 text-left">Producto</th>
-                <th className="py-3 text-left">Precio</th>
-                <th className="py-3 text-left">Stock</th>
-                <th className="py-3 text-left">Estado</th>
-                <th className="py-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((item) => (
-                <tr key={item.id} className="border-b border-white/10">
-                  <td className="py-3 flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden border border-white/10">
-                      {item.image_url && <img src={item.image_url} className="w-full h-full object-cover" />}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-white">{item.name}</p>
-                      <p className="text-xs text-white/50">{item.category?.name || 'Sin categoria'}</p>
-                    </div>
-                  </td>
-                  <td className="py-3">${item.price}</td>
-                  <td className="py-3">{item.stock}</td>
-                  <td className="py-3 capitalize">
-                    <Badge variant={item.status === 'active' ? 'success' : 'neutral'}>{item.status || 'draft'}</Badge>
-                  </td>
-                  <td className="py-3 text-right space-x-2">
-                    <button className="btn-ghost text-sm" onClick={() => startEdit(item)}>Editar</button>
-                    <button className="btn-ghost text-sm text-red-300" onClick={() => remove(item)}>Eliminar</button>
-                  </td>
-                </tr>
-              ))}
-              {!products.length && !loading && (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-white/50">Aun no tienes productos.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="divide-y divide-slate-200 dark:divide-white/10">
+          {products.map((item) => {
+            const img = resolveMediaUrl(item.image_url || (item as any).image)
+            const price = typeof item.price === 'number' ? item.price : Number(item.price ?? 0)
+            const stock = typeof item.stock === 'number' ? item.stock : Number(item.stock ?? 0)
+
+            return (
+              <div key={item.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-14 w-14 overflow-hidden rounded-2xl border border-slate-200 bg-white/70 dark:border-white/10">
+                    {img ? <img src={img} className="h-full w-full object-cover" /> : null}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">{item.name}</p>
+                    <p className="text-[12px] text-slate-500 dark:text-white/60">
+                      {item.category?.name || 'Sin categoria'}
+                      <span className="mx-2 opacity-50">•</span>
+                      Stock: <span className="font-semibold text-slate-900 dark:text-white">{stock}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                  <p className="text-[16px] font-extrabold text-slate-900 dark:text-white">
+                    ${formatPrice(price)}
+                  </p>
+
+                  <Badge variant={item.status === 'active' ? 'success' : 'neutral'} className="capitalize">
+                    {item.status || 'draft'}
+                  </Badge>
+
+                  <button className="btn-ghost h-10 text-[13px] font-medium" onClick={() => startEdit(item)}>
+                    Editar
+                  </button>
+                  <button className="btn-ghost h-10 text-[13px] font-medium text-red-600 dark:text-red-300" onClick={() => remove(item)}>
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+
+          {!products.length && !loading && (
+            <div className="py-10 text-center text-[13px] text-slate-600 dark:text-white/60">
+              Aun no tienes productos.
+            </div>
+          )}
         </div>
 
-        {loading && <div className="text-sm text-white/60">Cargando...</div>}
-        {error && <div className="text-sm text-red-300">{error}</div>}
+        {loading && <div className="text-[13px] text-slate-600 dark:text-white/60">Cargando...</div>}
+        {error && <div className="text-[13px] text-red-600 dark:text-red-200">{error}</div>}
       </GlassCard>
 
       <GlassCard className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">{form.id ? 'Editar producto' : 'Nuevo producto'}</h2>
+        <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">
+          {form.id ? 'Editar producto' : 'Nuevo producto'}
+        </h2>
+
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
           <Input
             label="Nombre"
@@ -306,6 +310,7 @@ export default function ManageProducts() {
             required
             onChange={(e) => setForm((prev) => ({ ...prev, stock: e.target.value }))}
           />
+
           <Select
             label="Categoria"
             value={form.category_id}
@@ -319,6 +324,7 @@ export default function ManageProducts() {
               </option>
             ))}
           </Select>
+
           <Select
             label="Estado"
             value={form.status}
@@ -327,6 +333,7 @@ export default function ManageProducts() {
             <option value="active">Activo</option>
             <option value="draft">Borrador</option>
           </Select>
+
           <Textarea
             label="Descripcion"
             rows={3}
@@ -334,28 +341,30 @@ export default function ManageProducts() {
             onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
             containerClassName="md:col-span-2"
           />
+
           <div className="space-y-2">
-            <label className="text-sm text-white/70">Imagen</label>
+            <label className="text-[13px] font-medium text-slate-600 dark:text-white/70">Imagen</label>
             <label className="btn-secondary cursor-pointer w-fit">
               Subir imagen
               <input type="file" accept="image/*" onChange={onImage} className="hidden" />
             </label>
             {preview && (
-              <div className="w-28 h-28 rounded-2xl overflow-hidden border border-white/10 mt-2">
-                <img src={preview} className="w-full h-full object-cover" />
+              <div className="mt-2 h-28 w-28 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+                <img src={preview} className="h-full w-full object-cover" />
               </div>
             )}
           </div>
 
-          <div className="md:col-span-2 flex items-center gap-3">
+          <div className="md:col-span-2 flex flex-wrap items-center gap-3">
             <Button type="submit" className="w-full md:w-auto" loading={saving}>
               {saving ? 'Guardando...' : form.id ? 'Actualizar' : 'Crear producto'}
             </Button>
-            {formMessage && <span className="text-sm text-green-300">{formMessage}</span>}
-            {formError && <span className="text-sm text-red-300">{formError}</span>}
+            {formMessage && <span className="text-[12px] text-green-600 dark:text-green-300">{formMessage}</span>}
+            {formError && <span className="text-[12px] text-red-600 dark:text-red-300">{formError}</span>}
           </div>
         </form>
       </GlassCard>
     </div>
   )
 }
+

@@ -42,19 +42,13 @@ export default function Products() {
       range.push(i)
     }
 
-    if (current - delta > 2) {
-      rangeWithDots.push(1, '...')
-    } else {
-      rangeWithDots.push(1)
-    }
+    if (current - delta > 2) rangeWithDots.push(1, '...')
+    else rangeWithDots.push(1)
 
     rangeWithDots.push(...range)
 
-    if (current + delta < last - 1) {
-      rangeWithDots.push('...', last)
-    } else if (last > 1) {
-      rangeWithDots.push(last)
-    }
+    if (current + delta < last - 1) rangeWithDots.push('...', last)
+    else if (last > 1) rangeWithDots.push(last)
 
     return rangeWithDots.filter(
       (item, _index, self) => item !== '...' || self.indexOf(item) === self.lastIndexOf(item),
@@ -68,7 +62,7 @@ export default function Products() {
 
       const params: Record<string, string | number | undefined> = {
         page,
-        per_page: 12,
+        per_page: 20, // Temu: más densidad
         search: searchQuery,
         category: selectedCategory || undefined,
         sort: sortBy === 'recent' ? undefined : sortBy,
@@ -79,7 +73,7 @@ export default function Products() {
       setPagination({
         current_page: response.data.current_page || 1,
         last_page: response.data.last_page || 1,
-        per_page: response.data.per_page || 12,
+        per_page: response.data.per_page || 20,
         total: response.data.total || 0,
       })
     } catch (err: any) {
@@ -101,36 +95,28 @@ export default function Products() {
 
   useEffect(() => {
     const initialCategory = searchParams.get('category') || searchParams.get('category_id') || ''
-    if (initialCategory) {
-      setSelectedCategory(initialCategory)
-    }
+    if (initialCategory) setSelectedCategory(initialCategory)
     fetchCategories()
     fetchProducts()
+
     return () => {
-      if (searchTimeout.current) {
-        window.clearTimeout(searchTimeout.current)
-      }
+      if (searchTimeout.current) window.clearTimeout(searchTimeout.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    if (searchTimeout.current) {
-      window.clearTimeout(searchTimeout.current)
-    }
+    if (searchTimeout.current) window.clearTimeout(searchTimeout.current)
     searchTimeout.current = window.setTimeout(() => fetchProducts(1), 450)
+
     return () => {
-      if (searchTimeout.current) {
-        window.clearTimeout(searchTimeout.current)
-      }
+      if (searchTimeout.current) window.clearTimeout(searchTimeout.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedCategory, sortBy])
 
   const goToPage = (page: number) => {
-    if (page >= 1 && page <= pagination.last_page) {
-      fetchProducts(page)
-    }
+    if (page >= 1 && page <= pagination.last_page) fetchProducts(page)
   }
 
   const handleAddToCart = (item: Product) => {
@@ -160,64 +146,70 @@ export default function Products() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold text-white">Productos</h1>
-        <p className="text-sm text-white/60">Descubre los mejores repuestos para moto.</p>
+    <div className="space-y-5">
+      {/* Header Temu: compacto */}
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold leading-[1.15] text-slate-900 dark:text-white sm:text-[34px]">Productos</h1>
+        <p className="text-[13px] text-slate-600 dark:text-white/60">Descubre los mejores repuestos para moto.</p>
       </div>
 
-      <GlassCard className="flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="flex-1">
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            type="text"
-            placeholder="Buscar productos..."
-          />
-        </div>
+      {/* Filtros sticky */}
+      <div className="sticky top-[92px] z-20">
+        <GlassCard className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="flex-1">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              type="text"
+              placeholder="Buscar productos..."
+            />
+          </div>
 
-        <div className="w-full md:w-56">
-          <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-            <option value="">Todas las categorías</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
-        </div>
+          <div className="w-full md:w-56">
+            <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+              <option value="">Todas las categorías</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-        <div className="w-full md:w-56">
-          <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="recent">Más recientes</option>
-            <option value="price_asc">Precio: menor a mayor</option>
-            <option value="price_desc">Precio: mayor a menor</option>
-          </Select>
-        </div>
-      </GlassCard>
+          <div className="w-full md:w-56">
+            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="recent">Más recientes</option>
+              <option value="price_asc">Precio: menor a mayor</option>
+              <option value="price_desc">Precio: mayor a menor</option>
+            </Select>
+          </div>
+        </GlassCard>
+      </div>
 
       {loading && (
-        <div className="flex justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-brand-500" />
+        <div className="flex justify-center py-6">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-900/10 dark:border-white/20 border-t-brand-500" />
         </div>
       )}
 
       {!loading && error && (
-        <GlassCard className="border-red-500/30 bg-red-500/10 text-red-100">
+        <GlassCard className="border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-100">
           {error}
         </GlassCard>
       )}
 
       {!loading && !error && (
-        <div className="space-y-6">
-          <p className="text-sm text-white/60">
+        <div className="space-y-4">
+          <p className="text-[13px] text-slate-600 dark:text-white/60">
             Mostrando {products.length} de {pagination.total} productos
           </p>
 
           {products.length === 0 ? (
-            <GlassCard className="text-center text-white/60">No se encontraron productos.</GlassCard>
+            <GlassCard className="text-center text-[13px] text-slate-600 dark:text-white/60">
+              No se encontraron productos.
+            </GlassCard>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -230,8 +222,8 @@ export default function Products() {
           )}
 
           {pagination.last_page > 1 && (
-            <div className="flex justify-center">
-              <nav className="inline-flex items-center gap-2">
+            <div className="flex justify-center pt-2">
+              <nav className="inline-flex flex-wrap items-center justify-center gap-2">
                 <button
                   onClick={() => goToPage(pagination.current_page - 1)}
                   disabled={pagination.current_page === 1}
@@ -246,10 +238,12 @@ export default function Products() {
                     onClick={() => (typeof page === 'number' ? goToPage(page) : null)}
                     className={
                       typeof page === 'number'
-                        ? `px-4 py-2 rounded-xl text-sm font-medium border border-white/10 ${
-                            page === pagination.current_page ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white'
+                        ? `rounded-xl border border-slate-200 px-3 py-2 text-[13px] font-medium dark:border-white/10 ${
+                            page === pagination.current_page
+                              ? 'bg-slate-900/5 text-slate-900 dark:bg-white/10 dark:text-white'
+                              : 'text-slate-600 hover:text-slate-900 dark:text-white/60 dark:hover:text-white'
                           }`
-                        : 'px-3 py-2 text-white/40'
+                        : 'px-3 py-2 text-[13px] text-slate-400 dark:text-white/40'
                     }
                     disabled={typeof page !== 'number'}
                   >

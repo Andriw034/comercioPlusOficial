@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import Badge from '@/components/ui/Badge'
 import { buttonVariants } from '@/components/ui/button'
 import { formatPrice, resolveMediaUrl } from '@/lib/format'
@@ -12,67 +12,84 @@ type Props = {
 
 export default function ProductCard({ product, onAdd, onImageClick }: Props) {
   const image = resolveMediaUrl(product.image_url || product.image)
+
   const ratingValue = Number(product.rating ?? product.average_rating)
   const hasRating = Number.isFinite(ratingValue) && ratingValue > 0
 
+  const reviewsCount = Number(product.reviews_count ?? 0)
+  const hasReviews = Number.isFinite(reviewsCount) && reviewsCount > 0
+
   return (
-    <article className="h-full rounded-2xl border border-white/10 bg-white/5 p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10">
-      <div className="flex h-full flex-col gap-3">
+    <article className="group h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20">
+      <div className="flex h-full flex-col">
         <button
           type="button"
           onClick={() => onImageClick(product)}
-          className="group overflow-hidden rounded-2xl border border-white/15 bg-white/90 p-1.5 text-left transition-colors hover:border-brand-300/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300/60"
+          className="relative text-left"
           aria-label={`Ver imagen grande y detalles de ${product.name}`}
         >
-          <div className="aspect-[4/3] overflow-hidden rounded-xl bg-white">
+          <div className="relative aspect-square overflow-hidden bg-white">
             {image ? (
               <img
                 src={image}
                 alt={product.name}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm font-medium text-ink/60">
+              <div className="flex h-full w-full items-center justify-center px-4 text-center text-[13px] font-medium text-slate-500 dark:text-white/60">
                 Sin imagen
               </div>
             )}
+
+            <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+              {product.category?.name && <Badge variant="neutral">{product.category.name}</Badge>}
+              {typeof product.stock === 'number' && product.stock <= 3 && product.stock > 0 && (
+                <Badge variant="brand">Ultimas</Badge>
+              )}
+              {typeof product.stock === 'number' && product.stock === 0 && (
+                <Badge variant="danger">Agotado</Badge>
+              )}
+            </div>
           </div>
         </button>
 
-        <div className="space-y-1.5">
-          <p className="text-2xl font-bold tracking-tight text-brand-200">
-            ${formatPrice(product.price)}
-          </p>
-          <h3 className="line-clamp-2 min-h-[2.6rem] text-sm font-semibold leading-snug text-white">
+        <div className="flex flex-1 flex-col gap-2 px-4 pt-3 pb-4">
+          <div className="flex items-end justify-between gap-3">
+            <p className="text-[20px] font-extrabold leading-[1] text-slate-900 dark:text-white sm:text-[22px]">
+              ${formatPrice(product.price)}
+            </p>
+
+            {hasRating && (
+              <div className="flex items-center gap-1 text-[12px] text-slate-500 dark:text-white/60">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-[12px] text-slate-900 backdrop-blur dark:bg-white/10 dark:text-white">
+                  <span aria-hidden>*</span>
+                  <span className="font-semibold">{ratingValue.toFixed(1)}</span>
+                  {hasReviews ? <span className="opacity-80">({reviewsCount})</span> : null}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <h3 className="line-clamp-2 min-h-[34px] text-[13px] font-semibold leading-[1.25] text-slate-800 dark:text-white sm:min-h-[38px] sm:text-[14px]">
             {product.name}
           </h3>
-          {product.category && (
-            <div>
-              <Badge variant="neutral">{product.category.name}</Badge>
-            </div>
-          )}
-          <p className="text-xs text-white/60">
-            Stock: {product.stock}
-          </p>
-          {hasRating && (
-            <p className="text-xs text-white/70">
-              {ratingValue.toFixed(1)} / 5
-              {product.reviews_count ? ` · ${product.reviews_count} reseñas` : ''}
-            </p>
-          )}
-        </div>
 
-        <div className="mt-auto grid grid-cols-2 gap-2 pt-0.5">
-          <Link to={`/product/${product.id}`} className={buttonVariants('secondary', 'justify-center')}>
-            Ver detalles
-          </Link>
-          <button
-            type="button"
-            onClick={() => onAdd(product)}
-            className={buttonVariants('primary', 'justify-center')}
-          >
-            Agregar
-          </button>
+          <p className="text-[12px] text-slate-500 dark:text-white/60">Stock: {product.stock}</p>
+
+          <div className="mt-auto grid grid-cols-2 gap-2 pt-2">
+            <Link to={`/product/${product.id}`} className={buttonVariants('secondary', 'h-10 justify-center text-[13px]')}>
+              Ver
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => onAdd(product)}
+              className={buttonVariants('primary', 'h-10 justify-center text-[13px] disabled:cursor-not-allowed disabled:opacity-50')}
+              disabled={typeof product.stock === 'number' && product.stock === 0}
+            >
+              Agregar
+            </button>
+          </div>
         </div>
       </div>
     </article>

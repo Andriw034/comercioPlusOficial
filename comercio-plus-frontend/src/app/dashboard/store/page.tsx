@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import API from '@/lib/api'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
@@ -109,11 +109,11 @@ export default function ManageStore() {
   }, [])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-white/60">Configura tu tienda</p>
-          <h1 className="text-2xl font-semibold text-white">{store.id ? 'Editar tienda' : 'Crear tienda'}</h1>
+          <p className="text-[13px] text-slate-600 dark:text-white/60">Configura tu tienda</p>
+          <h1 className="text-[22px] font-semibold text-slate-900 dark:text-white sm:text-[26px]">{store.id ? 'Editar tienda' : 'Crear tienda'}</h1>
         </div>
         <Badge variant={store.is_visible ? 'success' : 'neutral'}>{store.is_visible ? 'Visible' : 'Oculta'}</Badge>
       </div>
@@ -184,7 +184,7 @@ export default function ManageStore() {
             />
           </div>
 
-          <div className="flex items-center gap-3 text-sm text-white/70">
+          <div className="flex items-center gap-3 text-[13px] text-slate-600 dark:text-white/70">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -198,29 +198,29 @@ export default function ManageStore() {
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
-              <p className="text-sm text-white/70">Logo</p>
-              <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-4 flex flex-col items-center gap-3">
+              <p className="text-[13px] font-medium text-slate-600 dark:text-white/70">Logo</p>
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 dark:border-white/20 dark:bg-white/5">
                 <label className="btn-secondary cursor-pointer w-full text-center">
                   Subir logo
                   <input type="file" accept="image/*" onChange={(e) => onFileSelect(e, 'logo')} className="hidden" />
                 </label>
                 {previews.logo && (
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden border border-white/10">
-                    <img src={previews.logo} className="w-full h-full object-cover" />
+                  <div className="h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+                    <img src={previews.logo} className="h-full w-full object-cover" />
                   </div>
                 )}
               </div>
             </div>
             <div className="space-y-3">
-              <p className="text-sm text-white/70">Portada</p>
-              <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-4 flex flex-col items-center gap-3">
+              <p className="text-[13px] font-medium text-slate-600 dark:text-white/70">Portada</p>
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 dark:border-white/20 dark:bg-white/5">
                 <label className="btn-secondary cursor-pointer w-full text-center">
                   Subir portada
                   <input type="file" accept="image/*" onChange={(e) => onFileSelect(e, 'cover')} className="hidden" />
                 </label>
                 {previews.cover && (
-                  <div className="w-full h-28 rounded-2xl overflow-hidden border border-white/10">
-                    <img src={previews.cover} className="w-full h-full object-cover" />
+                  <div className="h-28 w-full overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+                    <img src={previews.cover} className="h-full w-full object-cover" />
                   </div>
                 )}
               </div>
@@ -231,11 +231,12 @@ export default function ManageStore() {
             <Button type="submit" className="w-full md:w-auto" loading={submitting}>
               {submitting ? 'Guardando...' : store.id ? 'Actualizar tienda' : 'Crear tienda'}
             </Button>
-            {message && <span className="text-sm text-green-300">{message}</span>}
-            {error && <span className="text-sm text-red-300">{error}</span>}
+            {message && <span className="text-[12px] text-green-600 dark:text-green-300">{message}</span>}
+            {error && <span className="text-[12px] text-red-600 dark:text-red-300">{error}</span>}
           </div>
         </form>
       </GlassCard>
     </div>
   )
 }
+

@@ -126,29 +126,29 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-white/60">Hola, {user?.name || 'comerciante'}</p>
-          <h1 className="text-3xl font-semibold text-white">Panel del comerciante</h1>
+          <p className="text-[13px] text-slate-600 dark:text-white/60">Hola, {user?.name || 'comerciante'}</p>
+          <h1 className="text-[22px] font-semibold text-slate-900 dark:text-white sm:text-[26px]">Panel del comerciante</h1>
         </div>
         <Button variant="ghost" onClick={logout}>Cerrar sesion</Button>
       </div>
 
       {loading && (
         <div className="flex justify-center py-10">
-          <div className="h-12 w-12 rounded-full border-2 border-white/20 border-t-brand-500 animate-spin" />
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-slate-900/10 border-t-brand-500 dark:border-white/20" />
         </div>
       )}
 
       {!loading && error && (
-        <GlassCard className="border-red-500/30 bg-red-500/10 text-red-100">
+        <GlassCard className="border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-100">
           {error}
         </GlassCard>
       )}
 
       {!loading && !error && (
-        <div className="space-y-8">
+        <div className="space-y-5 sm:space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <StatCard label="Tienda principal" value={primaryStore?.name || 'Sin tienda'} hint={primaryStore?.description || 'Aun no creas tu tienda'} />
             <StatCard label="Productos publicados" value={productsCount} hint="Gestiona tu catalogo" />
@@ -158,42 +158,42 @@ export default function Dashboard() {
           <div className="grid gap-6 lg:grid-cols-3">
             <GlassCard className="lg:col-span-2 space-y-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Acciones rapidas</h3>
-                <p className="text-sm text-white/60">Gestion diaria de tu tienda</p>
+                <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Acciones rapidas</h3>
+                <p className="text-[13px] text-slate-600 dark:text-white/60">Gestion diaria de tu tienda</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {!primaryStore && (
                   <Link to="/dashboard/store" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
-                    <p className="font-semibold text-white">Crear tienda</p>
-                    <p className="text-xs text-white/60 mt-1">Publica tu catalogo</p>
+                    <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Crear tienda</p>
+                    <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Publica tu catalogo</p>
                   </Link>
                 )}
                 <Link to="/dashboard/products" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
-                  <p className="font-semibold text-white">Productos</p>
-                  <p className="text-xs text-white/60 mt-1">Crea, edita y elimina</p>
+                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Productos</p>
+                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Crea, edita y elimina</p>
                 </Link>
                 <Link to="/stores" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
-                  <p className="font-semibold text-white">Explorar tiendas</p>
-                  <p className="text-xs text-white/60 mt-1">Inspirate en otros catalogos</p>
+                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Explorar tiendas</p>
+                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Inspirate en otros catalogos</p>
                 </Link>
               </div>
             </GlassCard>
 
             <GlassCard className="space-y-3">
-              <h3 className="text-lg font-semibold text-white">Actividad reciente</h3>
+              <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Actividad reciente</h3>
               {recentActivity.length === 0 ? (
-                <p className="text-sm text-white/60">Aun no hay pedidos registrados.</p>
+                <p className="text-[13px] text-slate-600 dark:text-white/60">Aun no hay pedidos registrados.</p>
               ) : (
                 <div className="space-y-3">
                   {recentActivity.map((item) => (
-                    <div key={item.id} className="flex items-start justify-between border-b border-white/10 pb-3 last:border-b-0">
+                    <div key={item.id} className="flex items-start justify-between border-b border-slate-200 pb-3 last:border-b-0 dark:border-white/10">
                       <div>
-                        <p className="text-sm text-white font-medium">Pedido #{item.id}</p>
-                        <p className="text-xs text-white/50">{formatDate(item.date)}</p>
+                        <p className="text-[13px] font-medium text-slate-900 dark:text-white">Pedido #{item.id}</p>
+                        <p className="text-[12px] text-slate-500 dark:text-white/60">{formatDate(item.date)}</p>
                       </div>
                       <div className="text-right">
                         <Badge variant="neutral" className="capitalize">{item.status}</Badge>
-                        <p className="text-sm text-brand-200 font-semibold mt-1">${item.amount.toLocaleString('es-CO')}</p>
+                        <p className="mt-1 text-[13px] font-semibold text-brand-600 dark:text-brand-200">${item.amount.toLocaleString('es-CO')}</p>
                       </div>
                     </div>
                   ))}

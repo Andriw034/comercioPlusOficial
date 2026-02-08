@@ -4,6 +4,7 @@ import RequireRole from '@/components/auth/RequireRole'
 import AuthLayout from '@/components/layouts/AuthLayout'
 import DashboardLayout from '@/components/layouts/DashboardLayout'
 import PublicLayout from '@/components/layouts/PublicLayout'
+
 import Category from './category/page'
 import CreateStore from './store/create/page'
 import Dashboard from './dashboard/page'
@@ -27,6 +28,10 @@ export default function App() {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/stores" element={<Stores />} />
+
+          {/* importante: "create" antes que ":id" */}
+          <Route path="/store/create" element={<CreateStore />} />
+
           <Route path="/store/:id" element={<StoreDetail />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/products" element={<Products />} />
@@ -54,19 +59,7 @@ export default function App() {
           <Route path="/dashboard/store" element={<ManageStore />} />
           <Route path="/dashboard/products" element={<ManageProducts />} />
         </Route>
-
-        <Route
-          path="/store/create"
-          element={
-            <RequireAuth>
-              <RequireRole role="merchant">
-                <CreateStore />
-              </RequireRole>
-            </RequireAuth>
-          }
-        />
       </Routes>
     </BrowserRouter>
   )
 }
-

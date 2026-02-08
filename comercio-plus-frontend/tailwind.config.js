@@ -38,8 +38,8 @@ export default {
         error: '#ef4444',
       },
       fontFamily: {
-        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
-        sans: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'ui-sans-serif', 'system-ui'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
       },
       boxShadow: {
         soft: '0 12px 30px rgba(0, 0, 0, 0.18)',

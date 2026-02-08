@@ -4,6 +4,7 @@ import API from '@/lib/api'
 import type { Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
 import { resolveMediaUrl } from '@/lib/format'
+import ThemeToggle from '@/components/theme/ThemeToggle'
 import AppShell from './AppShell'
 
 export default function DashboardLayout() {
@@ -49,6 +50,7 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     let active = true
+
     const loadStore = async () => {
       try {
         const { data } = await API.get('/my/store')
@@ -82,6 +84,10 @@ export default function DashboardLayout() {
   const storeLogo = store?.logo_url
   const storeCover = store?.cover_url
   const storeInitial = storeName.trim().charAt(0).toUpperCase() || 'C'
+  const hasCover = Boolean(storeCover)
+  const titleClass = hasCover ? 'text-white' : 'text-slate-900 dark:text-white'
+  const subtitleClass = hasCover ? 'text-white/70' : 'text-slate-600 dark:text-white/60'
+  const ghostOnCover = hasCover ? '!border-white/25 !text-white hover:!border-white/40 hover:!bg-white/15' : ''
 
   const header = (
     <header className="sticky top-0 z-30 px-4 pt-4">
@@ -92,24 +98,34 @@ export default function DashboardLayout() {
             <div className="absolute inset-0 bg-slate-900/70" />
           </div>
         )}
+
         <Link to="/" className="relative flex items-center gap-3">
           {storeLogo ? (
             <img
               src={storeLogo}
               alt={`Logo ${storeName}`}
-              className="h-10 w-10 rounded-2xl object-cover border border-white/10 bg-white"
+              className="h-10 w-10 rounded-2xl object-cover border border-slate-200 bg-white dark:border-white/10"
             />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white">{storeInitial}</span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white">
+              {storeInitial}
+            </span>
           )}
+
           <div className="leading-tight">
-            <p className="font-semibold text-white">{storeName}</p>
-            <p className="text-xs text-white/60">Panel del comerciante</p>
+            <p className={`text-[16px] font-semibold ${titleClass}`.trim()}>{storeName}</p>
+            <p className={`text-[13px] ${subtitleClass}`.trim()}>Panel del comerciante</p>
           </div>
         </Link>
-        <div className="relative flex items-center gap-3 text-sm">
-          <Link to="/stores" className={buttonVariants('ghost')}>Ver tiendas</Link>
-          <Link to="/products" className={buttonVariants('ghost')}>Productos</Link>
+
+        <div className="relative flex items-center gap-3 text-[13px]">
+          <ThemeToggle />
+          <Link to="/stores" className={buttonVariants('ghost', ghostOnCover)}>
+            Ver tiendas
+          </Link>
+          <Link to="/products" className={buttonVariants('ghost', ghostOnCover)}>
+            Productos
+          </Link>
         </div>
       </div>
     </header>

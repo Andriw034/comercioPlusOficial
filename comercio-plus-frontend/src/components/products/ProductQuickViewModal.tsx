@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Badge from '@/components/ui/Badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -26,9 +26,7 @@ export default function ProductQuickViewModal({
     if (!open) return
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
+      if (event.key === 'Escape') onClose()
     }
 
     window.addEventListener('keydown', onKeyDown)
@@ -40,21 +38,31 @@ export default function ProductQuickViewModal({
     }
   }, [open, onClose])
 
+  const image = useMemo(() => resolveMediaUrl(product?.image_url || (product as any)?.image), [product])
+  const ratingValue = Number(product?.rating ?? (product as any)?.average_rating)
+  const hasRating = Number.isFinite(ratingValue) && ratingValue > 0
+  const reviewsCount = Number(product?.reviews_count ?? 0)
+
   if (!open) return null
 
-  const image = resolveMediaUrl(product?.image_url || product?.image)
-  const ratingValue = Number(product?.rating ?? product?.average_rating)
-  const hasRating = Number.isFinite(ratingValue) && ratingValue > 0
-
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 px-4 py-6 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-5xl rounded-3xl border border-white/15 bg-panel shadow-card">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
-          <h2 className="text-base font-semibold text-white">Vista rápida del producto</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-6 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Vista rápida del producto"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-white/15 bg-white/90 text-slate-900 shadow-card dark:bg-panel dark:text-white">
+        {/* Header compacto */}
+        <div className="flex items-center justify-between border-b border-slate-900/10 px-5 py-4 dark:border-white/10 sm:px-6">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Vista rápida</h2>
           <button
             type="button"
             onClick={onClose}
-            className={buttonVariants('ghost', 'h-9 w-9 rounded-full p-0 text-white')}
+            className={buttonVariants('ghost', 'h-9 w-9 rounded-full p-0 text-slate-900 dark:text-white')}
             aria-label="Cerrar vista rápida"
           >
             <span aria-hidden="true">×</span>
@@ -64,59 +72,77 @@ export default function ProductQuickViewModal({
         <div className="max-h-[80vh] overflow-auto p-5 sm:p-6">
           {loading && (
             <div className="flex justify-center py-16">
-              <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-brand-500" />
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-900/10 dark:border-white/20 border-t-brand-500" />
             </div>
           )}
 
           {!loading && error && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200">
               {error}
             </div>
           )}
 
           {!loading && !error && product && (
-            <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
-              <div className="overflow-hidden rounded-2xl border border-white/15 bg-white/90 p-3">
-                <div className="aspect-[4/3] overflow-hidden rounded-xl bg-white">
+            <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
+              {/* Imagen Temu: 1:1 + badges */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-white p-3 dark:border-white/10 dark:bg-white/90">
+                <div className="relative aspect-square overflow-hidden rounded-xl bg-white">
                   {image ? (
                     <img src={image} alt={product.name} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-medium text-ink/60">
+                    <div className="flex h-full w-full items-center justify-center text-sm font-medium text-slate-500">
                       Sin imagen
+                    </div>
+                  )}
+
+                  <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                    {product.category?.name ? <Badge variant="neutral">{product.category.name}</Badge> : null}
+                    {typeof product.stock === 'number' && product.stock === 0 ? (
+                      <Badge variant="danger">Agotado</Badge>
+                    ) : typeof product.stock === 'number' && product.stock <= 3 ? (
+                      <Badge variant="brand">¡Últimas!</Badge>
+                    ) : null}
+                  </div>
+
+                  {hasRating && (
+                    <div className="absolute right-3 top-3">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 text-xs font-semibold text-slate-900 backdrop-blur dark:bg-slate-900/40 dark:text-white">
+                        <span aria-hidden>★</span>
+                        {ratingValue.toFixed(1)}
+                        {reviewsCount > 0 ? <span className="font-medium opacity-80">({reviewsCount})</span> : null}
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* Info */}
               <div className="space-y-4">
-                <p className="text-3xl font-bold tracking-tight text-brand-200">
-                  ${formatPrice(product.price)}
-                </p>
-                <h3 className="text-xl font-semibold text-white">{product.name}</h3>
-                {product.category && <Badge variant="neutral">{product.category.name}</Badge>}
-
-                <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm text-white/75">
-                    <span className="text-white/50">Stock:</span> {product.stock}
+                <div className="space-y-1">
+                  <p className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                    ${formatPrice(product.price)}
                   </p>
-                  {hasRating && (
-                    <p className="text-sm text-white/75">
-                      <span className="text-white/50">Rating:</span> {ratingValue.toFixed(1)} / 5
-                      {product.reviews_count ? ` · ${product.reviews_count} reseñas` : ''}
-                    </p>
-                  )}
-                  <p className="text-sm text-white/75">
-                    <span className="text-white/50">Estado:</span> {product.status || 'Activo'}
-                  </p>
-                  {product.store?.name && (
-                    <p className="text-sm text-white/75">
-                      <span className="text-white/50">Tienda:</span> {product.store.name}
-                    </p>
-                  )}
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{product.name}</h3>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm leading-relaxed text-white/75">
+                <div className="grid gap-2 rounded-2xl border border-slate-900/10 bg-white/70 p-4 text-sm dark:border-white/10 dark:bg-white/5">
+                  <p className="text-slate-700 dark:text-white/75">
+                    <span className="text-slate-500 dark:text-white/50">Stock:</span> {product.stock}
+                  </p>
+
+                  <p className="text-slate-700 dark:text-white/75">
+                    <span className="text-slate-500 dark:text-white/50">Estado:</span> {product.status || 'Activo'}
+                  </p>
+
+                  {product.store?.name ? (
+                    <p className="text-slate-700 dark:text-white/75">
+                      <span className="text-slate-500 dark:text-white/50">Tienda:</span> {product.store.name}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+                  <p className="text-sm leading-relaxed text-slate-700 dark:text-white/75">
                     {product.description || 'Sin descripción adicional por ahora.'}
                   </p>
                 </div>
@@ -126,10 +152,16 @@ export default function ProductQuickViewModal({
                     type="button"
                     onClick={() => onAdd(product)}
                     className={buttonVariants('primary', 'justify-center')}
+                    disabled={typeof product.stock === 'number' && product.stock === 0}
                   >
                     Agregar
                   </button>
-                  <Link to={`/product/${product.id}`} onClick={onClose} className={buttonVariants('secondary', 'justify-center')}>
+
+                  <Link
+                    to={`/product/${product.id}`}
+                    onClick={onClose}
+                    className={buttonVariants('secondary', 'justify-center')}
+                  >
                     Ver detalles
                   </Link>
                 </div>
