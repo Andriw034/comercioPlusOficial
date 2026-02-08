@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
 import type { Category as CategoryType, Product } from '@/types/api'
 import GlassCard from '@/components/ui/GlassCard'
@@ -8,19 +8,12 @@ import StatCard from '@/components/ui/StatCard'
 import { buttonVariants } from '@/components/ui/button'
 import ProductCard from '@/components/products/ProductCard'
 import ProductQuickViewModal from '@/components/products/ProductQuickViewModal'
-import { resolveMediaUrl } from '@/lib/format'
-
-const FALLBACK_HERO_IMAGES = [
-  '/hero/ahours-photo.jpg',
-  '/hero/motorcycle-.jpg',
-  '/hero/motorcycle-mechanic-photo.jpg',
-]
 
 export default function Home() {
+  const navigate = useNavigate()
   const [categories, setCategories] = useState<CategoryType[]>([])
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
-  const [heroImages, setHeroImages] = useState<string[]>([])
-  const [heroIndex, setHeroIndex] = useState(0)
+  const [heroQuery, setHeroQuery] = useState('')
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [quickViewLoading, setQuickViewLoading] = useState(false)
   const [quickViewError, setQuickViewError] = useState('')
@@ -34,24 +27,16 @@ export default function Home() {
         setLoading(true)
         setError(null)
 
-        const [categoriesResponse, productsResponse, heroResponse] = await Promise.all([
+        const [categoriesResponse, productsResponse] = await Promise.all([
           API.get('/categories'),
           API.get('/products', { params: { per_page: 8, sort: 'recent' } }),
-          API.get('/hero-images'),
         ])
 
         setCategories(categoriesResponse.data || [])
         setFeaturedProducts(productsResponse.data?.data || [])
-
-        const apiHeroImages = (heroResponse.data?.images || [])
-          .map((value: string) => resolveMediaUrl(value))
-          .filter(Boolean)
-
-        setHeroImages(apiHeroImages.length ? apiHeroImages : FALLBACK_HERO_IMAGES)
       } catch (err) {
         console.error('Home loading error:', err)
         setError('Error al cargar el contenido')
-        setHeroImages(FALLBACK_HERO_IMAGES)
       } finally {
         setLoading(false)
       }
@@ -60,15 +45,6 @@ export default function Home() {
     load()
   }, [])
 
-  useEffect(() => {
-    if (heroImages.length <= 1) return
-    const interval = window.setInterval(() => {
-      setHeroIndex((prev) => (prev + 1) % heroImages.length)
-    }, 6500)
-    return () => window.clearInterval(interval)
-  }, [heroImages])
-
-  const heroImage = resolveMediaUrl(heroImages[heroIndex])
   const visibleCategories = categories.slice(0, 6)
 
   const handleAddToCart = (item: Product) => {
@@ -97,33 +73,89 @@ export default function Home() {
     setQuickViewError('')
   }
 
+  const submitHeroSearch = (event: React.FormEvent) => {
+    event.preventDefault()
+    const query = heroQuery.trim()
+    navigate(query ? `/products?q=${encodeURIComponent(query)}` : '/products')
+  }
+
   return (
-    <div className="-mt-3 space-y-6 lg:space-y-7">
-      <section className="relative -mx-3 w-auto sm:-mx-4">
-        <GlassCard className="relative flex h-[280px] w-full items-center overflow-hidden p-5 sm:h-[320px] sm:p-7 lg:h-[340px] lg:p-10">
-          {heroImage && (
-            <img
-              src={heroImage}
-              alt="Hero"
-              className="absolute inset-0 h-full w-full object-cover object-center opacity-25"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/45 via-slate-900/20 to-slate-900/60" />
-          <div className="relative max-w-5xl">
-            <Badge variant="brand">ComercioPlus</Badge>
-            <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
-              Bienvenido a ComercioPlus
-            </h1>
-            <p className="mt-3 max-w-2xl text-base text-white/70 sm:text-lg lg:text-xl">
-              La plataforma premium para repuestos de moto. Encuentra todo lo que necesitas con tiendas confiables y
-              envios rapidos.
-            </p>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Link to="/products" className={buttonVariants('primary')}>Explorar productos</Link>
-              <Link to="/stores" className={buttonVariants('secondary')}>Ver tiendas</Link>
-            </div>
+    <div className="space-y-6 lg:space-y-7">
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden min-h-[420px] sm:min-h-[520px] lg:min-h-[600px]">
+        <div className="absolute inset-0">
+          <img
+            src="/images/hero-moto.jpg"
+            alt=""
+            className="h-full w-full object-cover object-center"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/75 via-slate-950/35 to-transparent dark:from-black/75 dark:via-black/40" />
+        </div>
+
+        <div className="relative mx-auto flex min-h-[420px] max-w-7xl items-center px-4 py-10 sm:min-h-[520px] sm:px-6 sm:py-12 lg:min-h-[600px] lg:px-8 lg:py-16">
+          <div className="w-full">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-white/85 px-3 py-1 text-[12px] font-semibold text-slate-900 dark:bg-white/10 dark:text-white">
+              Envios rapidos
+            </span>
+            <span className="inline-flex items-center rounded-full bg-white/85 px-3 py-1 text-[12px] font-semibold text-slate-900 dark:bg-white/10 dark:text-white">
+              Tiendas verificadas
+            </span>
+            <span className="inline-flex items-center rounded-full bg-white/85 px-3 py-1 text-[12px] font-semibold text-slate-900 dark:bg-white/10 dark:text-white">
+              Pago seguro
+            </span>
           </div>
-        </GlassCard>
+
+          <div className="mt-5 max-w-2xl space-y-3">
+            <h1 className="text-[30px] font-semibold leading-[1.12] text-white sm:text-[40px]">
+              Compra repuestos para tu moto sin riesgos
+            </h1>
+            <p className="text-[14px] leading-[1.55] text-white/80 sm:text-[15px]">
+              Encuentra repuestos, accesorios y mantenimiento en tiendas confiables. Compara, elige y recibe rapido.
+            </p>
+          </div>
+
+          <form className="mt-6 max-w-xl" onSubmit={submitHeroSearch}>
+            <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/90 p-2 shadow-sm dark:bg-white/10">
+              <input
+                className="h-10 w-full bg-transparent px-3 text-[14px] text-slate-900 placeholder:text-slate-500 focus:outline-none dark:text-white dark:placeholder:text-white/50"
+                placeholder="Buscar: casco, llanta, frenos..."
+                value={heroQuery}
+                onChange={(event) => setHeroQuery(event.target.value)}
+                aria-label="Buscar repuestos"
+              />
+              <button
+                type="submit"
+                className="h-10 rounded-xl bg-brand-500 px-4 text-[13px] font-semibold text-white hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+              >
+                Buscar
+              </button>
+            </div>
+            <p className="mt-2 text-[12px] text-white/70">
+              Ej: "Casco", "Kit arrastre", "Pastillas freno"
+            </p>
+          </form>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              to="/products"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-500 px-5 text-[13px] font-semibold text-white shadow-sm hover:bg-brand-600"
+            >
+              Explorar productos
+            </Link>
+            <Link
+              to="/stores"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-5 text-[13px] font-semibold text-white hover:bg-white/15"
+            >
+              Ver tiendas
+            </Link>
+            <Link to="/register" className="text-[13px] font-semibold text-white/80 hover:text-white">
+              Quiero vender
+            </Link>
+          </div>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -175,14 +207,14 @@ export default function Home() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {visibleCategories.map((category) => (
             <GlassCard key={category.id} className="flex flex-col gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white/80">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900/5 text-slate-700 dark:bg-white/10 dark:text-white/80">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-white">{category.name}</h3>
-                <p className="text-sm text-white/60">{category.description}</p>
+                <h3 className="text-[20px] font-semibold text-slate-900 dark:text-white">{category.name}</h3>
+                <p className="text-[14px] text-slate-600 dark:text-white/60">{category.description || 'Categoria disponible'}</p>
               </div>
               <Link to={`/products?category_id=${category.id}`} className={buttonVariants('ghost')}>
                 Ver productos
@@ -195,8 +227,10 @@ export default function Home() {
       <section className="grid gap-6 lg:grid-cols-2">
         <GlassCard className="space-y-4">
           <Badge variant="neutral">Quienes somos</Badge>
-          <h2 className="text-2xl font-semibold text-white">La plataforma confiable para repuestos de moto</h2>
-          <p className="text-sm text-white/60">
+          <h2 className="text-[24px] font-semibold text-slate-900 dark:text-white">
+            La plataforma confiable para repuestos de moto
+          </h2>
+          <p className="text-[14px] text-slate-600 dark:text-white/70">
             Conectamos motociclistas con tiendas verificadas para que encuentres repuestos, accesorios y
             mantenimiento con total seguridad y rapidez.
           </p>
@@ -207,7 +241,7 @@ export default function Home() {
             'Categorias enfocadas 100% en motociclistas.',
             'Compra simple y rapida, sin procesos complejos.',
           ].map((item) => (
-            <div key={item} className="flex items-start gap-3 text-sm text-white/70">
+            <div key={item} className="flex items-start gap-3 text-[14px] text-slate-600 dark:text-white/70">
               <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500" />
               <span>{item}</span>
             </div>
@@ -218,8 +252,10 @@ export default function Home() {
       <section>
         <GlassCard className="space-y-4 border-brand-500/30">
           <Badge variant="brand">Eres comerciante?</Badge>
-          <h2 className="text-2xl font-semibold text-white">Crea tu tienda y llega a miles de motociclistas</h2>
-          <p className="text-sm text-white/60">
+          <h2 className="text-[24px] font-semibold text-slate-900 dark:text-white">
+            Crea tu tienda y llega a miles de motociclistas
+          </h2>
+          <p className="text-[14px] text-slate-600 dark:text-white/70">
             Disena tu catalogo, recibe pedidos y administra todo desde un panel premium.
           </p>
           <Link to="/register" className={buttonVariants('primary')}>Crear tienda</Link>

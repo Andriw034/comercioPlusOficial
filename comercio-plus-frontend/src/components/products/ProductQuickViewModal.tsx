@@ -47,32 +47,31 @@ export default function ProductQuickViewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-6 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-6 sm:items-center"
       role="dialog"
       aria-modal="true"
-      aria-label="Vista rápida del producto"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose()
+      aria-label="Vista rapida del producto"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-white/15 bg-white/90 text-slate-900 shadow-card dark:bg-panel dark:text-white">
-        {/* Header compacto */}
-        <div className="flex items-center justify-between border-b border-slate-900/10 px-5 py-4 dark:border-white/10 sm:px-6">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Vista rápida</h2>
+      <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-card dark:border-white/10 dark:bg-panel dark:text-white">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10 sm:px-6">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Vista rapida</h2>
           <button
             type="button"
             onClick={onClose}
             className={buttonVariants('ghost', 'h-9 w-9 rounded-full p-0 text-slate-900 dark:text-white')}
-            aria-label="Cerrar vista rápida"
+            aria-label="Cerrar vista rapida"
           >
-            <span aria-hidden="true">×</span>
+            <span aria-hidden="true">x</span>
           </button>
         </div>
 
         <div className="max-h-[80vh] overflow-auto p-5 sm:p-6">
           {loading && (
             <div className="flex justify-center py-16">
-              <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-900/10 dark:border-white/20 border-t-brand-500" />
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-900/10 border-t-brand-500 dark:border-white/20" />
             </div>
           )}
 
@@ -84,30 +83,34 @@ export default function ProductQuickViewModal({
 
           {!loading && !error && product && (
             <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
-              {/* Imagen Temu: 1:1 + badges */}
-              <div className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-white p-3 dark:border-white/10 dark:bg-white/90">
-                <div className="relative aspect-square overflow-hidden rounded-xl bg-white">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="relative aspect-square overflow-hidden rounded-xl">
                   {image ? (
-                    <img src={image} alt={product.name} className="h-full w-full object-cover" />
+                    <img
+                      src={image}
+                      alt={product.name}
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-medium text-slate-500">
+                    <div className="flex h-full w-full items-center justify-center text-sm font-medium text-slate-500 dark:text-white/60">
                       Sin imagen
                     </div>
                   )}
 
                   <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-                    {product.category?.name ? <Badge variant="neutral">{product.category.name}</Badge> : null}
                     {typeof product.stock === 'number' && product.stock === 0 ? (
                       <Badge variant="danger">Agotado</Badge>
                     ) : typeof product.stock === 'number' && product.stock <= 3 ? (
-                      <Badge variant="brand">¡Últimas!</Badge>
+                      <Badge variant="brand">Ultimas</Badge>
                     ) : null}
                   </div>
 
                   {hasRating && (
                     <div className="absolute right-3 top-3">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white/85 px-2.5 py-1 text-xs font-semibold text-slate-900 backdrop-blur dark:bg-slate-900/40 dark:text-white">
-                        <span aria-hidden>★</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-900 dark:bg-white/10 dark:text-white">
+                        <span aria-hidden>*</span>
                         {ratingValue.toFixed(1)}
                         {reviewsCount > 0 ? <span className="font-medium opacity-80">({reviewsCount})</span> : null}
                       </span>
@@ -116,7 +119,6 @@ export default function ProductQuickViewModal({
                 </div>
               </div>
 
-              {/* Info */}
               <div className="space-y-4">
                 <div className="space-y-1">
                   <p className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
@@ -125,25 +127,25 @@ export default function ProductQuickViewModal({
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{product.name}</h3>
                 </div>
 
-                <div className="grid gap-2 rounded-2xl border border-slate-900/10 bg-white/70 p-4 text-sm dark:border-white/10 dark:bg-white/5">
+                <div className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm dark:border-white/10 dark:bg-white/5">
                   <p className="text-slate-700 dark:text-white/75">
-                    <span className="text-slate-500 dark:text-white/50">Stock:</span> {product.stock}
+                    <span className="text-slate-500 dark:text-white/60">Stock:</span> {product.stock}
                   </p>
 
                   <p className="text-slate-700 dark:text-white/75">
-                    <span className="text-slate-500 dark:text-white/50">Estado:</span> {product.status || 'Activo'}
+                    <span className="text-slate-500 dark:text-white/60">Estado:</span> {product.status || 'Activo'}
                   </p>
 
                   {product.store?.name ? (
                     <p className="text-slate-700 dark:text-white/75">
-                      <span className="text-slate-500 dark:text-white/50">Tienda:</span> {product.store.name}
+                      <span className="text-slate-500 dark:text-white/60">Tienda:</span> {product.store.name}
                     </p>
                   ) : null}
                 </div>
 
-                <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                   <p className="text-sm leading-relaxed text-slate-700 dark:text-white/75">
-                    {product.description || 'Sin descripción adicional por ahora.'}
+                    {product.description || 'Sin descripcion adicional por ahora.'}
                   </p>
                 </div>
 
@@ -151,7 +153,7 @@ export default function ProductQuickViewModal({
                   <button
                     type="button"
                     onClick={() => onAdd(product)}
-                    className={buttonVariants('primary', 'justify-center')}
+                    className={buttonVariants('primary', 'h-10 justify-center text-[13px]')}
                     disabled={typeof product.stock === 'number' && product.stock === 0}
                   >
                     Agregar
@@ -160,7 +162,7 @@ export default function ProductQuickViewModal({
                   <Link
                     to={`/product/${product.id}`}
                     onClick={onClose}
-                    className={buttonVariants('secondary', 'justify-center')}
+                    className={buttonVariants('secondary', 'h-10 justify-center text-[13px]')}
                   >
                     Ver detalles
                   </Link>

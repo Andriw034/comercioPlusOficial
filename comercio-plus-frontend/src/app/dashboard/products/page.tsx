@@ -231,7 +231,15 @@ export default function ManageProducts() {
               <div key={item.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-14 w-14 overflow-hidden rounded-2xl border border-slate-200 bg-white/70 dark:border-white/10">
-                    {img ? <img src={img} className="h-full w-full object-cover" /> : null}
+                    {img ? (
+                      <img
+                        src={img}
+                        alt={item.name}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : null}
                   </div>
 
                   <div className="min-w-0">
@@ -350,7 +358,7 @@ export default function ManageProducts() {
             </label>
             {preview && (
               <div className="mt-2 h-28 w-28 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
-                <img src={preview} className="h-full w-full object-cover" />
+                <img src={preview} alt="Preview del producto" className="h-full w-full object-cover" />
               </div>
             )}
           </div>

@@ -20,12 +20,7 @@ export default function AppShell({
   const isAuth = variant === 'auth'
 
   return (
-    <div className="min-h-screen bg-mesh text-slate-900 dark:text-slate-100 relative overflow-hidden flex flex-col">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -left-28 top-6 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" />
-        <div className="absolute right-[-10%] top-10 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-white/5 blur-3xl" />
-      </div>
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-900 dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-slate-100">
 
       {header && !isAuth && <div className="relative z-20">{header}</div>}
 

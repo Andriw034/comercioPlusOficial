@@ -12,12 +12,12 @@ type Props = {
 
 export default function Tabs({ items, value, onChange, className = '' }: Props) {
   return (
-    <div className={`inline-flex rounded-2xl border border-white/10 bg-white/5 p-1 ${className}`.trim()}>
+    <div className={`inline-flex rounded-2xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/5 ${className}`.trim()}>
       {items.map((item) => {
         const active = item.value === value
         const classes = active
-          ? 'bg-white/10 text-white shadow-sm'
-          : 'text-white/60 hover:text-white'
+          ? 'bg-slate-900/5 text-slate-900 shadow-sm dark:bg-white/10 dark:text-white'
+          : 'text-slate-600 hover:text-slate-900 dark:text-white/60 dark:hover:text-white'
         return (
           <button
             key={item.value}

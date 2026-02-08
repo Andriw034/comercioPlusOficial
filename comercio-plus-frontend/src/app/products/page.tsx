@@ -55,17 +55,24 @@ export default function Products() {
     )
   }, [pagination.current_page, pagination.last_page])
 
-  const fetchProducts = async (page = 1) => {
+  const fetchProducts = async (
+    page = 1,
+    overrides?: { searchQuery?: string; selectedCategory?: string; sortBy?: string },
+  ) => {
     try {
       setLoading(true)
       setError('')
 
+      const activeSearchQuery = overrides?.searchQuery ?? searchQuery
+      const activeSelectedCategory = overrides?.selectedCategory ?? selectedCategory
+      const activeSortBy = overrides?.sortBy ?? sortBy
+
       const params: Record<string, string | number | undefined> = {
         page,
-        per_page: 20, // Temu: más densidad
-        search: searchQuery,
-        category: selectedCategory || undefined,
-        sort: sortBy === 'recent' ? undefined : sortBy,
+        per_page: 20,
+        search: activeSearchQuery || undefined,
+        category: activeSelectedCategory || undefined,
+        sort: activeSortBy === 'recent' ? undefined : activeSortBy,
       }
 
       const response = await API.get('/products', { params })
@@ -78,7 +85,7 @@ export default function Products() {
       })
     } catch (err: any) {
       console.error('Error fetching products:', err)
-      setError(err.response?.data?.message || 'Error al cargar los productos. Inténtalo de nuevo.')
+      setError(err.response?.data?.message || 'Error al cargar los productos. Intentalo de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -95,9 +102,17 @@ export default function Products() {
 
   useEffect(() => {
     const initialCategory = searchParams.get('category') || searchParams.get('category_id') || ''
+    const initialQuery = searchParams.get('q') || ''
+
     if (initialCategory) setSelectedCategory(initialCategory)
+    if (initialQuery) setSearchQuery(initialQuery)
+
     fetchCategories()
-    fetchProducts()
+    fetchProducts(1, {
+      searchQuery: initialQuery,
+      selectedCategory: initialCategory,
+      sortBy: 'recent',
+    })
 
     return () => {
       if (searchTimeout.current) window.clearTimeout(searchTimeout.current)
@@ -146,14 +161,12 @@ export default function Products() {
   }
 
   return (
-    <div className="space-y-5">
-      {/* Header Temu: compacto */}
+    <div className="space-y-4 sm:space-y-5">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold leading-[1.15] text-slate-900 dark:text-white sm:text-[34px]">Productos</h1>
+        <h1 className="text-[30px] font-semibold leading-[1.12] text-slate-900 dark:text-white sm:text-[34px]">Productos</h1>
         <p className="text-[13px] text-slate-600 dark:text-white/60">Descubre los mejores repuestos para moto.</p>
       </div>
 
-      {/* Filtros sticky */}
       <div className="sticky top-[92px] z-20">
         <GlassCard className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="flex-1">
@@ -167,7 +180,7 @@ export default function Products() {
 
           <div className="w-full md:w-56">
             <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-              <option value="">Todas las categorías</option>
+              <option value="">Todas las categorias</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -178,7 +191,7 @@ export default function Products() {
 
           <div className="w-full md:w-56">
             <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="recent">Más recientes</option>
+              <option value="recent">Mas recientes</option>
               <option value="price_asc">Precio: menor a mayor</option>
               <option value="price_desc">Precio: mayor a menor</option>
             </Select>
@@ -188,7 +201,7 @@ export default function Products() {
 
       {loading && (
         <div className="flex justify-center py-6">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-900/10 dark:border-white/20 border-t-brand-500" />
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-900/10 border-t-brand-500 dark:border-white/20" />
         </div>
       )}
 

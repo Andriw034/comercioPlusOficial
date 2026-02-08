@@ -111,11 +111,11 @@ a {
   }
 
   .btn-secondary {
-    @apply border border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/20 dark:hover:bg-white/10;
+    @apply border border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:border-white/20 dark:hover:bg-white/15;
   }
 
   .btn-ghost {
-    @apply border border-slate-200/90 bg-transparent text-slate-700 hover:border-slate-300 hover:bg-slate-900/5 hover:text-slate-900 dark:border-white/10 dark:text-white/80 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white;
+    @apply border border-transparent bg-transparent text-slate-700 hover:bg-slate-900/5 hover:text-slate-900 dark:text-white dark:hover:bg-white/10 dark:hover:text-white;
   }
 
   .btn-danger {
@@ -150,7 +150,7 @@ a {
   }
 
   .section-heading {
-    @apply text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white;
+    @apply text-[24px] font-semibold tracking-tight text-slate-900 dark:text-white sm:text-[28px];
   }
 
   .section-subtitle {

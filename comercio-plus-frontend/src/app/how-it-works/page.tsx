@@ -5,8 +5,8 @@ export default function HowItWorks() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold text-white">Como funciona</h1>
-        <p className="text-sm text-white/60">Compra repuestos y conecta con tiendas verificadas en minutos.</p>
+        <h1 className="text-[30px] font-semibold leading-[1.12] text-slate-900 dark:text-white sm:text-[34px]">Como funciona</h1>
+        <p className="text-[13px] text-slate-600 dark:text-white/60">Compra repuestos y conecta con tiendas verificadas en minutos.</p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -26,8 +26,8 @@ export default function HowItWorks() {
         ].map((step, index) => (
           <GlassCard key={step.title} className="space-y-3">
             <Badge variant="brand">Paso {index + 1}</Badge>
-            <h2 className="text-xl font-semibold text-white">{step.title}</h2>
-            <p className="text-sm text-white/60">{step.description}</p>
+            <h2 className="text-[20px] font-semibold text-slate-900 dark:text-white">{step.title}</h2>
+            <p className="text-[14px] text-slate-600 dark:text-white/60">{step.description}</p>
           </GlassCard>
         ))}
       </div>

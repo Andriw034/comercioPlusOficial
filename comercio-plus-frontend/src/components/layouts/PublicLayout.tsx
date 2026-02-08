@@ -6,17 +6,45 @@ import Badge from '@/components/ui/Badge'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import AppShell from './AppShell'
 
+type PublicStoreBrand = {
+  name?: string
+  logoUrl?: string | null
+} | null
+
 export default function PublicLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [isLogged, setIsLogged] = useState(!!localStorage.getItem('token'))
   const [menuOpen, setMenuOpen] = useState(false)
   const [brandLogoError, setBrandLogoError] = useState(false)
+  const [publicStoreBrand, setPublicStoreBrand] = useState<PublicStoreBrand>(null)
 
   useEffect(() => {
     setIsLogged(!!localStorage.getItem('token'))
     setMenuOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    const handlePublicStoreChanged = (event: Event) => {
+      const detail = (event as CustomEvent<PublicStoreBrand>).detail
+
+      if (detail && detail.name) {
+        setPublicStoreBrand({
+          name: detail.name,
+          logoUrl: detail.logoUrl || null,
+        })
+      } else {
+        setPublicStoreBrand(null)
+      }
+
+      setBrandLogoError(false)
+    }
+
+    window.addEventListener('publicStore:changed', handlePublicStoreChanged as EventListener)
+    return () => {
+      window.removeEventListener('publicStore:changed', handlePublicStoreChanged as EventListener)
+    }
+  }, [])
 
   const logout = async () => {
     try {
@@ -41,26 +69,31 @@ export default function PublicLayout() {
     [],
   )
 
+  const brandName = publicStoreBrand?.name?.trim() || 'ComercioPlus'
+  const brandLogo = publicStoreBrand?.logoUrl || '/brand/logo-comercioplus.png'
+  const brandSubtitle = publicStoreBrand ? 'Tienda verificada' : 'Repuestos y tiendas confiables'
+  const brandInitial = brandName.charAt(0).toUpperCase() || 'C'
+
   const header = (
     <header className="sticky top-0 z-30 px-4 pt-4">
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-2xl glass px-4 py-3">
         <Link to="/" className="flex items-center gap-3">
-          {!brandLogoError ? (
+          {!brandLogoError && brandLogo ? (
             <img
-              src="/brand/logo-comercioplus.png"
-              alt="ComercioPlus"
-              className="h-10 w-10 rounded-2xl border border-slate-200 bg-white/90 object-cover shadow-soft dark:border-white/15 dark:bg-white/10"
+              src={brandLogo}
+              alt={brandName}
+              className="h-10 w-10 rounded-2xl border border-slate-200 bg-white object-cover shadow-sm sm:h-11 sm:w-11 dark:border-white/15 dark:bg-white/10"
               onError={() => setBrandLogoError(true)}
             />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white shadow-soft">
-              CP
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-base font-bold text-slate-900 shadow-sm sm:h-11 sm:w-11 dark:border-white/15 dark:bg-white/10 dark:text-white">
+              {brandInitial}
             </span>
           )}
 
           <div className="leading-tight">
-            <p className="font-semibold text-slate-900 dark:text-white">ComercioPlus</p>
-            <p className="text-xs text-slate-600 dark:text-white/60">Repuestos y tiendas confiables</p>
+            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{brandName}</p>
+            <p className="text-[12px] text-slate-600 dark:text-white/60">{brandSubtitle}</p>
           </div>
         </Link>
 
