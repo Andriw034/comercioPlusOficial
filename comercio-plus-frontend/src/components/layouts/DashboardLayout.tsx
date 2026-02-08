@@ -82,48 +82,45 @@ export default function DashboardLayout() {
 
   const storeName = store?.name || 'ComercioPlus'
   const storeLogo = store?.logo_url
-  const storeCover = store?.cover_url
   const storeInitial = storeName.trim().charAt(0).toUpperCase() || 'C'
-  const hasCover = Boolean(storeCover)
-  const titleClass = hasCover ? 'text-white' : 'text-slate-900 dark:text-white'
-  const subtitleClass = hasCover ? 'text-white/70' : 'text-slate-600 dark:text-white/60'
-  const ghostOnCover = hasCover ? '!border-white/25 !text-white hover:!border-white/40 hover:!bg-white/15' : ''
 
   const header = (
     <header className="sticky top-0 z-30 px-4 pt-4">
-      <div className="mx-auto max-w-7xl glass rounded-2xl px-4 py-3 flex items-center justify-between gap-4 relative overflow-hidden">
-        {storeCover && (
-          <div className="absolute inset-0">
-            <img src={storeCover} alt="" className="h-full w-full object-cover opacity-25" />
-            <div className="absolute inset-0 bg-slate-900/70" />
-          </div>
-        )}
+      <div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-slate-950/40">
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/" className="flex min-w-0 items-center gap-3">
+            {storeLogo ? (
+              <img
+                src={storeLogo}
+                alt={`Logo ${storeName}`}
+                className="h-11 w-11 rounded-2xl border border-slate-200 bg-white object-cover dark:border-white/10"
+              />
+            ) : (
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white">
+                {storeInitial}
+              </span>
+            )}
 
-        <Link to="/" className="relative flex items-center gap-3">
-          {storeLogo ? (
-            <img
-              src={storeLogo}
-              alt={`Logo ${storeName}`}
-              className="h-10 w-10 rounded-2xl object-cover border border-slate-200 bg-white dark:border-white/10"
-            />
-          ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white">
-              {storeInitial}
-            </span>
-          )}
-
-          <div className="leading-tight">
-            <p className={`text-[16px] font-semibold ${titleClass}`.trim()}>{storeName}</p>
-            <p className={`text-[13px] ${subtitleClass}`.trim()}>Panel del comerciante</p>
-          </div>
-        </Link>
-
-        <div className="relative flex items-center gap-3 text-[13px]">
-          <ThemeToggle />
-          <Link to="/stores" className={buttonVariants('ghost', ghostOnCover)}>
-            Ver tiendas
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-white">{storeName}</p>
+              <p className="text-[12px] text-slate-600 dark:text-white/60">Panel del comerciante</p>
+            </div>
           </Link>
-          <Link to="/products" className={buttonVariants('ghost', ghostOnCover)}>
+
+          <ThemeToggle />
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-0 sm:flex sm:items-center sm:justify-end">
+          <Link
+            to="/dashboard/store"
+            className={buttonVariants('ghost', 'h-10 w-full justify-center whitespace-nowrap px-3 sm:w-auto sm:px-4')}
+          >
+            Configuracion
+          </Link>
+          <Link
+            to="/dashboard/products"
+            className={buttonVariants('ghost', 'h-10 w-full justify-center whitespace-nowrap px-3 sm:w-auto sm:px-4')}
+          >
             Productos
           </Link>
         </div>

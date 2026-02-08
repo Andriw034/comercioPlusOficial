@@ -51,7 +51,11 @@ export default function Login() {
         }
       }
     } catch (err: any) {
-      console.error('Login error:', err)
+      const status = err?.response?.status
+      // 401/422 are expected auth validation responses; avoid noisy console errors.
+      if (![401, 422].includes(status)) {
+        console.error('Login error:', err)
+      }
       setError(err.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.')
     } finally {
       setLoading(false)
@@ -179,6 +183,5 @@ export default function Login() {
     </div>
   )
 }
-
 
 

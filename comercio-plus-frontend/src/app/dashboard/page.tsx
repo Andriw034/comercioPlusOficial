@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
-import Button from '@/components/ui/button'
+import Button, { buttonVariants } from '@/components/ui/button'
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/format'
@@ -32,7 +32,6 @@ export default function Dashboard() {
 
   const primaryStore = useMemo(() => stores[0] || null, [stores])
   const productsCount = useMemo(() => products.length, [products])
-  const ordersCount = useMemo(() => orders.length, [orders])
   const monthlySales = useMemo(() => {
     const now = new Date()
     return orders.reduce((acc, order) => {
@@ -43,6 +42,29 @@ export default function Dashboard() {
       return acc
     }, 0)
   }, [orders])
+  const monthlyOrdersCount = useMemo(() => {
+    const now = new Date()
+    return orders.filter((order) => {
+      const date = new Date(order.date || order.created_at || now)
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+    }).length
+  }, [orders])
+  const monthlySalesHint = useMemo(
+    () =>
+      monthlySales === 0
+        ? 'Aún no hay ventas este mes · Publica productos o comparte tu tienda'
+        : `${monthlyOrdersCount} pedidos registrados este mes`,
+    [monthlyOrdersCount, monthlySales],
+  )
+  const publicStoreHref = useMemo(() => {
+    if (primaryStore?.id) return `/store/${primaryStore.id}`
+    if (primaryStore?.slug) return `/store/${primaryStore.slug}`
+    return '/dashboard/store'
+  }, [primaryStore])
+  const publicStoreLabel = primaryStore ? 'Ver mi tienda pública' : 'Crear tienda primero'
+  const publicStoreHint = primaryStore
+    ? 'Revisa cómo la ven tus clientes'
+    : 'Configura tu tienda para habilitar la vista pública'
 
   const recentActivity = useMemo(
     () =>
@@ -126,13 +148,15 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[13px] text-slate-600 dark:text-white/60">Hola, {user?.name || 'comerciante'}</p>
           <h1 className="text-[22px] font-semibold text-slate-900 dark:text-white sm:text-[26px]">Panel del comerciante</h1>
         </div>
-        <Button variant="ghost" onClick={logout}>Cerrar sesion</Button>
+        <Button variant="ghost" onClick={logout}>
+          Cerrar sesion
+        </Button>
       </div>
 
       {loading && (
@@ -148,11 +172,11 @@ export default function Dashboard() {
       )}
 
       {!loading && !error && (
-        <div className="space-y-5 sm:space-y-6">
+        <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <StatCard label="Tienda principal" value={primaryStore?.name || 'Sin tienda'} hint={primaryStore?.description || 'Aun no creas tu tienda'} />
             <StatCard label="Productos publicados" value={productsCount} hint="Gestiona tu catalogo" />
-            <StatCard label="Ventas del mes" value={`$${monthlySales.toLocaleString('es-CO')}`} hint={`${ordersCount} pedidos registrados`} />
+            <StatCard label="Ventas del mes" value={`$${monthlySales.toLocaleString('es-CO')}`} hint={monthlySalesHint} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -162,19 +186,26 @@ export default function Dashboard() {
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Gestion diaria de tu tienda</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {!primaryStore && (
-                  <Link to="/dashboard/store" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
-                    <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Crear tienda</p>
-                    <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Publica tu catalogo</p>
-                  </Link>
-                )}
-                <Link to="/dashboard/products" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
-                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Productos</p>
-                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Crea, edita y elimina</p>
+                <Link
+                  to="/dashboard/store"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Configurar tienda</p>
+                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Logo, portada y datos de contacto</p>
                 </Link>
-                <Link to="/stores" className="glass rounded-xl px-4 py-3 text-center hover:border-brand-400/60">
-                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Explorar tiendas</p>
-                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Inspirate en otros catalogos</p>
+                <Link
+                  to="/dashboard/products"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Gestionar productos</p>
+                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Crea, edita y organiza tu catalogo</p>
+                </Link>
+                <Link
+                  to={publicStoreHref}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{publicStoreLabel}</p>
+                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">{publicStoreHint}</p>
                 </Link>
               </div>
             </GlassCard>
@@ -182,7 +213,14 @@ export default function Dashboard() {
             <GlassCard className="space-y-3">
               <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Actividad reciente</h3>
               {recentActivity.length === 0 ? (
-                <p className="text-[13px] text-slate-600 dark:text-white/60">Aun no hay pedidos registrados.</p>
+                <div className="space-y-3">
+                  <p className="text-[13px] text-slate-600 dark:text-white/60">
+                    Aun no hay pedidos. Cuando recibas pedidos, apareceran aqui.
+                  </p>
+                  <Link to="/dashboard/products" className={buttonVariants('secondary', 'h-10 text-[13px]')}>
+                    Ver productos
+                  </Link>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {recentActivity.map((item) => (

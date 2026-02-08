@@ -113,7 +113,7 @@ export default function ManageStore() {
   const previewDescription = store.description || 'Descripcion breve de tu tienda.'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-[13px] text-slate-600 dark:text-white/60">Centro de configuracion</p>
@@ -125,12 +125,14 @@ export default function ManageStore() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-        <GlassCard className="space-y-6">
-          <form className="space-y-6" onSubmit={submit}>
-            <section className="space-y-4">
+        <GlassCard className="space-y-6 border-0 bg-transparent p-0 shadow-none dark:bg-transparent dark:shadow-none">
+          <form id="store-settings-form" className="space-y-6" onSubmit={submit}>
+            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
               <div>
                 <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white">Identidad de la tienda</h2>
-                <p className="text-[13px] text-slate-600 dark:text-white/60">Define nombre, portada y logo que veran tus clientes.</p>
+                <p className="text-[13px] text-slate-600 dark:text-white/60">
+                  Define nombre, portada y logo que veran tus clientes.
+                </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -155,10 +157,10 @@ export default function ManageStore() {
               />
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/40">
                   <div>
                     <p className="text-[13px] font-semibold text-slate-900 dark:text-white">Logo</p>
-                    <p className="text-[12px] text-slate-500 dark:text-white/60">Recomendado: 512x512 px, fondo transparente.</p>
+                    <p className="text-[12px] text-slate-500 dark:text-white/60">Logo recomendado: 512x512 px, fondo transparente.</p>
                   </div>
 
                   <label className="btn-secondary inline-flex cursor-pointer">
@@ -167,16 +169,21 @@ export default function ManageStore() {
                   </label>
 
                   {previews.logo && (
-                    <div className="h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/10">
+                    <div className="h-28 w-28 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/10">
                       <img src={previews.logo} alt="Preview logo" className="h-full w-full object-contain p-1" />
+                    </div>
+                  )}
+                  {!previews.logo && (
+                    <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-dashed border-slate-300 text-[12px] text-slate-500 dark:border-white/20 dark:text-white/60">
+                      Sin logo
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/40">
                   <div>
                     <p className="text-[13px] font-semibold text-slate-900 dark:text-white">Portada</p>
-                    <p className="text-[12px] text-slate-500 dark:text-white/60">Recomendado: 1600x700 px para hero publico.</p>
+                    <p className="text-[12px] text-slate-500 dark:text-white/60">Portada recomendada: 1600x600 px para el hero publico.</p>
                   </div>
 
                   <label className="btn-secondary inline-flex cursor-pointer">
@@ -185,21 +192,26 @@ export default function ManageStore() {
                   </label>
 
                   {previews.cover && (
-                    <div className="h-28 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/10">
+                    <div className="h-36 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/10">
                       <img src={previews.cover} alt="Preview portada" className="h-full w-full object-cover" />
+                    </div>
+                  )}
+                  {!previews.cover && (
+                    <div className="flex h-36 w-full items-center justify-center rounded-2xl border border-dashed border-slate-300 text-[12px] text-slate-500 dark:border-white/20 dark:text-white/60">
+                      Sin portada
                     </div>
                   )}
                 </div>
               </div>
             </section>
 
-            <section className="space-y-4 border-t border-slate-200 pt-5 dark:border-white/10">
+            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Contacto</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Datos principales para clientes.</p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Input
                   label="Telefono"
                   value={store.phone || ''}
@@ -222,7 +234,7 @@ export default function ManageStore() {
               </div>
             </section>
 
-            <section className="space-y-4 border-t border-slate-200 pt-5 dark:border-white/10">
+            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Redes</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Conecta canales sociales para dar confianza.</p>
@@ -244,7 +256,7 @@ export default function ManageStore() {
               </div>
             </section>
 
-            <section className="space-y-4 border-t border-slate-200 pt-5 dark:border-white/10">
+            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Ubicacion</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Direccion para contacto y referencias de entrega.</p>
@@ -258,13 +270,13 @@ export default function ManageStore() {
               />
             </section>
 
-            <section className="space-y-4 border-t border-slate-200 pt-5 dark:border-white/10">
+            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Visibilidad</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Controla si tu tienda aparece en el listado publico.</p>
               </div>
 
-              <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+              <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-slate-950/40">
                 <div>
                   <p className="text-[14px] font-medium text-slate-900 dark:text-white">Visible al publico</p>
                   <p className="text-[12px] text-slate-500 dark:text-white/60">Si lo desactivas, tu tienda no aparecera en la vista publica.</p>
@@ -278,7 +290,7 @@ export default function ManageStore() {
               </label>
             </section>
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-5 dark:border-white/10">
+            <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-1 dark:border-white/10">
               <Button type="submit" className="w-full md:w-auto" loading={submitting}>
                 {submitting ? 'Guardando...' : store.id ? 'Actualizar tienda' : 'Crear tienda'}
               </Button>
@@ -288,11 +300,13 @@ export default function ManageStore() {
           </form>
         </GlassCard>
 
-        <div className="space-y-6">
+        <div className="space-y-6 xl:sticky xl:top-[102px] xl:self-start">
           <GlassCard className="space-y-4">
             <div>
               <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white">Vista previa</h2>
-              <p className="text-[13px] text-slate-600 dark:text-white/60">Asi se vera tu hero publico en /store/:id</p>
+              <p className="text-[13px] text-slate-600 dark:text-white/60">
+                Asi se vera tu hero publico en /store/:id
+              </p>
             </div>
 
             <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5">
@@ -304,7 +318,7 @@ export default function ManageStore() {
 
               <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/35 to-transparent dark:from-black/75 dark:via-black/40" />
 
-              <div className="relative flex h-[220px] flex-col justify-end p-4">
+              <div className="relative flex h-[240px] flex-col justify-end p-4">
                 <div className="flex items-center gap-3">
                   {previews.logo ? (
                     <img src={previews.logo} alt="Preview logo" className="h-12 w-12 rounded-xl border border-white/20 bg-white/90 object-contain p-1" />
@@ -345,6 +359,12 @@ export default function ManageStore() {
             </div>
           </GlassCard>
         </div>
+      </div>
+
+      <div className="fixed inset-x-4 bottom-4 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/90 md:hidden">
+        <Button type="submit" form="store-settings-form" className="w-full" loading={submitting}>
+          {submitting ? 'Guardando...' : 'Guardar cambios'}
+        </Button>
       </div>
     </div>
   )
