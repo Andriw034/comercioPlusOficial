@@ -1,5 +1,24 @@
 <?php
 
+$configuredOrigins = array_values(array_filter(array_map(
+    static fn ($origin) => trim($origin),
+    explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))
+)));
+
+$configuredOriginPatterns = array_values(array_filter(array_map(
+    static fn ($pattern) => trim($pattern),
+    explode(',', (string) env('CORS_ALLOWED_ORIGIN_PATTERNS', ''))
+)));
+
+$localDevOrigins = [
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3001',
+    'http://localhost:3001',
+    'http://127.0.0.1:5173',
+    'http://localhost:5173',
+];
+
 return [
 
     /*
@@ -15,16 +34,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://127.0.0.1:3000',
-        'http://localhost:3000',
-        'http://127.0.0.1:3001',
-        'http://localhost:3001',
-        'http://127.0.0.1:5173',
-        'http://localhost:5173',
-    ],
+    'allowed_origins' => $configuredOrigins !== [] ? $configuredOrigins : $localDevOrigins,
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => $configuredOriginPatterns,
 
     'allowed_headers' => ['*'],
 
