@@ -18,6 +18,7 @@
 # Tests / Playwright
 /playwright-report/
 /test-results/
+/backups/
 
 # OS / Editor
 .vscode/
