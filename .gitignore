@@ -3,6 +3,8 @@
 /node_modules/
 .env
 .env.*
+!.env.example
+!comercio-plus-frontend/.env.example
 .phpunit.result.cache
 /storage/*.key
 /storage/logs/

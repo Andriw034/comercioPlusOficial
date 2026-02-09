@@ -1,3 +1,5 @@
+import { API_ORIGIN } from './runtime'
+
 export const formatPrice = (value: number | string | null | undefined) => {
   const num = Number(value ?? 0)
   return new Intl.NumberFormat('es-CO').format(Number.isFinite(num) ? num : 0)
@@ -14,14 +16,10 @@ export const formatDate = (value: string | Date | null | undefined) => {
   })
 }
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api')
-  .replace(/\/api\/?$/, '')
-  .replace(/\/$/, '')
-
 export const resolveMediaUrl = (value?: string | null) => {
   if (!value) return ''
   if (/^https?:\/\//i.test(value)) return value
   if (value.startsWith('//')) return `https:${value}`
-  if (value.startsWith('/')) return `${API_ORIGIN}${value}`
-  return `${API_ORIGIN}/${value}`
+  if (value.startsWith('/')) return API_ORIGIN ? `${API_ORIGIN}${value}` : value
+  return API_ORIGIN ? `${API_ORIGIN}/${value}` : `/${value}`
 }

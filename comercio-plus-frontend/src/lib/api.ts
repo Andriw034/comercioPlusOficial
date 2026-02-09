@@ -1,7 +1,11 @@
 import axios from 'axios'
+import { API_BASE_URL, SANCTUM_BASE_URL } from './runtime'
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/$/, '')
-const SANCTUM_URL = API_BASE_URL.replace(/\/api$/, '')
+const resolveCsrfUrl = () => {
+  if (SANCTUM_BASE_URL) return `${SANCTUM_BASE_URL}/sanctum/csrf-cookie`
+  if (typeof window !== 'undefined') return `${window.location.origin}/sanctum/csrf-cookie`
+  return '/sanctum/csrf-cookie'
+}
 
 axios.defaults.baseURL = API_BASE_URL
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
@@ -29,7 +33,7 @@ API.interceptors.request.use(
     const method = (config.method || '').toLowerCase()
     if (!csrfFetched && ['post', 'put', 'patch', 'delete'].includes(method)) {
       try {
-        await axios.get(`${SANCTUM_URL}/sanctum/csrf-cookie`, { withCredentials: true })
+        await axios.get(resolveCsrfUrl(), { withCredentials: true })
         csrfFetched = true
       } catch (error) {
         console.warn('No se pudo obtener CSRF cookie:', error)
