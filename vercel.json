@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "installCommand": "npm ci --prefix comercio-plus-frontend",
-  "buildCommand": "npm --prefix comercio-plus-frontend run build",
-  "outputDirectory": "comercio-plus-frontend/dist",
+  "installCommand": "if [ -d comercio-plus-frontend ]; then npm ci --prefix comercio-plus-frontend; else npm ci; fi",
+  "buildCommand": "if [ -d comercio-plus-frontend ]; then npm --prefix comercio-plus-frontend run build && rm -rf dist && cp -r comercio-plus-frontend/dist dist; else npm run build; fi",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
