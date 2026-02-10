@@ -41,9 +41,10 @@ $defaultOrigins = array_values(array_unique(array_merge(
     $frontendOriginsFromEnv
 )));
 
-$allowedOrigins = $configuredOrigins !== []
-    ? array_values(array_unique(array_merge($configuredOrigins, $frontendOriginsFromEnv)))
-    : $defaultOrigins;
+$allowedOrigins = array_values(array_unique(array_merge(
+    $defaultOrigins,
+    $configuredOrigins
+)));
 
 return [
 
