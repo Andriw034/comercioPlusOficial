@@ -27,8 +27,15 @@ $pgsqlEnvDetected = (bool) (
     env('POSTGRES_URL')
 );
 
-$defaultConnection = env('DB_CONNECTION');
-if (!$defaultConnection) {
+$defaultConnectionFromEnv = env('DB_CONNECTION');
+$defaultConnection = $defaultConnectionFromEnv;
+
+// In hosted environments (Railway), provider vars are usually the source of truth.
+if ($mysqlEnvDetected && !$pgsqlEnvDetected) {
+    $defaultConnection = 'mysql';
+} elseif ($pgsqlEnvDetected && !$mysqlEnvDetected) {
+    $defaultConnection = 'pgsql';
+} elseif (!$defaultConnection) {
     $defaultConnection = $pgsqlEnvDetected ? 'pgsql' : 'mysql';
 }
 
