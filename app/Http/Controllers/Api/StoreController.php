@@ -15,11 +15,6 @@ class StoreController extends Controller
     {
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Private stores (owner)
-    |--------------------------------------------------------------------------
-    */
     public function index(Request $request)
     {
         $stores = Store::where('user_id', $request->user()->id)->get()->map(fn ($store) => $this->withMediaUrls($store));
@@ -27,25 +22,17 @@ class StoreController extends Controller
         return response()->json($stores);
     }
 
-    /**
-     * Obtener mi tienda (merchant)
-     */
     public function myStore(Request $request)
     {
         $store = Store::where('user_id', $request->user()->id)->first();
 
         if (!$store) {
-            return response()->json(['message' => 'Tienda no encontrada'], 404);
+            return response()->json(['success' => false, 'message' => 'Tienda no encontrada'], 404);
         }
 
         return response()->json($this->withMediaUrls($store));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Public stores
-    |--------------------------------------------------------------------------
-    */
     public function publicStores()
     {
         $stores = Store::where('is_visible', true)->get()->map(fn ($store) => $this->withMediaUrls($store));
@@ -53,11 +40,6 @@ class StoreController extends Controller
         return response()->json($stores);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Create store
-    |--------------------------------------------------------------------------
-    */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -71,8 +53,8 @@ class StoreController extends Controller
             'instagram'   => 'nullable|string|max:255',
             'address'     => 'nullable|string|max:500',
             'is_visible'  => 'nullable|boolean',
-            'logo'        => 'nullable|image|max:2048',
-            'cover'       => 'nullable|image|max:4096',
+            'logo'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'cover'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         $data['slug'] = isset($data['slug'])
@@ -95,32 +77,26 @@ class StoreController extends Controller
 
         $this->handleMedia($request, $store);
 
-        return response()->json($this->withMediaUrls($store), 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Tienda creada correctamente',
+            'data' => $this->withMediaUrls($store),
+        ], 201);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Show store (public or owner via route)
-    |--------------------------------------------------------------------------
-    */
     public function show(Store $store)
     {
         if (!$store->is_visible && auth()->check() && $store->user_id !== auth()->id()) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
         return response()->json($this->withMediaUrls($store));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Update store
-    |--------------------------------------------------------------------------
-    */
     public function update(Request $request, Store $store)
     {
         if ($store->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
         $data = $request->validate([
@@ -134,6 +110,8 @@ class StoreController extends Controller
             'instagram'   => 'nullable|string|max:255',
             'address'     => 'nullable|string|max:500',
             'is_visible'  => 'sometimes|boolean',
+            'logo'        => 'sometimes|nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'cover'       => 'sometimes|nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         if (isset($data['slug'])) {
@@ -147,53 +125,110 @@ class StoreController extends Controller
         $store->update($data);
         $this->handleMedia($request, $store);
 
-        return response()->json($this->withMediaUrls($store));
+        return response()->json([
+            'success' => true,
+            'message' => 'Tienda actualizada correctamente',
+            'data' => $this->withMediaUrls($store),
+        ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Delete store
-    |--------------------------------------------------------------------------
-    */
+    public function uploadLogo(Request $request, Store $store)
+    {
+        if ($store->user_id !== $request->user()->id) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        $request->validate([
+            'logo' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        $this->replaceLogo($store, $request->file('logo'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logo actualizado correctamente',
+            'data' => $this->withMediaUrls($store->fresh()),
+        ]);
+    }
+
+    public function uploadCover(Request $request, Store $store)
+    {
+        if ($store->user_id !== $request->user()->id) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        $request->validate([
+            'cover' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        $this->replaceCover($store, $request->file('cover'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Portada actualizada correctamente',
+            'data' => $this->withMediaUrls($store->fresh()),
+        ]);
+    }
+
     public function destroy(Request $request, Store $store)
     {
         if ($store->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
         if ($store->products()->exists()) {
             return response()->json([
+                'success' => false,
                 'message' => 'No se puede eliminar la tienda porque tiene productos asociados'
             ], 422);
         }
 
+        $this->mediaUploader->deleteImage($store->logo_public_id ?: $store->logo_path);
+        $this->mediaUploader->deleteImage($store->cover_public_id ?: $store->cover_path ?: $store->background_path);
+
         $store->delete();
 
-        return response()->json(null, 204);
+        return response()->json(['success' => true, 'message' => 'Tienda eliminada correctamente']);
     }
 
     private function handleMedia(Request $request, Store $store): void
     {
         if ($request->hasFile('logo')) {
-            $this->deleteLocalFileIfNeeded($store->logo_path);
-            $upload = $this->mediaUploader->uploadImage($request->file('logo'), 'comercioplus/stores/logos');
-            $store->logo_path = $upload['path'];
-            $store->logo_url = $upload['url'];
+            $this->replaceLogo($store, $request->file('logo'));
         }
 
         if ($request->hasFile('cover')) {
-            $this->deleteLocalFileIfNeeded($store->cover_path);
-            $this->deleteLocalFileIfNeeded($store->background_path);
-
-            $upload = $this->mediaUploader->uploadImage($request->file('cover'), 'comercioplus/stores/covers');
-            $store->cover_path = $upload['path'];
-            $store->background_path = $upload['path'];
-            $store->cover_url = $upload['url'];
-            $store->background_url = $upload['url'];
+            $this->replaceCover($store, $request->file('cover'));
         }
 
-        $store->save();
         $this->withMediaUrls($store);
+    }
+
+    private function replaceLogo(Store $store, $logo): void
+    {
+        $this->mediaUploader->deleteImage($store->logo_public_id ?: $store->logo_path);
+        $this->deleteLocalFileIfNeeded($store->logo_path);
+
+        $upload = $this->mediaUploader->uploadImage($logo, "stores/{$store->id}/logo");
+        $store->logo_path = $upload['path'];
+        $store->logo_public_id = $upload['path'];
+        $store->logo_url = $upload['url'];
+        $store->save();
+    }
+
+    private function replaceCover(Store $store, $cover): void
+    {
+        $this->mediaUploader->deleteImage($store->cover_public_id ?: $store->cover_path ?: $store->background_path);
+        $this->deleteLocalFileIfNeeded($store->cover_path);
+        $this->deleteLocalFileIfNeeded($store->background_path);
+
+        $upload = $this->mediaUploader->uploadImage($cover, "stores/{$store->id}/cover");
+        $store->cover_path = $upload['path'];
+        $store->background_path = $upload['path'];
+        $store->cover_public_id = $upload['path'];
+        $store->cover_url = $upload['url'];
+        $store->background_url = $upload['url'];
+        $store->save();
     }
 
     private function withMediaUrls(Store $store): Store

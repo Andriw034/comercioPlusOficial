@@ -20,6 +20,8 @@ class Store extends Model
         'logo_url',
         'cover_url',
         'background_url',
+        'logo_public_id',
+        'cover_public_id',
         'slug',
         'phone',
         'whatsapp',

@@ -19,23 +19,25 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
-            $data = $request->validate([
-                'name'     => 'required|string|max:255',
-                'email'    => 'required|email:rfc,dns|unique:users,email',
-                'password' => 'required|string|min:8|confirmed',
-                'role'     => 'required|string|in:merchant,client,comerciante,cliente',
-            ]);
+            [$user, $token] = $this->withDbRetry(function () use ($request) {
+                $data = $request->validate([
+                    'name'     => 'required|string|max:255',
+                    'email'    => 'required|email:rfc,dns|unique:users,email',
+                    'password' => 'required|string|min:8|confirmed',
+                    'role'     => 'required|string|in:merchant,client,comerciante,cliente',
+                ]);
 
-            $role = $this->normalizeRole($data['role']);
+                $role = $this->normalizeRole($data['role']);
 
-            [$user, $token] = DB::transaction(function () use ($data, $role) {
-                $user = User::create($this->buildUserPayload($data, $role));
+                return DB::transaction(function () use ($data, $role) {
+                    $user = User::create($this->buildUserPayload($data, $role));
 
-                $this->assignRole($user, $role);
-                $token = $this->createAccessToken($user);
+                    $this->assignRole($user, $role);
+                    $token = $this->createAccessToken($user);
 
-                return [$user, $token];
-            });
+                    return [$user, $token];
+                });
+            }, 'register');
         } catch (ValidationException $e) {
             throw $e;
         } catch (Throwable $e) {
@@ -55,22 +57,30 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-            $credentials = $request->validate([
-                'email'    => 'required|email',
-                'password' => 'required|string',
-            ]);
+            [$user, $token] = $this->withDbRetry(function () use ($request) {
+                $credentials = $request->validate([
+                    'email'    => 'required|email',
+                    'password' => 'required|string',
+                ]);
 
-            $user = User::where('email', $credentials['email'])->first();
+                $user = User::where('email', $credentials['email'])->first();
 
-            if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+                if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+                    return [null, null];
+                }
+
+                // En produccion invalidamos tokens anteriores antes de emitir uno nuevo.
+                $user->tokens()->delete();
+                $token = $this->createAccessToken($user);
+
+                return [$user, $token];
+            }, 'login');
+
+            if (! $user || ! $token) {
                 return response()->json([
                     'message' => 'Credenciales invalidas',
                 ], 401);
             }
-
-            // En produccion invalidamos tokens anteriores antes de emitir uno nuevo.
-            $user->tokens()->delete();
-            $token = $this->createAccessToken($user);
         } catch (ValidationException $e) {
             throw $e;
         } catch (Throwable $e) {
@@ -258,9 +268,65 @@ class AuthController extends Controller
         }
     }
 
+    private function withDbRetry(callable $operation, string $context, int $maxAttempts = 3): mixed
+    {
+        $defaultConnection = config('database.default');
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                return $operation();
+            } catch (Throwable $e) {
+                if (! $this->isTransientDatabaseException($e) || $attempt >= $maxAttempts) {
+                    throw $e;
+                }
+
+                Log::warning('Transient DB error during auth operation, retrying', [
+                    'context' => $context,
+                    'attempt' => $attempt,
+                    'max_attempts' => $maxAttempts,
+                    'message' => $e->getMessage(),
+                ]);
+
+                DB::purge($defaultConnection);
+                DB::reconnect($defaultConnection);
+
+                usleep((int) ($attempt * 250 * 1000)); // 250ms, 500ms
+            }
+        }
+
+        throw new \RuntimeException('Unexpected retry termination for auth DB operation.');
+    }
+
+    private function isTransientDatabaseException(Throwable $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'connection refused')
+            || str_contains($message, 'server has gone away')
+            || str_contains($message, 'too many connections')
+            || str_contains($message, 'timeout')
+            || str_contains($message, 'temporarily unavailable')
+            || str_contains($message, 'connection reset')
+            || str_contains($message, 'sqlstate[08')
+            || str_contains($message, 'sqlstate[hy000] [2002]');
+    }
+
+    private function hasMissingDatabaseEnvironment(): bool
+    {
+        return !(
+            (bool) env('DATABASE_URL')
+            || (bool) env('DB_HOST')
+            || (bool) env('MYSQLHOST')
+            || (bool) env('PGHOST')
+        );
+    }
+
     private function resolveAuthErrorMessage(Throwable $e): string
     {
         $message = strtolower($e->getMessage());
+
+        if ($this->hasMissingDatabaseEnvironment()) {
+            return 'Error de configuracion: faltan variables de base de datos en el backend (DATABASE_URL o MYSQLHOST/MYSQLDATABASE/MYSQLUSER/MYSQLPASSWORD).';
+        }
 
         if (str_contains($message, 'db/migrations missing') || str_contains($message, 'personal_access_tokens')) {
             return 'DB/Migrations missing: personal_access_tokens table is required.';
@@ -275,7 +341,15 @@ class AuthController extends Controller
         }
 
         if (str_contains($message, 'connection refused') || str_contains($message, 'could not find driver')) {
+            if (str_contains($message, 'could not find driver')) {
+                return 'Error de conexion con la base de datos: falta el driver PDO del motor configurado (mysql o pgsql).';
+            }
+
             return 'Error de conexion con la base de datos en el servidor.';
+        }
+
+        if (str_contains($message, 'sqlstate[08') || str_contains($message, 'timeout') || str_contains($message, 'too many connections')) {
+            return 'Error temporal de conexion con la base de datos. Intenta nuevamente en unos segundos.';
         }
 
         return 'Error interno al generar el token de acceso.';
@@ -284,6 +358,10 @@ class AuthController extends Controller
     private function resolveAuthErrorStatus(Throwable $e): int
     {
         $message = strtolower($e->getMessage());
+
+        if ($this->hasMissingDatabaseEnvironment()) {
+            return 503;
+        }
 
         if (
             str_contains($message, 'base table or view not found') ||

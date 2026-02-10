@@ -20,6 +20,7 @@ export default function ManageProducts() {
   const [formMessage, setFormMessage] = useState('')
   const [preview, setPreview] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imageFiles, setImageFiles] = useState<File[]>([])
   const [storeId, setStoreId] = useState<number | null>(null)
 
   const [filters, setFilters] = useState({ search: '', status: '' })
@@ -95,6 +96,7 @@ export default function ManageProducts() {
     setForm({ id: null, name: '', slug: '', price: '', stock: '', category_id: '', description: '', status: 'active' })
     setPreview('')
     setImageFile(null)
+    setImageFiles([])
     setFormError('')
     setFormMessage('')
   }
@@ -116,14 +118,17 @@ export default function ManageProducts() {
     })
     setPreview(resolveMediaUrl(item.image_url || (item as any).image) || '')
     setImageFile(null)
+    setImageFiles([])
     setFormError('')
     setFormMessage('')
   }
 
   const onImage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null
-    setImageFile(file)
-    if (file) setPreview(URL.createObjectURL(file))
+    const list = Array.from(event.target.files || [])
+    const first = list[0] || null
+    setImageFile(first)
+    setImageFiles(list)
+    if (first) setPreview(URL.createObjectURL(first))
   }
 
   const save = async (event: React.FormEvent) => {
@@ -142,6 +147,7 @@ export default function ManageProducts() {
         if (value !== null && value !== '') payload.append(key, String(value))
       })
       if (imageFile) payload.append('image', imageFile)
+      imageFiles.forEach((file) => payload.append('images[]', file))
 
       let response
       if (form.id) {
@@ -355,8 +361,11 @@ export default function ManageProducts() {
             <label className="text-[13px] font-medium text-slate-600 dark:text-white/70">Imagen</label>
             <label className="btn-secondary cursor-pointer w-fit">
               Subir imagen
-              <input type="file" accept="image/*" onChange={onImage} className="hidden" />
+              <input type="file" accept="image/*" multiple onChange={onImage} className="hidden" />
             </label>
+            {!!imageFiles.length && (
+              <p className="text-[12px] text-slate-500 dark:text-white/60">{imageFiles.length} archivo(s) seleccionado(s)</p>
+            )}
             {preview && (
               <div className="mt-2 h-28 w-28 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
                 <img src={preview} alt="Preview del producto" className="h-full w-full object-cover" />

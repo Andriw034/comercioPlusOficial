@@ -9,11 +9,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev \
     libonig-dev \
     libxml2-dev \
+    libpq-dev \
     bash \
   && docker-php-ext-install \
     bcmath \
     intl \
     pdo_mysql \
+    pdo_pgsql \
     zip \
   && rm -rf /var/lib/apt/lists/*
 
@@ -35,4 +37,4 @@ RUN mkdir -p storage/logs bootstrap/cache \
 EXPOSE 8080
 
 # ---- Start command (robust for Railway) ----
-CMD ["bash","-lc","php artisan optimize:clear && php artisan config:clear && (php artisan migrate --force || echo \"[warn] migrate failed during startup\") && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+CMD ["bash","-lc","./docker/railway-start.sh"]

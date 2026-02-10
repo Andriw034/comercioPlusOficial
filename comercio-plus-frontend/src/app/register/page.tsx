@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
+import { API_BASE_URL } from '@/lib/runtime'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -57,7 +58,12 @@ export default function Register() {
       console.error('Register error:', err)
       const status = err?.response?.status
       const message = err?.response?.data?.message || 'Error al crear la cuenta. Verifica tus datos.'
-      setError(status ? `${message} (HTTP ${status})` : message)
+      if (status === 503) {
+        const healthUrl = API_BASE_URL ? API_BASE_URL.replace(/\/api\/?$/, '/api/health') : '/api/health'
+        setError(`${message} (HTTP 503). Revisa el estado del backend en ${healthUrl}.`)
+      } else {
+        setError(status ? `${message} (HTTP ${status})` : message)
+      }
     } finally {
       setLoading(false)
     }

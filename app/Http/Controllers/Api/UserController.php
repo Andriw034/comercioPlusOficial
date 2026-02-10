@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\MediaUploader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
-    // Obtener todos los usuarios
+    public function __construct(private readonly MediaUploader $mediaUploader)
+    {
+    }
+
     public function index()
     {
         $query = User::query()->with('store', 'carts', 'orders');
@@ -23,12 +27,11 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->get(['id','name','email']);
+        $users = $query->get(['id','name','email','avatar','avatar_url']);
 
         return response()->json($users);
     }
 
-    // Crear un nuevo usuario
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -39,13 +42,8 @@ class UserController extends Controller
             'address' => 'nullable|string|max:255',
             'status' => 'sometimes|boolean',
             'role' => 'sometimes|string',
-            'avatar' => 'nullable|image|max:2048',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
-
-        $avatarPath = null;
-        if ($request->hasFile('avatar')) {
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-        }
 
         $user = User::create([
             'name' => $validated['name'],
@@ -54,21 +52,23 @@ class UserController extends Controller
             'phone' => $validated['phone'] ?? null,
             'address' => $validated['address'] ?? null,
             'status' => $validated['status'] ?? true,
-            'avatar' => $avatarPath,
         ]);
 
-        // Asignar rol si fue provisto
+        if ($request->hasFile('avatar')) {
+            $this->replaceAvatar($user, $request->file('avatar'));
+        }
+
         if (!empty($validated['role'])) {
-            try { $user->assignRole($validated['role']); } catch (\Throwable $e) { /* opcional */ }
+            try { $user->assignRole($validated['role']); } catch (\Throwable $e) {}
         }
 
         return response()->json([
+            'success' => true,
             'message' => 'Usuario creado correctamente',
-            'data' => $user,
+            'data' => $user->fresh(),
         ], 201);
     }
 
-    // Login de usuario
     public function login(Request $request)
     {
         $validated = $request->validate([
@@ -98,7 +98,6 @@ class UserController extends Controller
         return view('users.edit', compact('user', 'roles'));
     }
 
-    // Obtener un usuario específico
     public function show($id)
     {
         $user = User::find($id);
@@ -110,7 +109,6 @@ class UserController extends Controller
         return response()->json($user);
     }
 
-    // Actualizar un usuario
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
@@ -121,12 +119,11 @@ class UserController extends Controller
             'status' => 'sometimes|boolean',
             'role' => 'sometimes|string',
             'password' => 'sometimes|nullable|string|min:6',
-            'avatar' => 'sometimes|nullable|image|max:2048',
+            'avatar' => 'sometimes|nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         if ($request->hasFile('avatar')) {
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $avatarPath;
+            $this->replaceAvatar($user, $request->file('avatar'));
         }
 
         $user->update([
@@ -137,9 +134,8 @@ class UserController extends Controller
             'status' => $validated['status'] ?? $user->status,
         ]);
 
-        // Actualizar rol si fue provisto
         if (!empty($validated['role'])) {
-            try { $user->syncRoles([$validated['role']]); } catch (\Throwable $e) { /* opcional */ }
+            try { $user->syncRoles([$validated['role']]); } catch (\Throwable $e) {}
         }
 
         if ($request->filled('password')) {
@@ -148,20 +144,57 @@ class UserController extends Controller
         }
 
         return response()->json([
+            'success' => true,
             'message' => 'Usuario actualizado correctamente',
             'data' => $user,
         ]);
     }
 
-    // Eliminar un usuario
+    public function uploadAvatar(Request $request, User $user)
+    {
+        if ($request->user()->id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        $this->replaceAvatar($user, $request->file('avatar'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Avatar actualizado correctamente',
+            'data' => $user->fresh(),
+        ]);
+    }
+
     public function destroy(User $user)
     {
-        if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+        $this->mediaUploader->deleteImage($user->avatar_public_id ?: $user->avatar_path ?: $user->avatar);
+
+        if ($user->avatar_path && !$this->mediaUploader->isAbsoluteUrl($user->avatar_path)) {
+            Storage::disk('public')->delete($user->avatar_path);
         }
 
         $user->delete();
 
         return response()->noContent();
+    }
+
+    private function replaceAvatar(User $user, $avatar): void
+    {
+        $this->mediaUploader->deleteImage($user->avatar_public_id ?: $user->avatar_path ?: $user->avatar);
+
+        if ($user->avatar_path && !$this->mediaUploader->isAbsoluteUrl($user->avatar_path)) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $upload = $this->mediaUploader->uploadImage($avatar, "users/{$user->id}/avatar");
+        $user->avatar = $upload['url'];
+        $user->avatar_path = $upload['path'];
+        $user->avatar_url = $upload['url'];
+        $user->avatar_public_id = $upload['path'];
+        $user->save();
     }
 }

@@ -14,6 +14,7 @@ class MediaUploader
      */
     public function uploadImage(UploadedFile $file, string $folder): array
     {
+        $folder = $this->normalizeFolder($folder);
         $credentials = $this->cloudinaryCredentials();
 
         if ($credentials !== null) {
@@ -30,6 +31,44 @@ class MediaUploader
         }
 
         return (bool) preg_match('/^https?:\/\//i', $value);
+    }
+
+    public function deleteImage(?string $publicId): void
+    {
+        $publicId = trim((string) $publicId);
+
+        if ($publicId === '' || $this->isAbsoluteUrl($publicId)) {
+            return;
+        }
+
+        $credentials = $this->cloudinaryCredentials();
+        if ($credentials === null) {
+            return;
+        }
+
+        $timestamp = time();
+        $params = [
+            'public_id' => $publicId,
+            'timestamp' => (string) $timestamp,
+        ];
+
+        ksort($params);
+        $signatureBase = collect($params)
+            ->map(fn (string $value, string $key) => $key . '=' . $value)
+            ->implode('&');
+
+        $signature = sha1($signatureBase . $credentials['api_secret']);
+        $endpoint = 'https://api.cloudinary.com/v1_1/' . $credentials['cloud_name'] . '/image/destroy';
+
+        Http::timeout(30)
+            ->asForm()
+            ->post($endpoint, [
+                'api_key' => $credentials['api_key'],
+                'signature' => $signature,
+                'timestamp' => $timestamp,
+                'public_id' => $publicId,
+                'invalidate' => true,
+            ]);
     }
 
     /**
@@ -92,6 +131,26 @@ class MediaUploader
             'path' => $path,
             'url' => Storage::disk('public')->url($path),
         ];
+    }
+
+    private function normalizeFolder(string $folder): string
+    {
+        $folder = trim($folder, '/');
+        $base = trim((string) config('services.cloudinary.folder_base', 'comercioplus'), '/');
+
+        if ($base === '') {
+            return $folder;
+        }
+
+        if ($folder === '') {
+            return $base;
+        }
+
+        if (str_starts_with($folder, $base . '/')) {
+            return $folder;
+        }
+
+        return $base . '/' . $folder;
     }
 
     /**

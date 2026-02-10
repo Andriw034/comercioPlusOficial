@@ -57,6 +57,18 @@ Route::get('/health', function () {
     $defaultConnection = config('database.default');
     $connectionConfig = (array) config("database.connections.{$defaultConnection}", []);
 
+    $envHints = [
+        'has_db_connection' => (bool) env('DB_CONNECTION'),
+        'has_db_host' => (bool) env('DB_HOST'),
+        'has_mysqlhost' => (bool) env('MYSQLHOST'),
+        'has_pg_host' => (bool) env('PGHOST'),
+        'has_database_url' => (bool) env('DATABASE_URL'),
+        'pdo_mysql_loaded' => extension_loaded('pdo_mysql'),
+        'pdo_pgsql_loaded' => extension_loaded('pdo_pgsql'),
+    ];
+
+    $missingDbEnv = !($envHints['has_database_url'] || $envHints['has_db_host'] || $envHints['has_mysqlhost'] || $envHints['has_pg_host']);
+
     return response()->json([
         'status' => $status,
         'db_ok' => $dbOk,
@@ -72,12 +84,12 @@ Route::get('/health', function () {
             'password_set' => isset($connectionConfig['password']) && $connectionConfig['password'] !== '',
             'url_set' => !empty($connectionConfig['url']),
         ],
-        'env_hints' => [
-            'has_db_connection' => (bool) env('DB_CONNECTION'),
-            'has_db_host' => (bool) env('DB_HOST'),
-            'has_mysqlhost' => (bool) env('MYSQLHOST'),
-            'has_pg_host' => (bool) env('PGHOST'),
-            'has_database_url' => (bool) env('DATABASE_URL'),
+        'env_hints' => $envHints,
+        'diagnosis' => [
+            'missing_db_env' => $missingDbEnv,
+            'hint' => $missingDbEnv
+                ? 'No hay variables de DB en el backend. Configura DATABASE_URL o MYSQLHOST/MYSQLDATABASE/MYSQLUSER/MYSQLPASSWORD en Railway.'
+                : null,
         ],
         'timestamp' => now()->toIso8601String(),
     ], $dbOk ? 200 : 503);
@@ -122,6 +134,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::apiResource('users', UserController::class);
+    Route::post('users/{user}/avatar', [UserController::class, 'uploadAvatar']);
     Route::apiResource('cart', CartController::class);
     Route::apiResource('cart-products', CartProductController::class);
     // Client orders
@@ -137,6 +150,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('subscriptions', SubscriptionController::class);
 
     Route::apiResource('products', ProductController::class)->except(['index', 'show']);
+    Route::post('products/{product}/image', [ProductController::class, 'updateImage']);
     Route::apiResource('stores', StoreController::class)->except(['index', 'show']);
+    Route::post('stores/{store}/logo', [StoreController::class, 'uploadLogo']);
+    Route::post('stores/{store}/cover', [StoreController::class, 'uploadCover']);
     Route::get('my/store', [StoreController::class, 'myStore'])->middleware('role.key:merchant');
 });

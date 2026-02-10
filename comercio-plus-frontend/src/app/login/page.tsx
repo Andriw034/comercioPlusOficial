@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import API from '@/lib/api'
+import { API_BASE_URL } from '@/lib/runtime'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import ThemeToggle from '@/components/theme/ThemeToggle'
@@ -57,7 +58,12 @@ export default function Login() {
         console.error('Login error:', err)
       }
       const message = err?.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.'
-      setError(status ? `${message} (HTTP ${status})` : message)
+      if (status === 503) {
+        const healthUrl = API_BASE_URL ? API_BASE_URL.replace(/\/api\/?$/, '/api/health') : '/api/health'
+        setError(`${message} (HTTP 503). Revisa el estado del backend en ${healthUrl}.`)
+      } else {
+        setError(status ? `${message} (HTTP ${status})` : message)
+      }
     } finally {
       setLoading(false)
     }
@@ -184,4 +190,3 @@ export default function Login() {
     </div>
   )
 }
-

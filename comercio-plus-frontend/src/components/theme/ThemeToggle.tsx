@@ -1,28 +1,12 @@
 ﻿import { useEffect, useState } from 'react'
-
-type Theme = 'light' | 'dark'
-
-const THEME_STORAGE_KEY = 'cp-theme'
-
-const getSystemTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'light'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-const getInitialTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'light'
-
-  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY)
-  if (savedTheme === 'light' || savedTheme === 'dark') {
-    return savedTheme
-  }
-
-  return getSystemTheme()
-}
-
-const applyTheme = (theme: Theme) => {
-  document.documentElement.classList.toggle('dark', theme === 'dark')
-}
+import {
+  applyTheme,
+  getInitialTheme,
+  getStoredTheme,
+  getSystemTheme,
+  THEME_STORAGE_KEY,
+  type Theme,
+} from '@/lib/theme'
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
@@ -32,6 +16,28 @@ export default function ThemeToggle() {
     applyTheme(theme)
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+
+    const handleStorage = () => {
+      const stored = getStoredTheme()
+      if (stored) setTheme(stored)
+    }
+
+    const handleSystemTheme = () => {
+      if (getStoredTheme()) return
+      setTheme(getSystemTheme())
+    }
+
+    window.addEventListener('storage', handleStorage)
+    media.addEventListener('change', handleSystemTheme)
+
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      media.removeEventListener('change', handleSystemTheme)
+    }
+  }, [])
 
   return (
     <button

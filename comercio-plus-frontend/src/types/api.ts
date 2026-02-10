@@ -40,6 +40,7 @@ export interface Product {
   category_id?: number
   store_id?: number
   image_url?: string
+  image_urls?: string[]
   image?: string
   rating?: number
   average_rating?: number

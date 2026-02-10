@@ -54,6 +54,7 @@ return [
         'api_key' => env('CLOUDINARY_API_KEY', ''),
         'api_secret' => env('CLOUDINARY_API_SECRET', ''),
         'url' => env('CLOUDINARY_URL', ''),
+        'folder_base' => env('CLOUDINARY_FOLDER_BASE', 'comercioplus'),
     ],
 
 

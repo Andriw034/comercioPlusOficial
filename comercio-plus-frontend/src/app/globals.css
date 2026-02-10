@@ -141,7 +141,7 @@ a {
     background-size: 1rem 1rem;
   }
 
-  .dark .native-select {
+.dark .native-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='m6 8 4 4 4-4' stroke='%23cbd5e1' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 
@@ -156,6 +156,28 @@ a {
   .section-subtitle {
     @apply text-sm md:text-base text-slate-600 dark:text-white/60;
   }
+}
+
+/* Corregir contraste en controles nativos/autocompletado para modo oscuro */
+.dark input,
+.dark textarea,
+.dark select {
+  color: rgb(248 250 252);
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark textarea:-webkit-autofill,
+.dark textarea:-webkit-autofill:hover,
+.dark textarea:-webkit-autofill:focus,
+.dark select:-webkit-autofill,
+.dark select:-webkit-autofill:hover,
+.dark select:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgb(248 250 252);
+  caret-color: rgb(248 250 252);
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.06) inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Forzar texto oscuro en botones con fondo blanco o casi blanco */

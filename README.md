@@ -36,6 +36,72 @@ El stack Laravel + Vue/Blade queda en modo legacy y no es fuente de verdad para 
 5. `php artisan migrate`
 6. `php artisan serve`
 
+### Deploy Vercel (frontend) + Railway (backend)
+
+Checklist rapido para evitar `HTTP 503` en `/api/login` y `/api/register`:
+
+1. En Vercel define `VITE_API_BASE_URL` con URL absoluta al backend (`https://<tu-backend>.up.railway.app/api`).
+2. En Railway valida variables de DB (`DATABASE_URL` o `MYSQL*`/`PG*`).
+3. Verifica extensiones PDO del contenedor:
+   - MySQL: `pdo_mysql`
+   - PostgreSQL: `pdo_pgsql`
+4. Confirma migraciones aplicadas (`php artisan migrate --force`).
+5. Revisa `GET /api/health`:
+   - `db_ok: true`
+   - `env_hints.pdo_mysql_loaded` / `env_hints.pdo_pgsql_loaded` segun el motor.
+
+Notas para Railway:
+- Si en logs solo ves arranque de MySQL (`Entrypoint script for MySQL Server ...`) y luego `Stopping Container`, estas viendo el servicio de base de datos, no necesariamente el servicio backend.
+- El servicio backend debe arrancar con el script `./docker/railway-start.sh` (incluye espera de DB + reintento de migraciones).
+- Variables opcionales de arranque backend:
+  - `DB_WAIT_MAX_ATTEMPTS` (default `20`)
+  - `DB_WAIT_SLEEP_SECONDS` (default `3`)
+  - `MIGRATE_MAX_ATTEMPTS` (default `5`)
+  - `MIGRATE_SLEEP_SECONDS` (default `4`)
+
+
+Solucion rapida cuando `/api/health` muestra `db_ok=false` con host `127.0.0.1` y DB `forge`:
+- En el servicio backend de Railway agrega (minimo):
+  - `MYSQLHOST`
+  - `MYSQLPORT`
+  - `MYSQLDATABASE`
+  - `MYSQLUSER`
+  - `MYSQLPASSWORD`
+- Alternativamente usa una sola `DATABASE_URL`.
+- Redeploy del backend luego de guardar variables.
+
+
+### Cloudinary (imagenes de productos, tienda y avatar)
+
+Variables del backend (Railway):
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- Opcional: `CLOUDINARY_FOLDER_BASE=comercioplus`
+
+> Seguridad: no expongas `CLOUDINARY_API_SECRET` en frontend/Vercel. El frontend solo envia archivos al backend y renderiza `secure_url`.
+
+Comandos:
+- `composer install`
+- `php artisan migrate --force`
+- `npm run build` (frontend)
+
+Endpoints nuevos:
+- `POST /api/products/{product}/image` (multipart: `image`)
+- `POST /api/stores/{store}/logo` (multipart: `logo`)
+- `POST /api/stores/{store}/cover` (multipart: `cover`)
+- `POST /api/users/{user}/avatar` (multipart: `avatar`)
+
+`POST /api/products` y `PUT /api/products/{id}` aceptan:
+- `image` (principal)
+- `images[]` (galeria)
+
+Rutas Cloudinary usadas:
+- `comercioplus/stores/{store_id}/logo`
+- `comercioplus/stores/{store_id}/cover`
+- `comercioplus/stores/{store_id}/products/{product_id}`
+- `comercioplus/users/{user_id}/avatar`
+
 ## Notas de arquitectura
 
 - Autenticacion oficial: Sanctum por Bearer token para API.

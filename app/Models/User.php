@@ -31,6 +31,9 @@ class User extends Authenticatable
         'password',
         'phone',
         'avatar_path',
+        'avatar',
+        'avatar_url',
+        'avatar_public_id',
         'status',
         'address',
     ];

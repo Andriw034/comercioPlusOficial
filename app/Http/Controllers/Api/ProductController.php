@@ -19,9 +19,6 @@ class ProductController extends Controller
     {
     }
 
-    /**
-     * Listado p??blico de productos
-     */
     public function index(Request $request)
     {
         $perPage = (int) $request->get('per_page', 12);
@@ -32,9 +29,7 @@ class ProductController extends Controller
                 return response()->json($this->emptyPagination($perPage));
             }
 
-            $query = Product::query()
-                ->included()
-                ->with(['category', 'store']);
+            $query = Product::query()->included()->with(['category', 'store']);
 
             if ($request->filled('search')) {
                 $query->where('name', 'like', '%' . $request->search . '%');
@@ -63,9 +58,7 @@ class ProductController extends Controller
             };
 
             $paginated = $query->paginate($perPage);
-            $paginated->getCollection()->transform(function ($item) {
-                return $this->withImageUrl($item);
-            });
+            $paginated->getCollection()->transform(fn ($item) => $this->withImageUrl($item));
 
             return response()->json($paginated);
         } catch (Throwable $e) {
@@ -78,9 +71,6 @@ class ProductController extends Controller
         }
     }
 
-    /**
-     * Crear producto (AUTENTICADO)
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -91,10 +81,11 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'status'      => 'nullable|in:draft,active,0,1,true,false',
-            'image'       => 'nullable|image|max:2048',
+            'image'       => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images'      => 'nullable|array',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
-        // ????????? Obtener tienda del usuario autenticado
         $store = Store::where('user_id', $request->user()->id)->firstOrFail();
 
         $data['store_id'] = $store->id;
@@ -109,57 +100,36 @@ class ProductController extends Controller
             }
         }
 
-        // Evitar error NOT NULL
         if (!isset($data['description'])) {
             $data['description'] = '';
         }
 
-        // Generar slug ??nico si no viene
         if (empty($data['slug'])) {
-            $base = Str::slug($data['name']);
-            $slug = $base;
-            $i = 1;
-
-            while (Product::where('slug', $slug)->exists()) {
-                $slug = $base . '-' . $i++;
-            }
-
-            $data['slug'] = $slug;
-        }
-
-        // Cargar imagen si se env??a
-        if ($request->hasFile('image')) {
-            $upload = $this->mediaUploader->uploadImage($request->file('image'), 'comercioplus/products');
-            $data['image_path'] = $upload['path'];
-            $data['image_url'] = $upload['url'];
-            $data['image'] = $upload['url'];
+            $data['slug'] = $this->uniqueSlug($data['name']);
         }
 
         $product = Product::create($data);
 
+        $this->handleProductImages($request, $product);
+
         return response()->json([
-            'status' => 'created',
-            'data'   => $this->withImageUrl($product->load('category', 'store')),
+            'success' => true,
+            'message' => 'Producto creado correctamente',
+            'data'   => $this->withImageUrl($product->fresh()->load('category', 'store')),
         ], 201);
     }
 
-    /**
-     * Mostrar producto p??blico
-     */
     public function show(Product $product)
     {
         return response()->json([
-            'status' => 'ok',
+            'success' => true,
+            'message' => 'Producto obtenido correctamente',
             'data'   => $this->withImageUrl($product->load('category', 'store')),
         ]);
     }
 
-    /**
-     * Actualizar producto (SOLO PROPIETARIO)
-     */
     public function update(Request $request, Product $product)
     {
-        // ????????? Seguridad: solo due??o
         if ($product->user_id !== $request->user()->id) {
             abort(403, 'No autorizado');
         }
@@ -172,7 +142,9 @@ class ProductController extends Controller
             'category_id' => 'sometimes|required|exists:categories,id',
             'description' => 'sometimes|nullable|string',
             'status'      => 'sometimes|in:draft,active,0,1,true,false',
-            'image'       => 'sometimes|nullable|image|max:2048',
+            'image'       => 'sometimes|nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images'      => 'sometimes|nullable|array',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         if (array_key_exists('description', $data) && $data['description'] === null) {
@@ -188,63 +160,114 @@ class ProductController extends Controller
             }
         }
 
-        // Regenerar slug si viene vac??o
         if (array_key_exists('slug', $data) && empty($data['slug'])) {
-            $base = Str::slug($data['name'] ?? $product->name);
-            $slug = $base;
-            $i = 1;
-
-            while (
-                Product::where('slug', $slug)
-                    ->where('id', '!=', $product->id)
-                    ->exists()
-            ) {
-                $slug = $base . '-' . $i++;
-            }
-
-            $data['slug'] = $slug;
-        }
-
-        // Reemplazar imagen si viene
-        if ($request->hasFile('image')) {
-            $this->deleteLocalFileIfNeeded($product->image_path);
-            $upload = $this->mediaUploader->uploadImage($request->file('image'), 'comercioplus/products');
-            $data['image_path'] = $upload['path'];
-            $data['image_url'] = $upload['url'];
-            $data['image'] = $upload['url'];
+            $data['slug'] = $this->uniqueSlug($data['name'] ?? $product->name, $product->id);
         }
 
         $product->update($data);
+        $this->handleProductImages($request, $product);
 
         return response()->json([
-            'status' => 'updated',
-            'data'   => $this->withImageUrl($product->load('category', 'store')),
+            'success' => true,
+            'message' => 'Producto actualizado correctamente',
+            'data'   => $this->withImageUrl($product->fresh()->load('category', 'store')),
         ]);
     }
 
-    /**
-     * Eliminar producto (SOLO PROPIETARIO)
-     */
-    public function destroy(Request $request, Product $product)
+    public function updateImage(Request $request, Product $product)
     {
-        // ????????? Seguridad: solo due??o
         if ($product->user_id !== $request->user()->id) {
             abort(403, 'No autorizado');
         }
 
-        $this->deleteLocalFileIfNeeded($product->image_path);
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
 
+        $this->replacePrimaryImage($product, $request->file('image'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Imagen de producto actualizada correctamente',
+            'data' => $this->withImageUrl($product->fresh()->load('category', 'store')),
+        ]);
+    }
+
+    public function destroy(Request $request, Product $product)
+    {
+        if ($product->user_id !== $request->user()->id) {
+            abort(403, 'No autorizado');
+        }
+
+        $this->deletePreviousImages($product);
         $product->delete();
 
         return response()->json([
-            'status'  => 'deleted',
+            'success' => true,
             'message' => 'Producto eliminado correctamente',
         ]);
+    }
+
+    private function handleProductImages(Request $request, Product $product): void
+    {
+        if ($request->hasFile('image')) {
+            $this->replacePrimaryImage($product, $request->file('image'));
+        }
+
+        if ($request->hasFile('images')) {
+            $uploads = [];
+            foreach ($request->file('images') as $file) {
+                $upload = $this->mediaUploader->uploadImage($file, "stores/{$product->store_id}/products/{$product->id}");
+                $uploads[] = [
+                    'url' => $upload['url'],
+                    'public_id' => $upload['path'],
+                ];
+            }
+
+            if (!empty($uploads)) {
+                $product->image_urls = array_values(array_map(fn ($item) => $item['url'], $uploads));
+                if (!$product->image_url) {
+                    $product->image_url = $uploads[0]['url'];
+                    $product->image = $uploads[0]['url'];
+                    $product->image_path = $uploads[0]['public_id'];
+                    $product->image_public_id = $uploads[0]['public_id'];
+                }
+                $product->save();
+            }
+        }
+    }
+
+    private function replacePrimaryImage(Product $product, $file): void
+    {
+        $this->mediaUploader->deleteImage($product->image_public_id ?: $product->image_path);
+        $this->deleteLocalFileIfNeeded($product->image_path);
+
+        $upload = $this->mediaUploader->uploadImage($file, "stores/{$product->store_id}/products/{$product->id}");
+        $product->image_path = $upload['path'];
+        $product->image_public_id = $upload['path'];
+        $product->image_url = $upload['url'];
+        $product->image = $upload['url'];
+
+        $existing = is_array($product->image_urls) ? $product->image_urls : [];
+        array_unshift($existing, $upload['url']);
+        $product->image_urls = array_values(array_unique($existing));
+        $product->save();
+    }
+
+    private function deletePreviousImages(Product $product): void
+    {
+        $this->mediaUploader->deleteImage($product->image_public_id ?: $product->image_path);
+        $this->deleteLocalFileIfNeeded($product->image_path);
     }
 
     private function withImageUrl(Product $product): Product
     {
         $product->image_url = $this->resolveMediaUrl($product->image_url, $product->image_path ?: $product->image);
+        $product->image_urls = collect($product->image_urls ?? [])
+            ->map(fn ($url) => $this->resolveMediaUrl($url, $url))
+            ->filter()
+            ->values()
+            ->all();
 
         if (isset($product->status)) {
             $product->status = $product->status ? 'active' : 'draft';
@@ -309,5 +332,20 @@ class ProductController extends Controller
         }
         return null;
     }
-}
 
+    private function uniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $i = 1;
+
+        while (Product::query()
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->where('slug', $slug)
+            ->exists()) {
+            $slug = $base . '-' . $i++;
+        }
+
+        return $slug;
+    }
+}
