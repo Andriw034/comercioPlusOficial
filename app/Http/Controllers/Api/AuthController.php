@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -130,6 +131,7 @@ class AuthController extends Controller
 
     private function createAccessToken(User $user): string
     {
+        $this->ensurePersonalAccessTokensTable();
         return $user->createToken('auth_token')->plainTextToken;
     }
 
@@ -178,36 +180,74 @@ class AuthController extends Controller
 
     private function resolveLegacyRoleId(string $role): ?int
     {
-        if (!Schema::hasTable('roles')) {
+        try {
+            if (!Schema::hasTable('roles')) {
+                return null;
+            }
+
+            $candidates = $role === 'merchant'
+                ? ['comerciante', 'merchant', 'seller']
+                : ['cliente', 'client', 'buyer'];
+
+            $id = Role::query()->whereIn('name', $candidates)->value('id');
+            return $id ? (int) $id : null;
+        } catch (Throwable $e) {
+            Log::warning('Legacy role resolution skipped', [
+                'message' => $e->getMessage(),
+            ]);
             return null;
         }
-
-        $candidates = $role === 'merchant'
-            ? ['comerciante', 'merchant', 'seller']
-            : ['cliente', 'client', 'buyer'];
-
-        $id = Role::query()->whereIn('name', $candidates)->value('id');
-        return $id ? (int) $id : null;
     }
 
     private function resolveRoleFromLegacyRoleId(?int $roleId): ?string
     {
-        if (!$roleId || !Schema::hasTable('roles')) {
+        try {
+            if (!$roleId || !Schema::hasTable('roles')) {
+                return null;
+            }
+
+            $name = (string) (Role::query()->where('id', $roleId)->value('name') ?? '');
+            $name = strtolower($name);
+
+            if (in_array($name, ['comerciante', 'merchant', 'seller'], true)) {
+                return 'merchant';
+            }
+
+            if (in_array($name, ['cliente', 'client', 'buyer'], true)) {
+                return 'client';
+            }
+
+            return null;
+        } catch (Throwable $e) {
+            Log::warning('Legacy role reverse resolution skipped', [
+                'message' => $e->getMessage(),
+            ]);
             return null;
         }
+    }
 
-        $name = (string) (Role::query()->where('id', $roleId)->value('name') ?? '');
-        $name = strtolower($name);
+    private function ensurePersonalAccessTokensTable(): void
+    {
+        try {
+            if (Schema::hasTable('personal_access_tokens')) {
+                return;
+            }
 
-        if (in_array($name, ['comerciante', 'merchant', 'seller'], true)) {
-            return 'merchant';
+            Artisan::call('migrate', [
+                '--path' => 'database/migrations/2019_12_14_000001_create_personal_access_tokens_table.php',
+                '--force' => true,
+            ]);
+
+            if (!Schema::hasTable('personal_access_tokens')) {
+                throw new \RuntimeException('personal_access_tokens table was not created.');
+            }
+        } catch (Throwable $e) {
+            Log::error('Failed to ensure personal_access_tokens table', [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+            throw $e;
         }
-
-        if (in_array($name, ['cliente', 'client', 'buyer'], true)) {
-            return 'client';
-        }
-
-        return null;
     }
 
     private function resolveAuthErrorMessage(Throwable $e): string

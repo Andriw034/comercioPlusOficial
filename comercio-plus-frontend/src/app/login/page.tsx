@@ -56,7 +56,8 @@ export default function Login() {
       if (![401, 422].includes(status)) {
         console.error('Login error:', err)
       }
-      setError(err.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.')
+      const message = err?.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.'
+      setError(status ? `${message} (HTTP ${status})` : message)
     } finally {
       setLoading(false)
     }
@@ -183,5 +184,4 @@ export default function Login() {
     </div>
   )
 }
-
 

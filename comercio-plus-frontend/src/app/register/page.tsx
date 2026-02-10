@@ -55,7 +55,9 @@ export default function Register() {
       }
     } catch (err: any) {
       console.error('Register error:', err)
-      setError(err.response?.data?.message || 'Error al crear la cuenta. Verifica tus datos.')
+      const status = err?.response?.status
+      const message = err?.response?.data?.message || 'Error al crear la cuenta. Verifica tus datos.'
+      setError(status ? `${message} (HTTP ${status})` : message)
     } finally {
       setLoading(false)
     }
