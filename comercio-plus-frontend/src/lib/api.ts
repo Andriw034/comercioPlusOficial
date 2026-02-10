@@ -23,6 +23,8 @@ API.interceptors.request.use(
       return Promise.reject(new Error('Missing VITE_API_BASE_URL configuration in production.'))
     }
 
+    config.withCredentials = false
+
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
