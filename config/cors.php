@@ -1,13 +1,20 @@
 <?php
 
+$parseCsv = static function (string $value): array {
+    return array_values(array_filter(array_map(
+        static fn (string $entry) => trim($entry),
+        explode(',', $value)
+    )));
+};
+
 $configuredOrigins = array_values(array_filter(array_map(
-    static fn ($origin) => trim($origin),
-    explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))
+    static fn (string $origin) => trim($origin),
+    $parseCsv((string) env('CORS_ALLOWED_ORIGINS', ''))
 )));
 
 $configuredOriginPatterns = array_values(array_filter(array_map(
-    static fn ($pattern) => trim($pattern),
-    explode(',', (string) env('CORS_ALLOWED_ORIGIN_PATTERNS', ''))
+    static fn (string $pattern) => trim($pattern),
+    $parseCsv((string) env('CORS_ALLOWED_ORIGIN_PATTERNS', ''))
 )));
 
 $localDevOrigins = [
@@ -18,6 +25,25 @@ $localDevOrigins = [
     'http://127.0.0.1:5173',
     'http://localhost:5173',
 ];
+
+$projectVercelOrigins = [
+    'https://comercio-plus-oficial.vercel.app',
+    'https://comercio-plus-oficial-*.vercel.app',
+];
+
+$frontendOriginsFromEnv = array_values(array_filter([
+    trim((string) env('FRONTEND_URL', '')),
+]));
+
+$defaultOrigins = array_values(array_unique(array_merge(
+    $localDevOrigins,
+    $projectVercelOrigins,
+    $frontendOriginsFromEnv
+)));
+
+$allowedOrigins = $configuredOrigins !== []
+    ? array_values(array_unique(array_merge($configuredOrigins, $frontendOriginsFromEnv)))
+    : $defaultOrigins;
 
 return [
 
@@ -34,7 +60,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => $configuredOrigins !== [] ? $configuredOrigins : $localDevOrigins,
+    'allowed_origins' => $allowedOrigins,
 
     'allowed_origins_patterns' => $configuredOriginPatterns,
 
