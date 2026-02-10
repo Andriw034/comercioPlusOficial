@@ -1,16 +1,10 @@
 import axios from 'axios'
-import { API_BASE_URL, SANCTUM_BASE_URL } from './runtime'
-
-const resolveCsrfUrl = () => {
-  if (SANCTUM_BASE_URL) return `${SANCTUM_BASE_URL}/sanctum/csrf-cookie`
-  if (typeof window !== 'undefined') return `${window.location.origin}/sanctum/csrf-cookie`
-  return '/sanctum/csrf-cookie'
-}
+import { API_BASE_URL } from './runtime'
 
 axios.defaults.baseURL = API_BASE_URL
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 axios.defaults.headers.common['Accept'] = 'application/json'
-axios.defaults.withCredentials = true
+axios.defaults.withCredentials = false
 
 const API = axios.create({
   baseURL: API_BASE_URL,
@@ -18,26 +12,14 @@ const API = axios.create({
     Accept: 'application/json',
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: false,
 })
-
-let csrfFetched = false
 
 API.interceptors.request.use(
   async (config) => {
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-    }
-
-    const method = (config.method || '').toLowerCase()
-    if (!csrfFetched && ['post', 'put', 'patch', 'delete'].includes(method)) {
-      try {
-        await axios.get(resolveCsrfUrl(), { withCredentials: true })
-        csrfFetched = true
-      } catch (error) {
-        console.warn('No se pudo obtener CSRF cookie:', error)
-      }
     }
     return config
   },
