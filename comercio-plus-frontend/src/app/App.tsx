@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import RequireAuth from '@/components/auth/RequireAuth'
 import RequireRole from '@/components/auth/RequireRole'
 import AuthLayout from '@/components/layouts/AuthLayout'
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/dashboard/products" element={<ManageProducts />} />
         </Route>
       </Routes>
+      <Analytics />
     </BrowserRouter>
   )
 }
