@@ -8,6 +8,7 @@ import StatCard from '@/components/ui/StatCard'
 import { buttonVariants } from '@/components/ui/button'
 import ProductCard from '@/components/products/ProductCard'
 import ProductQuickViewModal from '@/components/products/ProductQuickViewModal'
+import { extractList } from '@/lib/api-response'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -32,8 +33,8 @@ export default function Home() {
           API.get('/products', { params: { per_page: 8, sort: 'recent' } }),
         ])
 
-        setCategories(categoriesResponse.data || [])
-        setFeaturedProducts(productsResponse.data?.data || [])
+        setCategories(extractList<CategoryType>(categoriesResponse.data))
+        setFeaturedProducts(extractList<Product>(productsResponse.data))
       } catch (err) {
         console.error('Home loading error:', err)
         setError('Error al cargar el contenido')

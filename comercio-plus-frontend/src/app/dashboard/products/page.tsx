@@ -8,6 +8,7 @@ import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import type { Category, Product, Store } from '@/types/api'
 import { resolveMediaUrl, formatPrice } from '@/lib/format'
+import { extractList } from '@/lib/api-response'
 
 export default function ManageProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -38,7 +39,7 @@ export default function ManageProducts() {
   const fetchCategories = async () => {
     try {
       const { data } = await API.get('/categories')
-      setCategories(data || [])
+      setCategories(extractList<Category>(data))
     } catch (err) {
       console.error('categories', err)
     }
@@ -81,7 +82,7 @@ export default function ManageProducts() {
           per_page: 100,
         },
       })
-      setProducts(data.data || data)
+      setProducts(extractList<Product>(data))
     } catch (err: any) {
       console.error('products', err)
       setError(err.response?.data?.message || 'Error al cargar productos')

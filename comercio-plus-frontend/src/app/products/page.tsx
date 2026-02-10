@@ -8,6 +8,7 @@ import Select from '@/components/ui/Select'
 import { buttonVariants } from '@/components/ui/button'
 import ProductCard from '@/components/products/ProductCard'
 import ProductQuickViewModal from '@/components/products/ProductQuickViewModal'
+import { extractList } from '@/lib/api-response'
 
 export default function Products() {
   const [searchParams] = useSearchParams()
@@ -76,12 +77,13 @@ export default function Products() {
       }
 
       const response = await API.get('/products', { params })
-      setProducts(response.data.data || [])
+      const productList = extractList<Product>(response.data)
+      setProducts(productList)
       setPagination({
         current_page: response.data.current_page || 1,
         last_page: response.data.last_page || 1,
         per_page: response.data.per_page || 20,
-        total: response.data.total || 0,
+        total: response.data.total || productList.length,
       })
     } catch (err: any) {
       console.error('Error fetching products:', err)
@@ -94,7 +96,7 @@ export default function Products() {
   const fetchCategories = async () => {
     try {
       const response = await API.get('/categories')
-      setCategories(response.data || [])
+      setCategories(extractList<CategoryType>(response.data))
     } catch (err) {
       console.error('Error fetching categories:', err)
     }
