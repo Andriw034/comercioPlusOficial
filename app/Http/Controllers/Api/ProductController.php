@@ -7,8 +7,11 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Support\MediaUploader;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ProductController extends Controller
 {
@@ -17,54 +20,62 @@ class ProductController extends Controller
     }
 
     /**
-     * Listado público de productos
+     * Listado p??blico de productos
      */
     public function index(Request $request)
     {
         $perPage = (int) $request->get('per_page', 12);
         $perPage = ($perPage > 0 && $perPage <= 50) ? $perPage : 12;
 
-        $query = Product::query()
-            ->included() // permite ?included=store,category
-            ->with(['category', 'store']);
-
-        // ðŸ” Búsqueda por nombre
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
-
-        // ðŸ“‚ Filtro por categoría (acepta category o category_id)
-        if ($request->filled('category') || $request->filled('category_id')) {
-            $query->where('category_id', $request->get('category', $request->get('category_id')));
-        }
-
-        // ðŸª Filtro por tienda
-        if ($request->filled('store_id')) {
-            $query->where('store_id', $request->store_id);
-        }
-
-        // ðŸŽ¯ Estado / visibilidad
-        if ($request->filled('status')) {
-            $status = $this->normalizeStatus($request->status);
-            if ($status !== null) {
-                $query->where('status', $status);
+        try {
+            if (!Schema::hasTable('products')) {
+                return response()->json($this->emptyPagination($perPage));
             }
+
+            $query = Product::query()
+                ->included()
+                ->with(['category', 'store']);
+
+            if ($request->filled('search')) {
+                $query->where('name', 'like', '%' . $request->search . '%');
+            }
+
+            if ($request->filled('category') || $request->filled('category_id')) {
+                $query->where('category_id', $request->get('category', $request->get('category_id')));
+            }
+
+            if ($request->filled('store_id')) {
+                $query->where('store_id', $request->store_id);
+            }
+
+            if ($request->filled('status')) {
+                $status = $this->normalizeStatus($request->status);
+                if ($status !== null) {
+                    $query->where('status', $status);
+                }
+            }
+
+            $sort = $request->get('sort', 'recent');
+            match ($sort) {
+                'price_asc'  => $query->orderBy('price', 'asc'),
+                'price_desc' => $query->orderBy('price', 'desc'),
+                default      => $query->latest(),
+            };
+
+            $paginated = $query->paginate($perPage);
+            $paginated->getCollection()->transform(function ($item) {
+                return $this->withImageUrl($item);
+            });
+
+            return response()->json($paginated);
+        } catch (Throwable $e) {
+            Log::error('Public products listing failed', [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
+            return response()->json($this->emptyPagination($perPage));
         }
-
-        // â­ Ordenamiento seguro
-        $sort = $request->get('sort', 'recent');
-        match ($sort) {
-            'price_asc'  => $query->orderBy('price', 'asc'),
-            'price_desc' => $query->orderBy('price', 'desc'),
-            default      => $query->latest(),
-        };
-
-        $paginated = $query->paginate($perPage);
-        $paginated->getCollection()->transform(function ($item) {
-            return $this->withImageUrl($item);
-        });
-
-        return response()->json($paginated);
     }
 
     /**
@@ -83,7 +94,7 @@ class ProductController extends Controller
             'image'       => 'nullable|image|max:2048',
         ]);
 
-        // ðŸ” Obtener tienda del usuario autenticado
+        // ????????? Obtener tienda del usuario autenticado
         $store = Store::where('user_id', $request->user()->id)->firstOrFail();
 
         $data['store_id'] = $store->id;
@@ -103,7 +114,7 @@ class ProductController extends Controller
             $data['description'] = '';
         }
 
-        // Generar slug único si no viene
+        // Generar slug ??nico si no viene
         if (empty($data['slug'])) {
             $base = Str::slug($data['name']);
             $slug = $base;
@@ -116,7 +127,7 @@ class ProductController extends Controller
             $data['slug'] = $slug;
         }
 
-        // Cargar imagen si se envía
+        // Cargar imagen si se env??a
         if ($request->hasFile('image')) {
             $upload = $this->mediaUploader->uploadImage($request->file('image'), 'comercioplus/products');
             $data['image_path'] = $upload['path'];
@@ -133,7 +144,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar producto público
+     * Mostrar producto p??blico
      */
     public function show(Product $product)
     {
@@ -148,7 +159,7 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        // ðŸ” Seguridad: solo dueño
+        // ????????? Seguridad: solo due??o
         if ($product->user_id !== $request->user()->id) {
             abort(403, 'No autorizado');
         }
@@ -177,7 +188,7 @@ class ProductController extends Controller
             }
         }
 
-        // Regenerar slug si viene vacío
+        // Regenerar slug si viene vac??o
         if (array_key_exists('slug', $data) && empty($data['slug'])) {
             $base = Str::slug($data['name'] ?? $product->name);
             $slug = $base;
@@ -216,7 +227,7 @@ class ProductController extends Controller
      */
     public function destroy(Request $request, Product $product)
     {
-        // ðŸ” Seguridad: solo dueño
+        // ????????? Seguridad: solo due??o
         if ($product->user_id !== $request->user()->id) {
             abort(403, 'No autorizado');
         }
@@ -270,6 +281,17 @@ class ProductController extends Controller
         }
     }
 
+    private function emptyPagination(int $perPage): array
+    {
+        return [
+            'current_page' => 1,
+            'data' => [],
+            'last_page' => 1,
+            'per_page' => $perPage,
+            'total' => 0,
+        ];
+    }
+
     private function normalizeStatus($value): ?int
     {
         if ($value === null || $value === '') {
@@ -288,3 +310,4 @@ class ProductController extends Controller
         return null;
     }
 }
+

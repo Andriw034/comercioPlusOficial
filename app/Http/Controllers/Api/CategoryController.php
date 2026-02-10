@@ -6,23 +6,49 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Throwable;
 
 class CategoryController extends Controller
 {
     // Public: List all categories
     public function index()
     {
-        $allowed = [
-            'cascos-y-proteccion',
-            'accesorios-para-moto',
-            'frenos-y-suspension',
-            'llantas-y-rines',
-            'lubricantes-y-mantenimiento',
-            'repuestos-generales',
-        ];
+        try {
+            if (!Schema::hasTable('categories')) {
+                return response()->json([]);
+            }
 
-        return Category::whereIn('slug', $allowed)->orderBy('name')->get();
+            $query = Category::query();
+
+            if (Schema::hasColumn('categories', 'slug')) {
+                $allowed = [
+                    'cascos-y-proteccion',
+                    'accesorios-para-moto',
+                    'frenos-y-suspension',
+                    'llantas-y-rines',
+                    'lubricantes-y-mantenimiento',
+                    'repuestos-generales',
+                ];
+                $query->whereIn('slug', $allowed);
+            }
+
+            if (Schema::hasColumn('categories', 'name')) {
+                $query->orderBy('name');
+            }
+
+            return response()->json($query->get());
+        } catch (Throwable $e) {
+            Log::error('Public categories listing failed', [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
+            // Fallback seguro para no romper Home en produccion.
+            return response()->json([]);
+        }
     }
 
     // Public: Show a single category

@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
@@ -20,7 +22,37 @@ use App\Http\Controllers\Api\HeroImageController;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/health', fn () => response()->json(['status' => 'ok']));
+Route::get('/health', function () {
+    $dbOk = false;
+    $dbError = null;
+
+    try {
+        DB::connection()->getPdo();
+        DB::select('select 1');
+        $dbOk = true;
+    } catch (\Throwable $e) {
+        $dbError = $e->getMessage();
+    }
+
+    $checks = [
+        'users_table' => Schema::hasTable('users'),
+        'products_table' => Schema::hasTable('products'),
+        'categories_table' => Schema::hasTable('categories'),
+        'personal_access_tokens_table' => Schema::hasTable('personal_access_tokens'),
+        'users_role_column' => Schema::hasColumn('users', 'role'),
+        'categories_slug_column' => Schema::hasColumn('categories', 'slug'),
+    ];
+
+    $status = $dbOk ? 'ok' : 'degraded';
+
+    return response()->json([
+        'status' => $status,
+        'db_ok' => $dbOk,
+        'checks' => $checks,
+        'db_error' => $dbError,
+        'timestamp' => now()->toIso8601String(),
+    ], $dbOk ? 200 : 503);
+});
 
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
