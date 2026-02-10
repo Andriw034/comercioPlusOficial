@@ -2,6 +2,36 @@
 
 use Illuminate\Support\Str;
 
+$valueOrDefault = static function ($value, $default = null) {
+    return ($value !== null && $value !== '') ? $value : $default;
+};
+
+$prefer = static function (bool $preferPrimary, $primary, $secondary, $default = null) use ($valueOrDefault) {
+    if ($preferPrimary) {
+        return $valueOrDefault($primary, $valueOrDefault($secondary, $default));
+    }
+    return $valueOrDefault($secondary, $valueOrDefault($primary, $default));
+};
+
+$mysqlEnvDetected = (bool) (
+    env('MYSQLHOST') ||
+    env('MYSQLDATABASE') ||
+    env('MYSQLUSER') ||
+    env('MYSQL_URL')
+);
+
+$pgsqlEnvDetected = (bool) (
+    env('PGHOST') ||
+    env('PGDATABASE') ||
+    env('PGUSER') ||
+    env('POSTGRES_URL')
+);
+
+$defaultConnection = env('DB_CONNECTION');
+if (!$defaultConnection) {
+    $defaultConnection = $pgsqlEnvDetected ? 'pgsql' : 'mysql';
+}
+
 return [
 
     /*
@@ -15,7 +45,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'mysql'),
+    'default' => $defaultConnection,
 
     /*
     |--------------------------------------------------------------------------
@@ -46,12 +76,12 @@ return [
         'mysql' => [
             'driver' => 'mysql',
             // Railway compatibility: use MYSQL* env vars if DB_* are missing.
-            'url' => env('DATABASE_URL', env('MYSQL_URL')),
-            'host' => env('DB_HOST', env('MYSQLHOST', '127.0.0.1')),
-            'port' => env('DB_PORT', env('MYSQLPORT', '3306')),
-            'database' => env('DB_DATABASE', env('MYSQLDATABASE', 'forge')),
-            'username' => env('DB_USERNAME', env('MYSQLUSER', 'forge')),
-            'password' => env('DB_PASSWORD', env('MYSQLPASSWORD', '')),
+            'url' => $prefer($mysqlEnvDetected, env('MYSQL_URL'), env('DATABASE_URL')),
+            'host' => $prefer($mysqlEnvDetected, env('MYSQLHOST'), env('DB_HOST'), '127.0.0.1'),
+            'port' => $prefer($mysqlEnvDetected, env('MYSQLPORT'), env('DB_PORT'), '3306'),
+            'database' => $prefer($mysqlEnvDetected, env('MYSQLDATABASE'), env('DB_DATABASE'), 'forge'),
+            'username' => $prefer($mysqlEnvDetected, env('MYSQLUSER'), env('DB_USERNAME'), 'forge'),
+            'password' => $prefer($mysqlEnvDetected, env('MYSQLPASSWORD'), env('DB_PASSWORD'), ''),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
@@ -66,12 +96,12 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DATABASE_URL', env('POSTGRES_URL')),
-            'host' => env('DB_HOST', env('PGHOST', '127.0.0.1')),
-            'port' => env('DB_PORT', env('PGPORT', '5432')),
-            'database' => env('DB_DATABASE', env('PGDATABASE', 'forge')),
-            'username' => env('DB_USERNAME', env('PGUSER', 'forge')),
-            'password' => env('DB_PASSWORD', env('PGPASSWORD', '')),
+            'url' => $prefer($pgsqlEnvDetected, env('POSTGRES_URL'), env('DATABASE_URL')),
+            'host' => $prefer($pgsqlEnvDetected, env('PGHOST'), env('DB_HOST'), '127.0.0.1'),
+            'port' => $prefer($pgsqlEnvDetected, env('PGPORT'), env('DB_PORT'), '5432'),
+            'database' => $prefer($pgsqlEnvDetected, env('PGDATABASE'), env('DB_DATABASE'), 'forge'),
+            'username' => $prefer($pgsqlEnvDetected, env('PGUSER'), env('DB_USERNAME'), 'forge'),
+            'password' => $prefer($pgsqlEnvDetected, env('PGPASSWORD'), env('DB_PASSWORD'), ''),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,

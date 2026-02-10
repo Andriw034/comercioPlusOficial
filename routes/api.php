@@ -25,6 +25,14 @@ use App\Http\Controllers\Api\HeroImageController;
 Route::get('/health', function () {
     $dbOk = false;
     $dbError = null;
+    $checks = [
+        'users_table' => null,
+        'products_table' => null,
+        'categories_table' => null,
+        'personal_access_tokens_table' => null,
+        'users_role_column' => null,
+        'categories_slug_column' => null,
+    ];
 
     try {
         DB::connection()->getPdo();
@@ -34,22 +42,43 @@ Route::get('/health', function () {
         $dbError = $e->getMessage();
     }
 
-    $checks = [
-        'users_table' => Schema::hasTable('users'),
-        'products_table' => Schema::hasTable('products'),
-        'categories_table' => Schema::hasTable('categories'),
-        'personal_access_tokens_table' => Schema::hasTable('personal_access_tokens'),
-        'users_role_column' => Schema::hasColumn('users', 'role'),
-        'categories_slug_column' => Schema::hasColumn('categories', 'slug'),
-    ];
+    if ($dbOk) {
+        $checks = [
+            'users_table' => Schema::hasTable('users'),
+            'products_table' => Schema::hasTable('products'),
+            'categories_table' => Schema::hasTable('categories'),
+            'personal_access_tokens_table' => Schema::hasTable('personal_access_tokens'),
+            'users_role_column' => Schema::hasColumn('users', 'role'),
+            'categories_slug_column' => Schema::hasColumn('categories', 'slug'),
+        ];
+    }
 
     $status = $dbOk ? 'ok' : 'degraded';
+    $defaultConnection = config('database.default');
+    $connectionConfig = (array) config("database.connections.{$defaultConnection}", []);
 
     return response()->json([
         'status' => $status,
         'db_ok' => $dbOk,
         'checks' => $checks,
         'db_error' => $dbError,
+        'db_connection' => [
+            'default' => $defaultConnection,
+            'driver' => $connectionConfig['driver'] ?? null,
+            'host' => $connectionConfig['host'] ?? null,
+            'port' => $connectionConfig['port'] ?? null,
+            'database' => $connectionConfig['database'] ?? null,
+            'username_set' => !empty($connectionConfig['username']),
+            'password_set' => isset($connectionConfig['password']) && $connectionConfig['password'] !== '',
+            'url_set' => !empty($connectionConfig['url']),
+        ],
+        'env_hints' => [
+            'has_db_connection' => (bool) env('DB_CONNECTION'),
+            'has_db_host' => (bool) env('DB_HOST'),
+            'has_mysqlhost' => (bool) env('MYSQLHOST'),
+            'has_pg_host' => (bool) env('PGHOST'),
+            'has_database_url' => (bool) env('DATABASE_URL'),
+        ],
         'timestamp' => now()->toIso8601String(),
     ], $dbOk ? 200 : 503);
 });
