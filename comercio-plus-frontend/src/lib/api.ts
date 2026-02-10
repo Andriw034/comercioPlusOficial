@@ -2,7 +2,6 @@ import axios from 'axios'
 import { API_BASE_URL } from './runtime'
 
 axios.defaults.baseURL = API_BASE_URL
-axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 axios.defaults.headers.common['Accept'] = 'application/json'
 axios.defaults.withCredentials = false
 
@@ -10,7 +9,6 @@ const API = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
   },
   withCredentials: false,
 })

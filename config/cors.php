@@ -46,6 +46,8 @@ $allowedOrigins = array_values(array_unique(array_merge(
     $configuredOrigins
 )));
 
+$allowAllOrigins = filter_var((string) env('CORS_ALLOW_ALL', 'true'), FILTER_VALIDATE_BOOL);
+
 return [
 
     /*
@@ -61,9 +63,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => $allowedOrigins,
+    'allowed_origins' => $allowAllOrigins ? ['*'] : $allowedOrigins,
 
-    'allowed_origins_patterns' => $configuredOriginPatterns,
+    'allowed_origins_patterns' => $allowAllOrigins ? [] : $configuredOriginPatterns,
 
     'allowed_headers' => ['*'],
 
@@ -71,6 +73,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
 
 ];
