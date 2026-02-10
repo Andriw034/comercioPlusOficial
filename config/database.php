@@ -13,31 +13,66 @@ $prefer = static function (bool $preferPrimary, $primary, $secondary, $default =
     return $valueOrDefault($secondary, $valueOrDefault($primary, $default));
 };
 
+$normalizeConnection = static function ($value): ?string {
+    $normalized = strtolower(trim((string) $value));
+
+    return in_array($normalized, ['sqlite', 'mysql', 'pgsql', 'sqlsrv'], true)
+        ? $normalized
+        : null;
+};
+
+$databaseUrl = trim((string) env('DATABASE_URL', ''));
+$databaseUrlConnection = null;
+if ($databaseUrl !== '') {
+    $databaseUrlScheme = strtolower((string) parse_url($databaseUrl, PHP_URL_SCHEME));
+    $databaseUrlConnection = match ($databaseUrlScheme) {
+        'mysql' => 'mysql',
+        'pgsql', 'postgres', 'postgresql' => 'pgsql',
+        'sqlsrv', 'mssql' => 'sqlsrv',
+        'sqlite' => 'sqlite',
+        default => null,
+    };
+}
+
 $mysqlEnvDetected = (bool) (
     env('MYSQLHOST') ||
     env('MYSQLDATABASE') ||
     env('MYSQLUSER') ||
-    env('MYSQL_URL')
+    env('MYSQL_URL') ||
+    env('MYSQLPORT') ||
+    env('MYSQLPASSWORD')
 );
 
 $pgsqlEnvDetected = (bool) (
     env('PGHOST') ||
     env('PGDATABASE') ||
     env('PGUSER') ||
-    env('POSTGRES_URL')
+    env('POSTGRES_URL') ||
+    env('PGPORT') ||
+    env('PGPASSWORD')
 );
 
-$defaultConnectionFromEnv = env('DB_CONNECTION');
-$defaultConnection = $defaultConnectionFromEnv;
-
-// In hosted environments (Railway), provider vars are usually the source of truth.
-if ($mysqlEnvDetected && !$pgsqlEnvDetected) {
+$defaultConnectionFromEnv = $normalizeConnection(env('DB_CONNECTION'));
+if ($databaseUrlConnection !== null) {
+    $defaultConnection = $databaseUrlConnection;
+} elseif ($mysqlEnvDetected && !$pgsqlEnvDetected) {
     $defaultConnection = 'mysql';
 } elseif ($pgsqlEnvDetected && !$mysqlEnvDetected) {
     $defaultConnection = 'pgsql';
-} elseif (!$defaultConnection) {
-    $defaultConnection = $pgsqlEnvDetected ? 'pgsql' : 'mysql';
+} elseif ($defaultConnectionFromEnv !== null) {
+    $defaultConnection = $defaultConnectionFromEnv;
+} else {
+    $defaultConnection = 'mysql';
 }
+
+$mysqlUrl = $databaseUrlConnection === 'mysql'
+    ? $databaseUrl
+    : $valueOrDefault(env('MYSQL_URL'), null);
+$pgsqlUrl = $databaseUrlConnection === 'pgsql'
+    ? $databaseUrl
+    : $valueOrDefault(env('POSTGRES_URL'), null);
+$sqlsrvUrl = $databaseUrlConnection === 'sqlsrv' ? $databaseUrl : null;
+$sqliteUrl = $databaseUrlConnection === 'sqlite' ? $databaseUrl : null;
 
 return [
 
@@ -74,7 +109,7 @@ return [
 
         'sqlite' => [
             'driver' => 'sqlite',
-            'url' => env('DATABASE_URL'),
+            'url' => $sqliteUrl,
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
@@ -82,8 +117,8 @@ return [
 
         'mysql' => [
             'driver' => 'mysql',
-            // Railway compatibility: use MYSQL* env vars if DB_* are missing.
-            'url' => $prefer($mysqlEnvDetected, env('MYSQL_URL'), env('DATABASE_URL')),
+            // Railway compatibility: prioritize provider vars and MYSQL URL.
+            'url' => $prefer($mysqlEnvDetected, $mysqlUrl, $databaseUrlConnection === 'mysql' ? $databaseUrl : null),
             'host' => $prefer($mysqlEnvDetected, env('MYSQLHOST'), env('DB_HOST'), '127.0.0.1'),
             'port' => $prefer($mysqlEnvDetected, env('MYSQLPORT'), env('DB_PORT'), '3306'),
             'database' => $prefer($mysqlEnvDetected, env('MYSQLDATABASE'), env('DB_DATABASE'), 'forge'),
@@ -103,7 +138,7 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => $prefer($pgsqlEnvDetected, env('POSTGRES_URL'), env('DATABASE_URL')),
+            'url' => $prefer($pgsqlEnvDetected, $pgsqlUrl, $databaseUrlConnection === 'pgsql' ? $databaseUrl : null),
             'host' => $prefer($pgsqlEnvDetected, env('PGHOST'), env('DB_HOST'), '127.0.0.1'),
             'port' => $prefer($pgsqlEnvDetected, env('PGPORT'), env('DB_PORT'), '5432'),
             'database' => $prefer($pgsqlEnvDetected, env('PGDATABASE'), env('DB_DATABASE'), 'forge'),
@@ -118,7 +153,7 @@ return [
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',
-            'url' => env('DATABASE_URL'),
+            'url' => $sqlsrvUrl,
             'host' => env('DB_HOST', 'localhost'),
             'port' => env('DB_PORT', '1433'),
             'database' => env('DB_DATABASE', 'forge'),

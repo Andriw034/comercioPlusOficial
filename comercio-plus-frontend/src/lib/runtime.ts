@@ -1,21 +1,23 @@
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 
-const rawApiUrl = stripTrailingSlash((import.meta.env.VITE_API_URL || '').trim())
-const rawApiOrigin = stripTrailingSlash((import.meta.env.VITE_API_ORIGIN || '').trim())
-const rawSanctumUrl = stripTrailingSlash((import.meta.env.VITE_SANCTUM_URL || '').trim())
-const sameOriginApiFlag = (import.meta.env.VITE_USE_SAME_ORIGIN_API || '').trim().toLowerCase()
+const rawApiBaseUrl = stripTrailingSlash(
+  (
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    ''
+  ).trim(),
+)
 
-const runtimeHost = typeof window !== 'undefined' ? window.location.hostname : ''
-const isVercelRuntime = runtimeHost.endsWith('.vercel.app')
-const forceSameOriginApi = !import.meta.env.DEV && (sameOriginApiFlag === 'true' || isVercelRuntime)
+const fallbackApiBaseUrl = import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : ''
 
-const fallbackApiUrl = import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : '/api'
-
-export const API_BASE_URL = forceSameOriginApi ? '/api' : (rawApiUrl || fallbackApiUrl)
+export const API_BASE_URL = rawApiBaseUrl || fallbackApiBaseUrl
 
 const inferredOrigin = API_BASE_URL.startsWith('http')
   ? stripTrailingSlash(API_BASE_URL.replace(/\/api\/?$/, ''))
   : (typeof window !== 'undefined' ? stripTrailingSlash(window.location.origin) : '')
 
-export const API_ORIGIN = rawApiOrigin || inferredOrigin
-export const SANCTUM_BASE_URL = rawSanctumUrl || inferredOrigin
+export const API_ORIGIN = inferredOrigin
+
+if (!import.meta.env.DEV && !rawApiBaseUrl && typeof window !== 'undefined') {
+  console.error('[runtime] Missing VITE_API_BASE_URL in production. API calls may fail.')
+}

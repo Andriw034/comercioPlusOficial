@@ -7,16 +7,6 @@ $parseCsv = static function (string $value): array {
     )));
 };
 
-$configuredOrigins = array_values(array_filter(array_map(
-    static fn (string $origin) => trim($origin),
-    $parseCsv((string) env('CORS_ALLOWED_ORIGINS', ''))
-)));
-
-$configuredOriginPatterns = array_values(array_filter(array_map(
-    static fn (string $pattern) => trim($pattern),
-    $parseCsv((string) env('CORS_ALLOWED_ORIGIN_PATTERNS', ''))
-)));
-
 $localDevOrigins = [
     'http://127.0.0.1:3000',
     'http://localhost:3000',
@@ -31,22 +21,21 @@ $projectVercelOrigins = [
     'https://comercio-plus-oficial-*.vercel.app',
 ];
 
-$frontendOriginsFromEnv = array_values(array_filter([
-    trim((string) env('FRONTEND_URL', '')),
-]));
-
-$defaultOrigins = array_values(array_unique(array_merge(
-    $localDevOrigins,
-    $projectVercelOrigins,
-    $frontendOriginsFromEnv
-)));
+$frontendOrigin = trim((string) env('FRONTEND_URL', ''));
 
 $allowedOrigins = array_values(array_unique(array_merge(
-    $defaultOrigins,
-    $configuredOrigins
+    $localDevOrigins,
+    $projectVercelOrigins,
+    $frontendOrigin !== '' ? [$frontendOrigin] : [],
+    $parseCsv((string) env('CORS_ALLOWED_ORIGINS', ''))
 )));
 
-$allowAllOrigins = filter_var((string) env('CORS_ALLOW_ALL', 'true'), FILTER_VALIDATE_BOOL);
+$allowedOriginPatterns = array_values(array_unique(array_merge(
+    [
+        '#^https://comercio-plus-oficial-[a-z0-9-]+\.vercel\.app$#',
+    ],
+    $parseCsv((string) env('CORS_ALLOWED_ORIGIN_PATTERNS', ''))
+)));
 
 return [
 
@@ -54,18 +43,15 @@ return [
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
-    |
-    | Configura los permisos para que tu frontend pueda hacer peticiones al backend.
-    |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => $allowAllOrigins ? ['*'] : $allowedOrigins,
+    'allowed_origins' => $allowedOrigins,
 
-    'allowed_origins_patterns' => $allowAllOrigins ? [] : $configuredOriginPatterns,
+    'allowed_origins_patterns' => $allowedOriginPatterns,
 
     'allowed_headers' => ['*'],
 

@@ -63,9 +63,9 @@ class AuthController extends Controller
             $user = User::where('email', $credentials['email'])->first();
 
             if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-                throw ValidationException::withMessages([
-                    'email' => ['Credenciales invalidas'],
-                ]);
+                return response()->json([
+                    'message' => 'Credenciales invalidas',
+                ], 401);
             }
 
             // En produccion invalidamos tokens anteriores antes de emitir uno nuevo.
@@ -131,8 +131,12 @@ class AuthController extends Controller
 
     private function createAccessToken(User $user): string
     {
-        $this->ensurePersonalAccessTokensTable();
-        return $user->createToken('auth_token')->plainTextToken;
+        try {
+            $this->ensurePersonalAccessTokensTable();
+            return $user->createToken('auth_token')->plainTextToken;
+        } catch (Throwable $e) {
+            throw new \RuntimeException('DB/Migrations missing: personal_access_tokens table is required.', 0, $e);
+        }
     }
 
     private function buildUserPayload(array $data, string $role): array
@@ -239,14 +243,18 @@ class AuthController extends Controller
             ]);
 
             if (!Schema::hasTable('personal_access_tokens')) {
-                throw new \RuntimeException('personal_access_tokens table was not created.');
+                throw new \RuntimeException('DB/Migrations missing: personal_access_tokens table is required.');
             }
         } catch (Throwable $e) {
             Log::error('Failed to ensure personal_access_tokens table', [
                 'message' => $e->getMessage(),
                 'exception' => get_class($e),
             ]);
-            throw $e;
+            if (str_contains(strtolower($e->getMessage()), 'db/migrations missing')) {
+                throw $e;
+            }
+
+            throw new \RuntimeException('DB/Migrations missing: personal_access_tokens table is required.', 0, $e);
         }
     }
 
@@ -254,16 +262,16 @@ class AuthController extends Controller
     {
         $message = strtolower($e->getMessage());
 
-        if (str_contains($message, 'personal_access_tokens')) {
-            return 'Error de configuracion del servidor: falta la tabla personal_access_tokens. Ejecuta migraciones en Railway con "php artisan migrate --force".';
+        if (str_contains($message, 'db/migrations missing') || str_contains($message, 'personal_access_tokens')) {
+            return 'DB/Migrations missing: personal_access_tokens table is required.';
         }
 
         if (str_contains($message, 'base table or view not found')) {
-            return 'Error de configuracion del servidor: faltan tablas de base de datos. Ejecuta migraciones en Railway.';
+            return 'DB/Migrations missing: required database tables are not available.';
         }
 
         if (str_contains($message, 'unknown column')) {
-            return 'Error de configuracion del servidor: esquema de base de datos desactualizado. Ejecuta migraciones en Railway.';
+            return 'DB/Migrations missing: database schema is outdated.';
         }
 
         if (str_contains($message, 'connection refused') || str_contains($message, 'could not find driver')) {
@@ -282,7 +290,9 @@ class AuthController extends Controller
             str_contains($message, 'unknown column') ||
             str_contains($message, 'connection refused') ||
             str_contains($message, 'could not find driver') ||
-            str_contains($message, 'personal_access_tokens')
+            str_contains($message, 'personal_access_tokens') ||
+            str_contains($message, 'db/migrations missing') ||
+            str_contains($message, 'sqlstate')
         ) {
             return 503;
         }
