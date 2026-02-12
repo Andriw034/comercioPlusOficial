@@ -19,13 +19,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ---- Composer ----
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_MEMORY_LIMIT=-1
 
 # ---- App ----
 WORKDIR /app
 COPY . .
 
 # ---- Install PHP deps (prod) ----
-RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+# Use --no-scripts to avoid artisan script failures during image build.
+RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
 
 # ---- Laravel writable dirs (best-effort) ----
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
@@ -37,5 +40,4 @@ EXPOSE 8080
 
 # ---- Start command (keep it simple for Railway) ----
 # Do NOT run migrate/cache clear on boot. Run those in CI/deploy when needed.
-CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force || echo '[warn] migrate failed during startup'; php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
-
+CMD ["sh", "-lc", "php -S 0.0.0.0:${PORT:-8080} -t public public/index.php"]
