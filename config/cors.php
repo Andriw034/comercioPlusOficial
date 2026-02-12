@@ -23,7 +23,7 @@ $allowedOrigins = array_values(array_unique(array_merge(
 
 $allowedOriginPatterns = array_values(array_unique(array_merge(
     [
-        '#^https://[a-z0-9-]+\.vercel\.app$#',
+        '#^https://[a-z0-9-]+\.vercel\.app$#i',
     ],
     $parseCsv((string) env('CORS_ALLOWED_ORIGIN_PATTERNS', ''))
 )));
