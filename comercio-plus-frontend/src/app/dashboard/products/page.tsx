@@ -290,7 +290,12 @@ export default function ManageProducts() {
         <Button onClick={startCreate}>Nuevo producto</Button>
       </div>
 
-      <GlassCard className="space-y-4">
+      <GlassCard className="dashboard-section">
+        <div>
+          <h2 className="dashboard-section-title">Catalogo actual</h2>
+          <p className="dashboard-section-subtitle">Filtra y revisa rapidamente el inventario publicado de tu tienda.</p>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <Input
             value={filters.search}
@@ -371,10 +376,11 @@ export default function ManageProducts() {
         {error && <div className="text-[13px] text-red-600 dark:text-red-200">{error}</div>}
       </GlassCard>
 
-      <GlassCard className="space-y-4">
-        <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">
-          {form.id ? 'Editar producto' : 'Nuevo producto'}
-        </h2>
+      <GlassCard className="dashboard-section">
+        <div>
+          <h2 className="dashboard-section-title">{form.id ? 'Editar producto' : 'Nuevo producto'}</h2>
+          <p className="dashboard-section-subtitle">Completa los campos del producto y manten visible el estado del catalogo.</p>
+        </div>
 
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
           <Input

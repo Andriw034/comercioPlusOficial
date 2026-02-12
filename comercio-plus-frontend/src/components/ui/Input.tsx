@@ -42,9 +42,9 @@ const Input = forwardRef<HTMLInputElement, Props>(
 
     return (
       <label className={`block space-y-2 ${containerClassName}`.trim()}>
-        {label && <span className="text-[13px] font-medium text-slate-700 dark:text-white/80">{label}</span>}
+        {label && <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200">{label}</span>}
         {input}
-        {hint && !error && <span className="text-xs text-slate-500 dark:text-white/50">{hint}</span>}
+        {hint && !error && <span className="text-xs text-slate-500 dark:text-slate-300">{hint}</span>}
         {error && <span className="text-xs text-red-600 dark:text-red-300">{error}</span>}
       </label>
     )

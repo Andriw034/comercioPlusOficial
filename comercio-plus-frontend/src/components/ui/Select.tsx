@@ -12,7 +12,7 @@ const Select = forwardRef<HTMLSelectElement, Props>(
     const select = (
       <select
         ref={ref}
-        className={`select-dark native-select relative z-30 bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 ${className}`.trim()}
+        className={`select-dark native-select ${className}`.trim()}
         {...props}
       />
     )
@@ -23,9 +23,9 @@ const Select = forwardRef<HTMLSelectElement, Props>(
 
     return (
       <label className={`block space-y-2 ${containerClassName}`.trim()}>
-        {label && <span className="text-[13px] font-medium text-slate-700 dark:text-white/80">{label}</span>}
+        {label && <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200">{label}</span>}
         {select}
-        {hint && !error && <span className="text-xs text-slate-500 dark:text-white/50">{hint}</span>}
+        {hint && !error && <span className="text-xs text-slate-500 dark:text-slate-300">{hint}</span>}
         {error && <span className="text-xs text-red-600 dark:text-red-300">{error}</span>}
       </label>
     )

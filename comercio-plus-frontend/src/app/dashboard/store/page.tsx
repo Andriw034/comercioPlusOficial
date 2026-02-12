@@ -163,7 +163,7 @@ export default function ManageStore() {
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <GlassCard className="space-y-6 border-0 bg-transparent p-0 shadow-none dark:bg-transparent dark:shadow-none">
           <form id="store-settings-form" className="space-y-6" onSubmit={submit}>
-            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
+            <section className="dashboard-section">
               <div>
                 <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white">Identidad de la tienda</h2>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">
@@ -241,7 +241,7 @@ export default function ManageStore() {
               </div>
             </section>
 
-            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
+            <section className="dashboard-section">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Contacto</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Datos principales para clientes.</p>
@@ -270,7 +270,7 @@ export default function ManageStore() {
               </div>
             </section>
 
-            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
+            <section className="dashboard-section">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Redes</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Conecta canales sociales para dar confianza.</p>
@@ -292,7 +292,7 @@ export default function ManageStore() {
               </div>
             </section>
 
-            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
+            <section className="dashboard-section">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Ubicacion</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Direccion para contacto y referencias de entrega.</p>
@@ -306,7 +306,7 @@ export default function ManageStore() {
               />
             </section>
 
-            <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
+            <section className="dashboard-section">
               <div>
                 <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">Visibilidad</h3>
                 <p className="text-[13px] text-slate-600 dark:text-white/60">Controla si tu tienda aparece en el listado publico.</p>
