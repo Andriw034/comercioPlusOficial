@@ -37,4 +37,5 @@ EXPOSE 8080
 
 # ---- Start command (keep it simple for Railway) ----
 # Do NOT run migrate/cache clear on boot. Run those in CI/deploy when needed.
-CMD ["sh", "-lc", "php -S 0.0.0.0:${PORT:-8080} -t public public/index.php"]
+CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force || echo '[warn] migrate failed' && php artisan serve --host=0.0.0.0 --port=${PORT}"]
+
