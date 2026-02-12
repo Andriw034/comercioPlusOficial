@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Category;
+use App\Models\Store;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -43,13 +45,23 @@ class ProductFactory extends Factory
             'BaÃºl para moto con capacidad para dos cascos integrales y respaldo para el pasajero.'
         ];
 
+        $store = Store::factory()->create();
+        $category = Category::factory()->create([
+            'store_id' => $store->id,
+        ]);
+        $name = $this->faker->randomElement($productNames);
+
         return [
-            'name' => $this->faker->randomElement($productNames),
+            'name' => $name,
+            'slug' => Str::slug($name) . '-' . $this->faker->unique()->numerify('###'),
             'description' => $this->faker->randomElement($productDescriptions),
             'price' => $this->faker->randomFloat(2, 20, 500),
-            'image' => 'https://via.placeholder.com/640x480.png/004488?text=product-image',
-            'stock_quantity' => $this->faker->numberBetween(0, 100),
-            'category_id' => $this->faker->numberBetween(1, 5),
+            'image' => null,
+            'stock' => $this->faker->numberBetween(0, 100),
+            'status' => 1,
+            'category_id' => $category->id,
+            'store_id' => $store->id,
+            'user_id' => $store->user_id,
         ];
     }
 }

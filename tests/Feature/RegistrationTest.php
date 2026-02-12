@@ -1,33 +1,33 @@
-
 <?php
+
+namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-uses(RefreshDatabase::class);
+class RegistrationTest extends TestCase
+{
+    use RefreshDatabase;
 
-test('a user can register', function () {
-    $password = 'Password123!';
+    public function test_user_can_register_from_web_form(): void
+    {
+        $password = 'Password123!';
 
-    $userData = [
-        'name' => 'Test User',
-        'email' => 'test@example.com',
-        'password' => $password,
-        'password_confirmation' => $password,
-    ];
+        $response = $this->post('/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => $password,
+            'password_confirmation' => $password,
+        ]);
 
-    // Simulate a POST request to the registration endpoint
-    $response = $this->post('/register', $userData);
+        $response->assertRedirect('/dashboard');
 
-    // Assert the user was redirected to the dashboard
-    $response->assertRedirect('/dashboard');
+        $this->assertDatabaseHas('users', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+        ]);
 
-    // Assert that the user was actually created in the database
-    $this->assertDatabaseHas('users', [
-        'name' => 'Test User',
-        'email' => 'test@example.com',
-    ]);
-
-    // Assert that we can authenticate as the new user
-    $this->assertAuthenticated();
-});
+        $this->assertAuthenticated();
+    }
+}

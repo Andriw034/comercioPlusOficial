@@ -18,9 +18,8 @@ class CategoriesApiTest extends TestCase
     // Helper to create an authenticated merchant user with a store
     protected function createMerchantUser()
     {
-        $user = User::factory()->create();
-        $user->assignRole('comerciante'); // Assign the correct role
-        Store::factory()->create(['user_id' => $user->id]); // Create a store for the user
+        $user = User::factory()->create(['role' => 'merchant']);
+        Store::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user, ['*']);
         return $user;
     }

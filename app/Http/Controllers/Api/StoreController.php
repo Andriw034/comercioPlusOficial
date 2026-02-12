@@ -77,9 +77,15 @@ class StoreController extends Controller
             'cover_url'   => 'nullable|url|max:2048',
         ]);
 
-        $data['slug'] = isset($data['slug'])
+        $baseSlug = isset($data['slug']) && $data['slug'] !== ''
             ? Str::slug($data['slug'])
             : Str::slug($data['name']);
+        $slug = $baseSlug;
+        $counter = 1;
+        while (Store::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter++;
+        }
+        $data['slug'] = $slug;
 
         $store = Store::create([
             'user_id'     => $request->user()->id,

@@ -15,8 +15,7 @@ class StoresApiTest extends TestCase
 
     public function test_create_store_and_slug_unique()
     {
-        $user = User::factory()->create();
-        $user->assignRole('comerciante');
+        $user = User::factory()->create(['role' => 'merchant']);
         Sanctum::actingAs($user, ['*']);
 
         $payload = [
@@ -24,21 +23,20 @@ class StoresApiTest extends TestCase
             'description' => 'Desc',
             'address' => 'Calle 123',
             'phone' => '555-555',
-            'email' => 'tienda@example.com',
-            'user_id' => $user->id, // The store belongs to the authenticated user
+            'support_email' => 'tienda@example.com',
         ];
 
         // Use the protected route for creation
-        $this->postJson('/api/stores', $payload)->assertStatus(201);
+        $first = $this->postJson('/api/stores', $payload)->assertStatus(201);
 
-        // Attempt to create a duplicate, should fail
-        $this->postJson('/api/stores', $payload)->assertStatus(422);
+        // Attempt to create a duplicate name, slug should auto-resolve uniquely
+        $second = $this->postJson('/api/stores', $payload)->assertStatus(201);
+        $this->assertNotEquals($first->json('slug'), $second->json('slug'));
     }
 
     public function test_update_show_and_block_delete_if_has_products()
     {
-        $owner = User::factory()->create();
-        $owner->assignRole('comerciante');
+        $owner = User::factory()->create(['role' => 'merchant']);
         $store = Store::factory()->create(['user_id' => $owner->id]);
 
         // The owner is the one acting

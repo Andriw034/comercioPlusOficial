@@ -22,6 +22,7 @@ class AuthSanctumTest extends TestCase
     {
         $user = User::factory()->create([
             'email_verified_at' => now(),
+            'role' => 'client',
         ]);
 
         Sanctum::actingAs($user, ['*']);

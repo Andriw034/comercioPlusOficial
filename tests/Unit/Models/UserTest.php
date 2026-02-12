@@ -110,8 +110,7 @@ class UserTest extends TestCase
     /** @test */
     public function usuario_puede_ser_comerciante()
     {
-        $user = User::factory()->create();
-        $user->assignRole('comerciante');
+        $user = User::factory()->create(['role' => 'merchant']);
 
         $this->assertTrue($user->esComerciante());
         $this->assertFalse($user->esCliente());
@@ -120,8 +119,7 @@ class UserTest extends TestCase
     /** @test */
     public function usuario_puede_ser_cliente_regular()
     {
-        $user = User::factory()->create();
-        $user->assignRole('cliente');
+        $user = User::factory()->create(['role' => 'client']);
 
         $this->assertTrue($user->esCliente());
         $this->assertFalse($user->esComerciante());

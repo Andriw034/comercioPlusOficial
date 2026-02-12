@@ -15,7 +15,12 @@ class OrderStatusFlowTest extends TestCase
 
     protected function makeUser()
     {
-        return User::factory()->create(['email_verified_at' => now()]);
+        return User::factory()->create(['email_verified_at' => now(), 'role' => 'client']);
+    }
+
+    protected function makeMerchant()
+    {
+        return User::factory()->create(['email_verified_at' => now(), 'role' => 'merchant']);
     }
 
     protected function makeStore(User $owner = null)
@@ -40,19 +45,18 @@ class OrderStatusFlowTest extends TestCase
 
     public function test_user_can_progress_order_status()
     {
-        $user = $this->makeUser();
-        $store = $this->makeStore($user);
-        $order = $this->makeOrder($user, $store);
+        $merchant = $this->makeMerchant();
+        $client = $this->makeUser();
+        $store = $this->makeStore($merchant);
+        $order = $this->makeOrder($client, $store);
 
-        Sanctum::actingAs($user, ['*']);
+        Sanctum::actingAs($merchant, ['*']);
 
-        // pending -> processing
-        $this->putJson("/api/orders/{$order->id}", ['status' => 'processing'])
+        $this->putJson("/api/merchant/orders/{$order->id}/status", ['status' => 'paid'])
              ->assertStatus(200)
-             ->assertJsonFragment(['status' => 'processing']);
+             ->assertJsonFragment(['status' => 'paid']);
 
-        // processing -> completed
-        $this->putJson("/api/orders/{$order->id}", ['status' => 'completed'])
+        $this->putJson("/api/merchant/orders/{$order->id}/status", ['status' => 'completed'])
              ->assertStatus(200)
              ->assertJsonFragment(['status' => 'completed']);
     }

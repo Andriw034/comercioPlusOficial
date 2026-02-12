@@ -78,7 +78,7 @@ class BasicApiTest extends TestCase
 
     public function test_protected_orders_endpoint_with_auth()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'client']);
         Sanctum::actingAs($user, ['*']);
         $this->getJson('/api/orders')->assertStatus(200);
     }

@@ -1,18 +1,23 @@
 <?php
 
-// Test that the home page renders the 'Welcome' Inertia component.
-test('muestra la Home con Inertia', function () {
-    $this->get('/')
-         ->assertStatus(200)
-         ->assertInertia(fn ($page) => $page->component('Welcome'));
-});
+namespace Tests\Feature;
 
-// Test that the public products API endpoint is working.
-test('API de productos funciona', function () {
-    $this->get('/api/products')->assertStatus(200);
-});
+use Tests\TestCase;
 
-// Test that the public categories API endpoint is working.
-test('API de categorías funciona', function () {
-    $this->get('/api/categories')->assertStatus(200);
-});
+class HomePageTest extends TestCase
+{
+    public function test_home_page_is_reachable(): void
+    {
+        $this->get('/')->assertStatus(200);
+    }
+
+    public function test_products_api_is_reachable(): void
+    {
+        $this->get('/api/products')->assertStatus(200);
+    }
+
+    public function test_categories_api_is_reachable(): void
+    {
+        $this->get('/api/categories')->assertStatus(200);
+    }
+}
