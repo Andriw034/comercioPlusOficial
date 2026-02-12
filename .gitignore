@@ -1,0 +1,29 @@
+# Laravel
+/vendor/
+/node_modules/
+.env
+.env.*
+!.env.example
+!comercio-plus-frontend/.env.example
+.phpunit.result.cache
+/storage/*.key
+/storage/logs/
+/storage/framework/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+
+# Frontend
+/comercio-plus-frontend/node_modules/
+/public/build/
+
+# Tests / Playwright
+/playwright-report/
+/test-results/
+/backups/
+
+# OS / Editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

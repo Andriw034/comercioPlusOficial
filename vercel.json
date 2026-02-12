@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "if [ -d comercio-plus-frontend ]; then npm ci --prefix comercio-plus-frontend; else npm ci; fi",
+  "buildCommand": "if [ -d comercio-plus-frontend ]; then npm --prefix comercio-plus-frontend run build && rm -rf dist && cp -r comercio-plus-frontend/dist dist; else npm run build; fi",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://comercioplusoficial-production.up.railway.app/api/$1"
+    },
+    {
+      "source": "/sanctum/(.*)",
+      "destination": "https://comercioplusoficial-production.up.railway.app/sanctum/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
