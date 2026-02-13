@@ -14,6 +14,7 @@ use App\Models\PublicStore;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Customer;
 
 class User extends Authenticatable
 {
@@ -117,6 +118,11 @@ class User extends Authenticatable
         );
     }
 
+    public function customerVisits()
+    {
+        return $this->hasMany(Customer::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Accessors
@@ -157,6 +163,24 @@ class User extends Authenticatable
     public function isClient(): bool
     {
         return $this->esCliente();
+    }
+
+    public function roleKey(): string
+    {
+        $role = strtolower((string) $this->role);
+        if (in_array($role, ['merchant', 'client'], true)) {
+            return $role;
+        }
+
+        if ($this->hasRole(['comerciante', 'merchant'])) {
+            return 'merchant';
+        }
+
+        if ($this->hasRole(['cliente', 'client'])) {
+            return 'client';
+        }
+
+        return 'client';
     }
 
     /*

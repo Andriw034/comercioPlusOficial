@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\CartProductController;
 use App\Http\Controllers\Api\HeroImageController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\CustomerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -115,8 +116,10 @@ Route::middleware('auth:sanctum')->group(function () {
             'id'    => $user->id,
             'name'  => $user->name,
             'email' => $user->email,
-            'role'  => $user->role,
+            'phone' => $user->phone,
+            'role'  => $user->roleKey(),
             'has_store' => $user->hasStore(),
+            'store_id' => optional($user->store)->id,
         ]);
     });
 
@@ -134,8 +137,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role.key:merchant')->group(function () {
         Route::get('merchant/orders', [OrderController::class, 'merchantIndex']);
         Route::put('merchant/orders/{id}/status', [OrderController::class, 'updateStatus']);
+        Route::get('merchant/customers', [CustomerController::class, 'myCustomers']);
         Route::apiResource('categories', CategoryController::class)->only(['store', 'update', 'destroy']);
     });
+    Route::post('stores/{store}/visit', [CustomerController::class, 'registerVisit']);
     Route::apiResource('subscriptions', SubscriptionController::class);
 
     Route::apiResource('products', ProductController::class)->except(['index', 'show']);

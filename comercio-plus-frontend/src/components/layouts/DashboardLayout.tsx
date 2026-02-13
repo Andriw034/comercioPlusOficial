@@ -1,141 +1,86 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link, Outlet } from 'react-router-dom'
+﻿import { useEffect, useState } from 'react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
-import type { Store } from '@/types/api'
-import { buttonVariants } from '@/components/ui/button'
-import { resolveMediaUrl } from '@/lib/format'
-import ThemeToggle from '@/components/theme/ThemeToggle'
 import AppShell from './AppShell'
 
+const navItems = [
+  { label: 'Productos', to: '/dashboard/products', icon: '📦' },
+  { label: 'Clientes', to: '/dashboard/customers', icon: '👥' },
+  { label: 'Configuracion', to: '/dashboard/store', icon: '⚙️' },
+]
+
 export default function DashboardLayout() {
-  type StoreMedia = Store & {
-    logo?: string
-    cover?: string
-    logo_path?: string
-    cover_path?: string
-    background_url?: string
-    background_path?: string
-  }
-
-  const [store, setStore] = useState<Store | null>(() => {
-    try {
-      const cached = localStorage.getItem('store')
-      return cached ? (JSON.parse(cached) as Store) : null
-    } catch {
-      return null
-    }
-  })
-
-  const withCacheBust = useCallback((data: StoreMedia): Store => {
-    const cacheBuster = Date.now().toString()
-    const addBust = (url?: string) => {
-      if (!url) return url
-      const [base, query] = url.split('?')
-      const params = new URLSearchParams(query || '')
-      params.set('v', cacheBuster)
-      return `${base}?${params.toString()}`
-    }
-
-    const resolvedLogo = resolveMediaUrl(data.logo_url || data.logo_path || data.logo)
-    const resolvedCover = resolveMediaUrl(
-      data.cover_url || data.cover_path || data.background_url || data.background_path || data.cover,
-    )
-
-    return {
-      ...data,
-      logo_url: addBust(resolvedLogo),
-      cover_url: addBust(resolvedCover),
-    }
-  }, [])
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [storeName, setStoreName] = useState('ComercioPlus')
 
   useEffect(() => {
-    let active = true
-
     const loadStore = async () => {
       try {
         const { data } = await API.get('/my/store')
-        if (!active || !data) return
-        const normalized = withCacheBust(data)
-        setStore(normalized)
-        localStorage.setItem('store', JSON.stringify(normalized))
-      } catch (err: any) {
-        if (err?.response?.status === 404) {
-          setStore(null)
-          localStorage.removeItem('store')
-          return
-        }
-        console.error('Load store header', err)
+        if (data?.name) setStoreName(data.name)
+      } catch {
+        setStoreName('ComercioPlus')
       }
     }
 
-    const handleStoreUpdate = (event: Event) => {
-      const detail = (event as CustomEvent<Store>).detail
-      if (!detail) return
-      const normalized = withCacheBust(detail)
-      setStore(normalized)
-      localStorage.setItem('store', JSON.stringify(normalized))
-    }
-
     loadStore()
-    window.addEventListener('store:updated', handleStoreUpdate as EventListener)
+  }, [])
 
-    return () => {
-      active = false
-      window.removeEventListener('store:updated', handleStoreUpdate as EventListener)
+  const logout = async () => {
+    try {
+      await API.post('/logout')
+    } catch {
+      // ignore
+    } finally {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      navigate('/login')
     }
-  }, [withCacheBust])
-
-  const storeName = store?.name || 'ComercioPlus'
-  const storeLogo = store?.logo_url
-  const storeInitial = storeName.trim().charAt(0).toUpperCase() || 'C'
-
-  const header = (
-    <header className="sticky top-0 z-30 px-4 pt-4">
-      <div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-slate-950/40">
-        <div className="flex items-center justify-between gap-3">
-          <Link to="/" className="flex min-w-0 items-center gap-3">
-            {storeLogo ? (
-              <img
-                src={storeLogo}
-                alt={`Logo ${storeName}`}
-                className="h-11 w-11 rounded-2xl border border-slate-200 bg-white object-cover dark:border-white/10"
-              />
-            ) : (
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-base font-bold text-white">
-                {storeInitial}
-              </span>
-            )}
-
-            <div className="min-w-0 leading-tight">
-              <p className="truncate text-[15px] font-semibold text-slate-900 dark:text-white">{storeName}</p>
-              <p className="text-[12px] text-slate-600 dark:text-white/60">Panel del comerciante</p>
-            </div>
-          </Link>
-
-          <ThemeToggle />
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-0 sm:flex sm:items-center sm:justify-end">
-          <Link
-            to="/dashboard/store"
-            className={buttonVariants('ghost', 'h-10 w-full justify-center whitespace-nowrap px-3 sm:w-auto sm:px-4')}
-          >
-            Configuracion
-          </Link>
-          <Link
-            to="/dashboard/products"
-            className={buttonVariants('ghost', 'h-10 w-full justify-center whitespace-nowrap px-3 sm:w-auto sm:px-4')}
-          >
-            Productos
-          </Link>
-        </div>
-      </div>
-    </header>
-  )
+  }
 
   return (
-    <AppShell variant="dashboard" header={header}>
-      <Outlet />
+    <AppShell variant="dashboard" containerClassName="max-w-none" mainClassName="px-0 py-0">
+      <div className="grid min-h-[calc(100vh-32px)] grid-cols-1 lg:grid-cols-[260px_1fr]">
+        <aside className="bg-[#1A1A2E] px-4 py-8">
+          <div className="border-b border-white/10 px-2 pb-6">
+            <h3 className="font-display text-[28px] font-bold text-white">ComercioPlus</h3>
+            <p className="mt-2 text-[13px] text-white/70">{storeName}</p>
+          </div>
+
+          <nav className="mt-6 space-y-2">
+            {navItems.map((item) => {
+              const active = location.pathname.startsWith(item.to)
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-[15px] transition-all ${
+                    active
+                      ? 'bg-[#FF6B35] text-white'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <span className="text-[18px]">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-8 w-full rounded-lg border border-white/20 px-4 py-3 text-[14px] text-white/80 hover:bg-white/10"
+          >
+            Cerrar sesion
+          </button>
+        </aside>
+
+        <section className="bg-[#F9FAFB] p-6 md:p-10">
+          <Outlet />
+        </section>
+      </div>
     </AppShell>
   )
 }

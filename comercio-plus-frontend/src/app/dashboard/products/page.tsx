@@ -280,14 +280,38 @@ export default function ManageProducts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search, filters.status, storeId])
 
+  const totalProducts = products.length
+  const activeProducts = products.filter((item) => item.status === 'active').length
+  const outOfStock = products.filter((item) => Number(item.stock ?? 0) <= 0).length
+  const estimatedValue = products.reduce((sum, item) => sum + Number(item.price ?? 0), 0)
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-[13px] text-slate-600 dark:text-white/60">Productos de mi tienda</p>
-          <h1 className="text-[22px] font-semibold text-slate-900 dark:text-white sm:text-[26px]">Gestion de productos</h1>
+          <p className="text-[13px] text-[#4B5563]">Productos de mi tienda</p>
+          <h1 className="font-display text-[32px]">Mis Productos</h1>
         </div>
         <Button onClick={startCreate}>Nuevo producto</Button>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl bg-[linear-gradient(135deg,#FF6B35_0%,#E65A2B_100%)] p-6 text-white">
+          <p className="text-[36px] font-bold">{totalProducts}</p>
+          <p className="text-[13px] uppercase tracking-[0.5px] text-white/90">Total Productos</p>
+        </div>
+        <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+          <p className="text-[36px] font-bold text-[#1A1A2E]">{activeProducts}</p>
+          <p className="text-[13px] uppercase tracking-[0.5px] text-[#4B5563]">Activos</p>
+        </div>
+        <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+          <p className="text-[36px] font-bold text-[#1A1A2E]">{outOfStock}</p>
+          <p className="text-[13px] uppercase tracking-[0.5px] text-[#4B5563]">Sin Stock</p>
+        </div>
+        <div className="rounded-xl border border-[#E5E7EB] bg-white p-6">
+          <p className="text-[36px] font-bold text-[#1A1A2E]">${formatPrice(estimatedValue)}</p>
+          <p className="text-[13px] uppercase tracking-[0.5px] text-[#4B5563]">Valor Catalogo</p>
+        </div>
       </div>
 
       <GlassCard className="dashboard-section">

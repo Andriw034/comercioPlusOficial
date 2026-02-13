@@ -8,18 +8,11 @@ export default function GlassCard({ className = '', children, ...props }: Props)
   return (
     <div
       className={`
-        rounded-2xl p-5 sm:p-6
-        border border-slate-200
+        rounded-xl p-5 sm:p-6
+        border border-[#E5E7EB]
         bg-white
-        text-[14px] leading-[1.55] text-slate-900
-        shadow-sm
-
-        dark:border-white/10
-        dark:bg-white/5
-        dark:text-white
-        dark:backdrop-blur-md
-        dark:shadow-glass
-
+        text-[14px] leading-[1.55] text-[#1F2937]
+        shadow-[0_2px_8px_rgba(0,0,0,0.05)]
         ${className}
       `.trim()}
       {...props}

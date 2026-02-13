@@ -163,13 +163,7 @@ class AuthController extends Controller
 
     private function authPayload(User $user, string $token): array
     {
-        $role = $user->role;
-        if (empty($role)) {
-            $role = $this->resolveRoleFromLegacyRoleId($user->role_id ?? null);
-        }
-        if (empty($role)) {
-            $role = 'client';
-        }
+        $role = $user->roleKey();
 
         return [
             'user'  => [

@@ -18,18 +18,23 @@ export default function AppShell({
   mainClassName = '',
 }: Props) {
   const isAuth = variant === 'auth'
+  const isDashboard = variant === 'dashboard'
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-900 dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-slate-100">
+    <div
+      className={`relative flex min-h-screen flex-col overflow-x-hidden text-slate-900 ${
+        isDashboard ? 'bg-[#F3F4F6]' : 'bg-[#F9FAFB]'
+      }`}
+    >
 
       {header && !isAuth && <div className="relative z-20">{header}</div>}
 
       <main
         className={`relative z-10 ${
-          isAuth ? 'flex-1 flex items-center justify-center px-4 py-6 sm:py-10' : 'flex-1 px-4 py-8'
+          isAuth ? 'flex-1 flex items-center justify-center px-4 py-8 sm:py-12' : 'flex-1 px-4 py-8'
         } ${mainClassName}`.trim()}
       >
-        <div className={`mx-auto w-full ${isAuth ? 'max-w-lg' : 'max-w-7xl'} ${containerClassName}`.trim()}>
+        <div className={`mx-auto w-full ${isAuth ? 'max-w-6xl' : 'max-w-7xl'} ${containerClassName}`.trim()}>
           {children}
         </div>
       </main>

@@ -207,6 +207,13 @@ export default function Dashboard() {
                   <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{publicStoreLabel}</p>
                   <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">{publicStoreHint}</p>
                 </Link>
+                <Link
+                  to="/dashboard/customers"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">Ver clientes</p>
+                  <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">Consulta visitas y potenciales compradores</p>
+                </Link>
               </div>
             </GlassCard>
 

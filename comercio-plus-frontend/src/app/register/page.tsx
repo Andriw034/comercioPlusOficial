@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from 'react'
+﻿import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
-import ThemeToggle from '@/components/theme/ThemeToggle'
+import { hydrateSession, resolvePostAuthRoute } from '@/services/auth-session'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -18,43 +18,20 @@ export default function Register() {
     role: 'merchant',
   })
 
-  const resolvePostAuthRoute = async (role?: string) => {
-    if (role === 'merchant') {
-      try {
-        await API.get('/my/store')
-        return '/dashboard'
-      } catch {
-        return '/store/create'
-      }
-    }
-    return '/stores'
-  }
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setLoading(true)
     setError('')
 
     try {
-      const { data } = await API.post('/register', {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        password_confirmation: form.password_confirmation,
-        role: form.role,
-      })
-
-      if (data) {
-        localStorage.setItem('user', JSON.stringify(data.user))
-        if (data.token) {
-          localStorage.setItem('token', data.token)
-          API.defaults.headers.common.Authorization = `Bearer ${data.token}`
-        }
-        const route = await resolvePostAuthRoute(data.user?.role)
-        navigate(route)
+      const { data } = await API.post('/register', form)
+      if (data?.token) {
+        const user = await hydrateSession(data.token)
+        navigate(resolvePostAuthRoute(user))
+      } else {
+        setError('No se recibio token de autenticacion.')
       }
     } catch (err: any) {
-      console.error('Register error:', err)
       const status = err?.response?.status
       const message = err?.response?.data?.message || 'Error al crear la cuenta. Verifica tus datos.'
       setError(status ? `${message} (HTTP ${status})` : message)
@@ -64,198 +41,108 @@ export default function Register() {
   }
 
   return (
-    <div className="relative rounded-[28px] border border-white/25 bg-white/10 px-6 py-7 sm:px-8 sm:py-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-      {/* Toggle sol/luna */}
-      <div className="absolute right-4 top-4">
-        <ThemeToggle />
-      </div>
+    <div>
+      <h1 className="text-[32px]">Crear Cuenta</h1>
+      <p className="mb-8 mt-2 text-[15px] text-[#4B5563]">
+        ¿Ya tienes cuenta? <Link to="/login" className="font-semibold text-[#FF6B35]">Inicia sesion</Link>
+      </p>
 
-      <div className="flex flex-col items-center text-center">
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/40">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/60 text-slate-900 dark:text-white">
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M4 20c0-3.314 3.134-6 8-6s8 2.686 8 6" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="mt-4 flex w-full items-center gap-4 text-slate-600 dark:text-white/70">
-          <span className="h-px flex-1 bg-white/30" />
-          <span className="text-[11px] uppercase tracking-[0.4em]">ComercioPlus</span>
-          <span className="h-px flex-1 bg-white/30" />
-        </div>
-      </div>
-
-      <div className="mt-6 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Crear cuenta</h1>
-        <p className="text-sm text-slate-600 dark:text-white/70">Crea tu cuenta para vender o comprar</p>
-
-        <span className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/40 px-3 py-1 text-xs font-medium text-slate-700 dark:text-white/80">
-          Comerciante o cliente
-        </span>
-      </div>
-
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-4">
-          <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white">
-            <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M4 20c0-3.314 3.134-6 8-6s8 2.686 8 6" />
-              </svg>
-            </span>
-            <label htmlFor="name" className="sr-only">Nombre</label>
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              required
-              placeholder="Nombre completo"
-              className="!border-0 !bg-transparent !text-slate-900 dark:!text-white !placeholder:text-slate-500 dark:!placeholder:text-white/50 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
-              value={form.name}
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            />
-          </div>
-
-          <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white">
-            <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M3 8l9 6 9-6M4 6h16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
-              </svg>
-            </span>
-            <label htmlFor="email" className="sr-only">Correo electrónico</label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="Correo electrónico"
-              className="!border-0 !bg-transparent !text-slate-900 dark:!text-white !placeholder:text-slate-500 dark:!placeholder:text-white/50 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
-              value={form.email}
-              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white">
-              <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M16 10V8a4 4 0 00-8 0v2" />
-                  <rect x="5" y="10" width="14" height="10" rx="2" ry="2" strokeWidth="1.6" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 14v3" />
-                </svg>
-              </span>
-              <label htmlFor="password" className="sr-only">Contraseña</label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                placeholder="Contraseña"
-                className="!border-0 !bg-transparent !text-slate-900 dark:!text-white !placeholder:text-slate-500 dark:!placeholder:text-white/50 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
-                value={form.password}
-                onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-              />
-            </div>
-
-            <div className="flex items-center overflow-hidden rounded-xl border border-white/40 bg-white/90 text-slate-900 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-white">
-              <span className="flex h-11 w-11 items-center justify-center bg-panel text-white/80">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M16 10V8a4 4 0 00-8 0v2" />
-                  <rect x="5" y="10" width="14" height="10" rx="2" ry="2" strokeWidth="1.6" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M12 14v3" />
-                </svg>
-              </span>
-              <label htmlFor="password_confirmation" className="sr-only">Confirmar contraseña</label>
-              <Input
-                id="password_confirmation"
-                name="password_confirmation"
-                type="password"
-                autoComplete="new-password"
-                required
-                placeholder="Confirmar contraseña"
-                className="!border-0 !bg-transparent !text-slate-900 dark:!text-white !placeholder:text-slate-500 dark:!placeholder:text-white/50 !py-2.5 !px-4 focus:!border-0 focus:!ring-0"
-                value={form.password_confirmation}
-                onChange={(e) => setForm((prev) => ({ ...prev, password_confirmation: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-700 dark:text-white/80">Rol</p>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setForm((prev) => ({ ...prev, role: 'merchant' }))}
-                aria-pressed={form.role === 'merchant'}
-                className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-                  form.role === 'merchant'
-                    ? 'border-brand-400/80 bg-brand-300 !text-ink shadow-sm'
-                    : 'border-white/40 bg-white/90 !text-ink hover:bg-white'
-                }`}
-              >
-                Comerciante
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setForm((prev) => ({ ...prev, role: 'client' }))}
-                aria-pressed={form.role === 'client'}
-                className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 ${
-                  form.role === 'client'
-                    ? 'border-brand-400/80 bg-brand-300 !text-ink shadow-sm'
-                    : 'border-white/40 bg-white/90 !text-ink hover:bg-white'
-                }`}
-              >
-                Cliente
-              </button>
-            </div>
-
-            <Select
-              id="role"
-              name="role"
-              value={form.role}
-              onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
-              className="sr-only"
+      <form className="space-y-5" onSubmit={handleSubmit}>
+        <div>
+          <p className="mb-2 text-[14px] font-medium text-[#1F2937]">Tipo de cuenta</p>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, role: 'merchant' }))}
+              className={`rounded-xl border-2 p-4 text-center transition-all ${
+                form.role === 'merchant'
+                  ? 'border-[#FF6B35] bg-[rgba(255,107,53,0.1)]'
+                  : 'border-[#E5E7EB] bg-white'
+              }`}
             >
-              <option value="merchant">Comerciante</option>
-              <option value="client">Cliente</option>
-            </Select>
+              <div className="text-2xl">🏪</div>
+              <div className="mt-1 text-[14px] font-semibold text-[#1F2937]">Comerciante</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, role: 'client' }))}
+              className={`rounded-xl border-2 p-4 text-center transition-all ${
+                form.role === 'client'
+                  ? 'border-[#FF6B35] bg-[rgba(255,107,53,0.1)]'
+                  : 'border-[#E5E7EB] bg-white'
+              }`}
+            >
+              <div className="text-2xl">🛍️</div>
+              <div className="mt-1 text-[14px] font-semibold text-[#1F2937]">Cliente</div>
+            </button>
           </div>
+
+          <Select
+            id="role"
+            name="role"
+            value={form.role}
+            onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
+            className="sr-only"
+          >
+            <option value="merchant">Comerciante</option>
+            <option value="client">Cliente</option>
+          </Select>
         </div>
 
-        {error && <div className="text-red-600 dark:text-red-200 text-sm">{error}</div>}
+        <Input
+          label="Nombre Completo"
+          id="name"
+          name="name"
+          type="text"
+          autoComplete="name"
+          required
+          placeholder="Juan Perez"
+          value={form.name}
+          onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+        />
 
-        <Button
-          type="submit"
-          className="w-full inline-flex items-center justify-center rounded-xl !bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-2.5 text-sm font-semibold !text-white shadow-lg shadow-brand-600/30 hover:from-brand-600 hover:to-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-0 transition"
-          loading={loading}
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Creando...
-            </span>
-          ) : (
-            <span>Crear cuenta</span>
-          )}
+        <Input
+          label="Correo Electronico"
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          placeholder="tu@email.com"
+          value={form.email}
+          onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+        />
+
+        <Input
+          label="Contrasena"
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          placeholder="••••••••"
+          value={form.password}
+          onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+        />
+
+        <Input
+          label="Confirmar Contrasena"
+          id="password_confirmation"
+          name="password_confirmation"
+          type="password"
+          autoComplete="new-password"
+          required
+          placeholder="••••••••"
+          value={form.password_confirmation}
+          onChange={(e) => setForm((prev) => ({ ...prev, password_confirmation: e.target.value }))}
+        />
+
+        {error && <div className="text-sm text-red-600">{error}</div>}
+
+        <Button type="submit" className="w-full" loading={loading}>
+          {loading ? 'Creando...' : 'Crear Cuenta'}
         </Button>
-
-        <p className="text-center text-sm text-slate-600 dark:text-white/70">
-          ¿Ya tienes cuenta?
-          <Link to="/login" className="text-slate-900 dark:text-white font-semibold hover:opacity-90">
-            {' '}
-            Inicia sesión
-          </Link>
-        </p>
       </form>
     </div>
   )

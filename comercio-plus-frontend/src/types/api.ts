@@ -55,3 +55,27 @@ export interface PaginatedResponse<T> {
   per_page?: number
   total?: number
 }
+
+export interface CustomerRow {
+  id: number
+  store_id: number
+  user_id: number
+  first_visited_at: string
+  last_visited_at?: string | null
+  last_order_at?: string | null
+  total_orders: number
+  total_spent: number | string
+  user: {
+    id: number
+    name: string
+    email: string
+    phone?: string | null
+  }
+}
+
+export interface MerchantCustomersStats {
+  total_customers: number
+  new_this_month: number
+  with_orders: number
+  total_revenue: number
+}
