@@ -17,7 +17,11 @@ const Textarea = forwardRef<HTMLTextAreaElement, Props>(
 
     return (
       <label className={`block space-y-2 ${containerClassName}`.trim()}>
-        {label && <span className="text-[13px] font-medium text-slate-700 dark:text-white/80">{label}</span>}
+        {label && (
+          <span className="text-[15px] font-semibold !text-slate-900" style={{ color: '#111827' }}>
+            {label}
+          </span>
+        )}
         {area}
         {hint && !error && <span className="text-xs text-slate-500 dark:text-white/50">{hint}</span>}
         {error && <span className="text-xs text-red-600 dark:text-red-300">{error}</span>}

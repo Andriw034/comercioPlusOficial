@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\OrderProduct;
+use App\Models\Store;
 
 class Order extends Model
 {
@@ -15,23 +16,41 @@ class Order extends Model
         'store_id',
         'total',
         'date',
+        'items',
+        'customer',
+        'customer_email',
+        'customer_name',
+        'customer_phone',
+        'customer_address',
+        'customer_city',
+        'total_amount',
         'payment_method',
         'status',
+        'payment_reference',
+        'wompi_transaction_id',
+        'payment_status',
+        'payment_approved_at',
+        'payment_failed_at',
+        'wompi_data',
     ];
 
-    // Listas de control para scopes
-    protected $allowIncluded = ['user', 'ordenproducts', 'store'];
-    protected $allowSort = ['date', 'payment_method', 'status', 'total'];
-    protected $allowFilter = ['date', 'payment_method', 'status'];
+    protected $casts = [
+        'items' => 'array',
+        'customer' => 'array',
+        'wompi_data' => 'array',
+        'total' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'date' => 'datetime',
+        'payment_approved_at' => 'datetime',
+        'payment_failed_at' => 'datetime',
+    ];
 
+    /**
+     * Relación con el usuario
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function ordenproducts()
-    {
-        return $this->hasMany(OrderProduct::class);
     }
 
     public function store()
@@ -39,53 +58,51 @@ class Order extends Model
         return $this->belongsTo(Store::class);
     }
 
-    public function scopeIncluded(Builder $query)
+    // Legacy name used in existing controllers/tests.
+    public function ordenproducts()
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
-            return $query;
-        }
-
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
-
-        foreach ($relations as $key => $relationship) {
-            if (!$allowIncluded->contains($relationship)) {
-                unset($relations[$key]);
-            }
-        }
-
-        return $query->with($relations);
+        return $this->hasMany(OrderProduct::class);
     }
 
-    public function scopeFilter(Builder $query)
+    /**
+     * Scope para órdenes pagadas
+     */
+    public function scopePaid($query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return $query;
-        }
-
-        $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
-
-        foreach ($filters as $filter => $value) {
-            if ($allowFilter->contains($filter)) {
-                $query->where($filter, 'LIKE', '%' . $value . '%');
-            }
-        }
-
-        return $query;
+        return $query->where('status', 'paid');
     }
 
-    public function scopeGetOrPaginate(Builder $query)
+    /**
+     * Scope para órdenes pendientes
+     */
+    public function scopePending($query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
+        return $query->where('status', 'pending');
+    }
 
-            if ($perPage) {
-                return $query->paginate($perPage);
-            }
-        }
+    /**
+     * Marcar orden como pagada
+     */
+    public function markAsPaid($wompiData = null)
+    {
+        $this->update([
+            'status' => 'paid',
+            'payment_status' => 'approved',
+            'payment_approved_at' => now(),
+            'wompi_data' => $wompiData,
+        ]);
+    }
 
-        return $query->get();
+    /**
+     * Marcar orden como fallida
+     */
+    public function markAsFailed($errorMessage = null)
+    {
+        $this->update([
+            'status' => 'payment_failed',
+            'payment_status' => 'failed',
+            'payment_failed_at' => now(),
+            'wompi_data' => $errorMessage ? ['error' => $errorMessage] : null,
+        ]);
     }
 }
-

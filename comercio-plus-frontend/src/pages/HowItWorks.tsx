@@ -5,128 +5,125 @@ import Header from '@/components/Header'
 
 const merchantSteps = [
   {
-    icon: '📝',
-    title: 'Crea tu Cuenta',
-    description: 'Regístrate gratis como comerciante en menos de 2 minutos.',
+    code: '01',
+    title: 'Crea tu cuenta',
+    description: 'Registro rapido para abrir tu panel de comercio en minutos.',
   },
   {
-    icon: '🏪',
-    title: 'Configura tu Tienda',
-    description: 'Personaliza tu tienda con nombre, logo y descripción.',
+    code: '02',
+    title: 'Configura tu tienda',
+    description: 'Define identidad visual, metodos de contacto y catalogo base.',
   },
   {
-    icon: '📦',
-    title: 'Añade tus Productos',
-    description: 'Sube fotos, precios e inventario de forma simple.',
+    code: '03',
+    title: 'Publica productos',
+    description: 'Sube fotos, precios y stock con control total por categoria.',
   },
   {
-    icon: '💰',
-    title: 'Empieza a Vender',
-    description: 'Recibe pedidos y gestiona todo desde tu dashboard.',
+    code: '04',
+    title: 'Escala tus ventas',
+    description: 'Activa promociones y monitorea conversiones en tiempo real.',
   },
 ]
 
 const benefits = [
-  { icon: '💼', title: 'Sin Comisiones Ocultas', description: 'Transparencia total en costos.' },
-  { icon: '🚀', title: 'Fácil de Usar', description: 'Interfaz simple para empezar hoy.' },
-  { icon: '📱', title: 'Responsive', description: 'Funciona en PC, tablet y móvil.' },
-  { icon: '🔒', title: 'Seguro', description: 'Protección de datos y transacciones.' },
-  { icon: '📊', title: 'Analíticas', description: 'Métricas claras de ventas y clientes.' },
-  { icon: '💬', title: 'Soporte 24/7', description: 'Ayuda disponible cuando la necesites.' },
+  { title: 'Sin costos ocultos', description: 'Modelo transparente con foco en crecimiento sostenible.' },
+  { title: 'Panel rapido', description: 'Flujos optimizados para gestionar pedidos y productos.' },
+  { title: 'Mobile first', description: 'Experiencia fluida en desktop, tablet y telefono.' },
+  { title: 'Seguridad', description: 'Buenas practicas para proteger datos y operaciones.' },
+  { title: 'Analiticas', description: 'Mide ingresos, ordenes y comportamiento de clientes.' },
+  { title: 'Soporte', description: 'Acompanamiento tecnico para lanzamientos y mejoras.' },
 ]
 
 export default function HowItWorks() {
   return (
-    <div className="min-h-screen bg-dark-50">
+    <div className="min-h-screen bg-slate-50">
       <Header
         links={[
           { label: 'Tiendas', href: '/' },
           { label: 'Productos', href: '/products' },
-          { label: 'Cómo Funciona', href: '/how-it-works', active: true },
+          { label: 'Como Funciona', href: '/how-it-works', active: true },
         ]}
       />
 
-      <div className="bg-gradient-to-r from-secondary to-primary text-white py-24">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 text-center">
-          <h1 className="text-hero mb-6 text-white animate-fade-in">
-            ¿Cómo Funciona ComercioPlus?
-          </h1>
-          <p className="text-body-lg opacity-95 max-w-3xl mx-auto mb-10">
-            Tu plataforma de e-commerce completa. Simple, poderosa y diseñada para ayudarte a vender más.
+      <section className="relative overflow-hidden bg-slate-950 py-24 text-white">
+        <div className="absolute inset-0 bg-mesh opacity-70" />
+        <div className="absolute -left-16 top-20 h-56 w-56 rounded-full bg-brand-500/25 blur-3xl" />
+        <div className="absolute -right-20 top-8 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl px-6 text-center lg:px-10">
+          <Badge variant="brand" className="mb-4">ComercioPlus Method</Badge>
+          <h1 className="mb-6 text-display-md text-white">Como funciona ComercioPlus</h1>
+          <p className="mx-auto mb-10 max-w-3xl text-body-lg text-slate-200">
+            Una plataforma para lanzar, operar y escalar comercio digital con una experiencia premium.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="primary" size="lg" className="bg-white text-primary hover:bg-dark-50">
-              🏪 Crear mi Tienda Gratis
-            </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
-              👁️ Ver Demo
-            </Button>
+          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+            <Button variant="primary" size="lg">Crear tienda gratis</Button>
+            <Button variant="glass" size="lg">Solicitar demo</Button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
+      <main className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
         <section className="mb-24">
-          <div className="text-center mb-16">
-            <h2 className="text-h1 mb-4">Para Comerciantes</h2>
-            <p className="text-body-lg text-dark-600 max-w-2xl mx-auto">
-              En 4 simples pasos, tendrás tu tienda online lista para vender.
+          <div className="mb-12 text-center">
+            <h2 className="mb-3 text-h1">Ruta para comerciantes</h2>
+            <p className="mx-auto max-w-2xl text-body-lg text-slate-600">
+              Cuatro pasos para pasar de idea a tienda activa con procesos claros.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {merchantSteps.map((step, index) => (
-              <Card key={step.title} className="text-center relative overflow-hidden group">
-                <div className="absolute top-4 right-4 text-6xl font-bold text-dark-100 group-hover:text-dark-200 transition-colors">
-                  {index + 1}
-                </div>
-                <div className="text-5xl mb-4 relative z-10">{step.icon}</div>
-                <h3 className="text-h3 mb-3 relative z-10">{step.title}</h3>
-                <p className="text-body text-dark-600 relative z-10">{step.description}</p>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {merchantSteps.map((step) => (
+              <Card key={step.title} variant="premium" className="group" padding="lg" gradient>
+                <p className="mb-4 text-display-sm text-brand-600/50 transition-colors group-hover:text-brand-600">{step.code}</p>
+                <h3 className="mb-3 text-h3">{step.title}</h3>
+                <p className="text-body text-slate-600">{step.description}</p>
               </Card>
             ))}
           </div>
         </section>
 
         <section className="mb-24">
-          <div className="text-center mb-16">
-            <h2 className="text-h1 mb-4">¿Por Qué ComercioPlus?</h2>
-            <p className="text-body-lg text-dark-600 max-w-2xl mx-auto">
-              Herramientas claras para hacer crecer tu negocio.
+          <div className="mb-12 text-center">
+            <h2 className="mb-3 text-h1">Por que elegirnos</h2>
+            <p className="mx-auto max-w-2xl text-body-lg text-slate-600">
+              Herramientas comerciales con claridad operativa y diseno de alto contraste.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {benefits.map((benefit) => (
-              <Card key={benefit.title} className="group hover:shadow-xl transition-all duration-300">
-                <div className="w-16 h-16 bg-gradient-to-br from-secondary to-primary rounded-md flex items-center justify-center text-3xl mb-4">
-                  {benefit.icon}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {benefits.map((benefit, index) => (
+              <Card key={benefit.title} variant="glass" className="group" padding="lg">
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-glow">
+                  {String(index + 1).padStart(2, '0')}
                 </div>
-                <h3 className="text-h3 mb-2">{benefit.title}</h3>
-                <p className="text-body text-dark-600">{benefit.description}</p>
+                <h3 className="mb-2 text-h3">{benefit.title}</h3>
+                <p className="text-body text-slate-600">{benefit.description}</p>
               </Card>
             ))}
           </div>
         </section>
 
         <section>
-          <Card className="bg-gradient-to-br from-secondary via-primary to-accent text-white p-16 text-center">
-            <Badge variant="info" className="mb-4">Producción Ready</Badge>
-            <h2 className="text-h1 mb-6 text-white">¿Listo para Empezar?</h2>
-            <p className="text-body-lg opacity-95 max-w-2xl mx-auto mb-10 text-white/95">
-              Únete a cientos de emprendedores que ya venden en ComercioPlus.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="primary" size="lg" className="bg-white text-primary">
-                🚀 Crear mi Tienda Ahora
-              </Button>
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
-                💬 Hablar con Ventas
-              </Button>
+          <Card variant="premium" className="overflow-hidden" padding="xl">
+            <div className="relative text-center">
+              <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl" />
+              <div className="relative z-10">
+                <Badge variant="info" className="mb-4">Production ready</Badge>
+                <h2 className="mb-4 text-h1">Listo para empezar</h2>
+                <p className="mx-auto mb-8 max-w-2xl text-body-lg text-slate-600">
+                  Activa tu tienda y comienza a vender con una experiencia moderna para tu equipo y clientes.
+                </p>
+                <div className="flex flex-col justify-center gap-4 sm:flex-row">
+                  <Button variant="primary" size="lg">Crear mi tienda</Button>
+                  <Button variant="outline" size="lg">Hablar con ventas</Button>
+                </div>
+              </div>
             </div>
           </Card>
         </section>
-      </div>
+      </main>
     </div>
   )
 }

@@ -42,39 +42,39 @@ export default function Register() {
 
   return (
     <div>
-      <h1 className="text-[32px]">Crear Cuenta</h1>
-      <p className="mb-8 mt-2 text-[15px] text-[#4B5563]">
+      <h1 className="text-[28px] leading-tight">Crear Cuenta</h1>
+      <p className="mb-3 mt-1 text-[14px] text-[#4B5563]">
         ¿Ya tienes cuenta? <Link to="/login" className="font-semibold text-[#FF6B35]">Inicia sesion</Link>
       </p>
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-2.5" onSubmit={handleSubmit}>
         <div>
-          <p className="mb-2 text-[14px] font-medium text-[#1F2937]">Tipo de cuenta</p>
+          <p className="mb-1.5 text-[13px] font-medium text-[#1F2937]">Tipo de cuenta</p>
           <div className="grid grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => setForm((prev) => ({ ...prev, role: 'merchant' }))}
-              className={`rounded-xl border-2 p-4 text-center transition-all ${
+              className={`rounded-xl border-2 p-2.5 text-center transition-all ${
                 form.role === 'merchant'
                   ? 'border-[#FF6B35] bg-[rgba(255,107,53,0.1)]'
                   : 'border-[#E5E7EB] bg-white'
               }`}
             >
-              <div className="text-2xl">🏪</div>
-              <div className="mt-1 text-[14px] font-semibold text-[#1F2937]">Comerciante</div>
+              <div className="text-xl">🏪</div>
+              <div className="mt-0.5 text-[13px] font-semibold text-[#1F2937]">Comerciante</div>
             </button>
 
             <button
               type="button"
               onClick={() => setForm((prev) => ({ ...prev, role: 'client' }))}
-              className={`rounded-xl border-2 p-4 text-center transition-all ${
+              className={`rounded-xl border-2 p-2.5 text-center transition-all ${
                 form.role === 'client'
                   ? 'border-[#FF6B35] bg-[rgba(255,107,53,0.1)]'
                   : 'border-[#E5E7EB] bg-white'
               }`}
             >
-              <div className="text-2xl">🛍️</div>
-              <div className="mt-1 text-[14px] font-semibold text-[#1F2937]">Cliente</div>
+              <div className="text-xl">🛍️</div>
+              <div className="mt-0.5 text-[13px] font-semibold text-[#1F2937]">Cliente</div>
             </button>
           </div>
 
@@ -92,6 +92,7 @@ export default function Register() {
 
         <Input
           label="Nombre Completo"
+          className="h-10 py-2"
           id="name"
           name="name"
           type="text"
@@ -104,6 +105,7 @@ export default function Register() {
 
         <Input
           label="Correo Electronico"
+          className="h-10 py-2"
           id="email"
           name="email"
           type="email"
@@ -116,6 +118,7 @@ export default function Register() {
 
         <Input
           label="Contrasena"
+          className="h-10 py-2"
           id="password"
           name="password"
           type="password"
@@ -128,6 +131,7 @@ export default function Register() {
 
         <Input
           label="Confirmar Contrasena"
+          className="h-10 py-2"
           id="password_confirmation"
           name="password_confirmation"
           type="password"
@@ -140,7 +144,7 @@ export default function Register() {
 
         {error && <div className="text-sm text-red-600">{error}</div>}
 
-        <Button type="submit" className="w-full" loading={loading}>
+        <Button type="submit" className="h-10 w-full" loading={loading}>
           {loading ? 'Creando...' : 'Crear Cuenta'}
         </Button>
       </form>

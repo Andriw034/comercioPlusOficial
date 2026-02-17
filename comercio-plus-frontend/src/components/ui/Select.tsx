@@ -23,7 +23,11 @@ const Select = forwardRef<HTMLSelectElement, Props>(
 
     return (
       <label className={`block space-y-2 ${containerClassName}`.trim()}>
-        {label && <span className="text-[13px] font-medium text-slate-800 dark:text-slate-200">{label}</span>}
+        {label && (
+          <span className="text-[15px] font-semibold !text-slate-900" style={{ color: '#111827' }}>
+            {label}
+          </span>
+        )}
         {select}
         {hint && !error && <span className="text-xs text-slate-500 dark:text-slate-300">{hint}</span>}
         {error && <span className="text-xs text-red-600 dark:text-red-300">{error}</span>}

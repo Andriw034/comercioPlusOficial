@@ -43,14 +43,15 @@ export default function Login() {
 
   return (
     <div>
-      <h1 className="text-[32px]">Iniciar Sesion</h1>
-      <p className="mb-8 mt-2 text-[15px] text-[#4B5563]">
+      <h1 className="text-[28px] leading-tight">Iniciar Sesion</h1>
+      <p className="mb-3 mt-1 text-[14px] text-[#4B5563]">
         ¿No tienes cuenta? <Link to="/register" className="font-semibold text-[#FF6B35]">Registrate aqui</Link>
       </p>
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-2.5" onSubmit={handleSubmit}>
         <Input
           label="Correo Electronico"
+          className="h-10 py-2"
           id="email"
           name="email"
           type="email"
@@ -63,6 +64,7 @@ export default function Login() {
 
         <Input
           label="Contrasena"
+          className="h-10 py-2"
           id="password"
           name="password"
           type="password"
@@ -73,8 +75,8 @@ export default function Login() {
           onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
         />
 
-        <div className="flex items-center justify-between">
-          <label className="inline-flex items-center gap-2 text-[14px] text-[#4B5563]">
+        <div className="flex items-center justify-between pt-0.5">
+          <label className="inline-flex items-center gap-2 text-[13px] text-[#4B5563]">
             <input
               id="remember-me"
               name="remember-me"
@@ -85,12 +87,12 @@ export default function Login() {
             />
             Recordarme
           </label>
-          <span className="text-[14px] font-medium text-[#FF6B35]">¿Olvidaste tu contrasena?</span>
+          <span className="text-[13px] font-medium text-[#FF6B35]">¿Olvidaste tu contrasena?</span>
         </div>
 
         {error && <div className="text-sm text-red-600">{error}</div>}
 
-        <Button type="submit" className="w-full" loading={loading}>
+        <Button type="submit" className="h-10 w-full" loading={loading}>
           {loading ? 'Iniciando...' : 'Iniciar Sesion'}
         </Button>
       </form>

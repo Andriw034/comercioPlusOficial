@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use App\Models\User;
 
 class PermissionsTest extends TestCase
@@ -15,6 +16,7 @@ class PermissionsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Seed permissions and roles for testing
         $permissions = [
@@ -41,8 +43,15 @@ class PermissionsTest extends TestCase
 
         foreach ($roleMap as $roleName => $perms) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-            $role->syncPermissions($perms);
+            $currentPermissions = Permission::query()
+                ->where('guard_name', 'web')
+                ->whereIn('name', $perms)
+                ->get();
+
+            $role->syncPermissions($currentPermissions);
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     public function test_permissions_table_exists_and_has_data()
@@ -76,11 +85,12 @@ class PermissionsTest extends TestCase
         $role = Role::where('name', 'admin')->first();
         $this->assertNotNull($role);
 
-        $permissions = $role->permissions;
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $permissions = $role->permissions()->get();
         $this->assertGreaterThan(0, $permissions->count());
 
-        $this->assertTrue($role->hasPermissionTo('products.view'));
-        $this->assertTrue($role->hasPermissionTo('users.create'));
+        $this->assertTrue($permissions->contains('name', 'products.view'));
+        $this->assertTrue($permissions->contains('name', 'users.create'));
     }
 
     public function test_user_can_be_assigned_role()
@@ -89,8 +99,14 @@ class PermissionsTest extends TestCase
         $role = Role::where('name', 'cliente')->first();
 
         $user->assignRole($role);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $user = $user->fresh();
+        $productsViewPermission = Permission::where('name', 'products.view')
+            ->where('guard_name', 'web')
+            ->first();
 
         $this->assertTrue($user->hasRole('cliente'));
-        $this->assertTrue($user->hasPermissionTo('products.view'));
+        $this->assertNotNull($productsViewPermission);
+        $this->assertTrue($user->hasPermissionTo($productsViewPermission));
     }
 }

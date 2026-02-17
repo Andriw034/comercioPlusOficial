@@ -369,19 +369,38 @@ export default function ManageProducts() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   <p className="text-[16px] font-extrabold text-slate-900 dark:text-white">
                     ${formatPrice(price)}
                   </p>
 
-                  <Badge variant={item.status === 'active' ? 'success' : 'neutral'} className="capitalize">
+                  <Badge
+                    variant={item.status === 'active' ? 'success' : 'neutral'}
+                    className={`capitalize ${
+                      item.status === 'active'
+                        ? 'border-emerald-400/60 bg-emerald-100 text-emerald-800'
+                        : 'border-amber-400/60 bg-amber-100 text-amber-800'
+                    }`}
+                  >
                     {item.status || 'draft'}
                   </Badge>
 
-                  <button className={buttonVariants('ghost', 'h-10 text-[13px] font-medium')} onClick={() => startEdit(item)}>
+                  <button
+                    className={buttonVariants(
+                      'secondary',
+                      'h-9 rounded-full px-4 text-[12px] font-semibold bg-[#0F5FA8] hover:bg-[#0B4D8A] shadow-sm',
+                    )}
+                    onClick={() => startEdit(item)}
+                  >
                     Editar
                   </button>
-                  <button className={buttonVariants('ghost', 'h-10 text-[13px] font-medium text-red-600 dark:text-red-300')} onClick={() => remove(item)}>
+                  <button
+                    className={buttonVariants(
+                      'danger',
+                      'h-9 rounded-full px-4 text-[12px] font-semibold bg-[#EF4444] hover:bg-[#DC2626] shadow-sm',
+                    )}
+                    onClick={() => remove(item)}
+                  >
                     Eliminar
                   </button>
                 </div>
@@ -513,8 +532,7 @@ export default function ManageProducts() {
           />
 
           <div className="space-y-2">
-            <label className="text-[13px] font-medium text-slate-600 dark:text-white/70">Imagen</label>
-            <label className={buttonVariants('secondary', 'cursor-pointer w-fit')}>
+            <label className={buttonVariants('secondary', 'cursor-pointer w-fit rounded-full px-5')}>
               Subir imagen
               <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={onImage} className="hidden" />
             </label>

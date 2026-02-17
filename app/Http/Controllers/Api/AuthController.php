@@ -99,6 +99,26 @@ class AuthController extends Controller
         ]);
     }
 
+    public function me(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'No autorizado'], 401);
+        }
+
+        $store = $user->store()->first();
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->roleKey(),
+            'has_store' => (bool) $store,
+            'store_id' => $store?->id,
+        ]);
+    }
+
     private function normalizeRole(string $role): string
     {
         $role = strtolower($role);

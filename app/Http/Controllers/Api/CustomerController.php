@@ -9,7 +9,24 @@ use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
+    public function registerCustomer(Request $request)
+    {
+        $storeId = $request->input('store_id', $request->input('storeId'));
+        $store = $storeId ? Store::find($storeId) : null;
+
+        if (!$store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        return $this->persistVisit($request, $store);
+    }
+
     public function registerVisit(Request $request, Store $store)
+    {
+        return $this->persistVisit($request, $store);
+    }
+
+    private function persistVisit(Request $request, Store $store)
     {
         $user = $request->user();
         if (!$user || !$user->isClient()) {

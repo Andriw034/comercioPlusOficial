@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Badge from '@/components/ui/Badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -12,6 +13,14 @@ type Props = {
 
 export default function ProductCard({ product, onAdd, onImageClick }: Props) {
   const image = resolveMediaUrl(product.image_url || product.image)
+  const fallbackGradient = useMemo(() => {
+    const gradients = [
+      'linear-gradient(135deg, #FF6A00 0%, #FF823D 60%, #FFD5B8 100%)',
+      'linear-gradient(135deg, #E65700 0%, #FF6A00 60%, #FFC096 100%)',
+      'linear-gradient(135deg, #FF823D 0%, #FF6A00 50%, #FFEAD9 100%)',
+    ]
+    return gradients[Math.floor(Math.random() * gradients.length)]
+  }, [])
 
   const ratingValue = Number(product.rating ?? product.average_rating)
   const hasRating = Number.isFinite(ratingValue) && ratingValue > 0
@@ -22,7 +31,7 @@ export default function ProductCard({ product, onAdd, onImageClick }: Props) {
   const showOutOfStockBadge = typeof product.stock === 'number' && product.stock === 0
 
   return (
-    <article className="group h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-[1px] hover:shadow-md dark:border-white/10 dark:bg-white/5">
+    <article className="group h-full overflow-hidden rounded-2xl border border-comercioplus-200 bg-gradient-to-br from-white via-white to-comercioplus-50/60 shadow-sm transition-all duration-200 hover:-translate-y-[1px] hover:border-comercioplus-400 hover:shadow-md dark:border-comercioplus-300/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
       <div className="flex h-full flex-col">
         <button
           type="button"
@@ -30,7 +39,7 @@ export default function ProductCard({ product, onAdd, onImageClick }: Props) {
           className="relative block text-left"
           aria-label={`Ver imagen grande y detalles de ${product.name}`}
         >
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+          <div className="rounded-2xl border border-comercioplus-100 bg-gradient-to-br from-white to-comercioplus-50/50 p-3 dark:border-comercioplus-300/30 dark:from-slate-900 dark:to-slate-800">
             <div className="relative aspect-square overflow-hidden rounded-xl">
               {image ? (
                 <img
@@ -41,8 +50,11 @@ export default function ProductCard({ product, onAdd, onImageClick }: Props) {
                   decoding="async"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center px-4 text-center text-[13px] font-medium text-slate-500 dark:text-white/60">
-                  Sin imagen
+                <div
+                  className="flex h-full w-full items-center justify-center px-4 text-center text-[13px] font-medium text-white"
+                  style={{ background: fallbackGradient }}
+                >
+                  ComercioPlus
                 </div>
               )}
 
@@ -58,13 +70,13 @@ export default function ProductCard({ product, onAdd, onImageClick }: Props) {
 
         <div className="flex flex-1 flex-col gap-2 px-4 pt-3 pb-4">
           <div className="flex items-end justify-between gap-3">
-            <p className="text-[20px] font-extrabold leading-[1] text-slate-900 dark:text-white sm:text-[22px]">
+            <p className="text-[20px] font-extrabold leading-[1] text-comercioplus-600 dark:text-comercioplus-400 sm:text-[22px]">
               ${formatPrice(product.price)}
             </p>
 
             {hasRating && (
               <div className="flex items-center gap-1 text-[12px] text-slate-500 dark:text-white/60">
-                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[12px] text-slate-900 dark:bg-white/10 dark:text-white">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[12px] text-slate-900 ring-1 ring-comercioplus-100 dark:bg-white/10 dark:text-white dark:ring-comercioplus-300/30">
                   <span aria-hidden>*</span>
                   <span className="font-semibold">{ratingValue.toFixed(1)}</span>
                   {hasReviews ? <span className="opacity-80">({reviewsCount})</span> : null}
@@ -73,7 +85,7 @@ export default function ProductCard({ product, onAdd, onImageClick }: Props) {
             )}
           </div>
 
-          <h3 className="line-clamp-2 min-h-[34px] text-[13px] font-semibold leading-[1.25] text-slate-900 dark:text-white sm:min-h-[38px] sm:text-[14px]">
+          <h3 className="line-clamp-2 min-h-[34px] text-[13px] font-semibold leading-[1.25] text-slate-900 transition-colors group-hover:text-comercioplus-700 dark:text-white sm:min-h-[38px] sm:text-[14px]">
             {product.name}
           </h3>
 
@@ -87,7 +99,7 @@ export default function ProductCard({ product, onAdd, onImageClick }: Props) {
             <button
               type="button"
               onClick={() => onAdd(product)}
-              className={buttonVariants('primary', 'h-10 justify-center text-[13px] disabled:cursor-not-allowed disabled:opacity-50')}
+              className={buttonVariants('primary', 'h-10 justify-center bg-comercioplus-600 text-[13px] hover:bg-comercioplus-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50')}
               disabled={typeof product.stock === 'number' && product.stock === 0}
             >
               Agregar

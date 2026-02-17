@@ -31,7 +31,7 @@ export interface SidebarItem {
   href: string
 }
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger'
-export type ButtonSize = 'sm' | 'md' | 'lg'
-export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info'
-export type CardPadding = 'none' | 'sm' | 'md' | 'lg'
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'glass' | 'danger'
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl'
+export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'brand'
+export type CardPadding = 'none' | 'sm' | 'md' | 'lg' | 'xl'
