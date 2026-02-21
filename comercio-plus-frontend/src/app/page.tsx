@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import API from '@/lib/api'
 import type { Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
+import { Icon } from '@/components/Icon'
 import { resolveMediaUrl } from '@/lib/format'
 
 type StoreWithMeta = Store & {
@@ -89,8 +90,11 @@ export default function Home() {
                       {store.description || 'Tienda verificada en ComercioPlus'}
                     </p>
                     <div className="flex gap-3 text-[13px] text-[#4B5563]">
-                      <span>⭐ 4.8</span>
-                      <span>•</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Icon name="star" size={14} className="fill-amber-400 text-amber-400" />
+                        4.8
+                      </span>
+                      <span>&middot;</span>
                       <span>{store.products_count ?? 0} productos</span>
                     </div>
                   </div>

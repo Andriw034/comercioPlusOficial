@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\OrderBillingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,7 @@ class WompiController extends Controller
     private $apiUrl;
     private $eventsSecret;
 
-    public function __construct()
+    public function __construct(private readonly OrderBillingService $orderBillingService)
     {
         $this->publicKey = config('services.wompi.public_key');
         $this->privateKey = config('services.wompi.private_key');
@@ -34,7 +35,6 @@ class WompiController extends Controller
             'items' => 'required|array|min:1',
             'items.*.productId' => 'required',
             'items.*.name' => 'required|string',
-            'items.*.price' => 'required|numeric',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.storeId' => 'required',
             'customer.email' => 'required|email',
@@ -42,26 +42,53 @@ class WompiController extends Controller
             'customer.phone' => 'required|string',
             'customer.address' => 'nullable|string',
             'customer.city' => 'nullable|string',
-            'totalAmount' => 'required|numeric|min:0',
             'paymentMethod' => 'required|in:PSE,NEQUI,BANCOLOMBIA,CARD',
         ]);
 
         try {
-            $order = Order::create([
-                'user_id' => auth()->id(),
-                'items' => $validated['items'],
-                'customer_email' => $validated['customer']['email'],
-                'customer_name' => $validated['customer']['name'],
-                'customer_phone' => $validated['customer']['phone'],
-                'customer_address' => $validated['customer']['address'] ?? null,
-                'customer_city' => $validated['customer']['city'] ?? null,
-                'total_amount' => $validated['totalAmount'],
+            $user = $request->user('sanctum') ?? auth('sanctum')->user() ?? $request->user();
+            if (! $user) {
+                return response()->json([
+                    'error' => 'Debes iniciar sesion para crear una orden.',
+                ], 401);
+            }
+
+            $storeIds = collect($validated['items'])
+                ->map(fn (array $item) => (int) $item['storeId'])
+                ->unique()
+                ->values();
+
+            if ($storeIds->count() !== 1) {
+                return response()->json([
+                    'error' => 'La orden debe contener productos de una sola tienda.',
+                ], 422);
+            }
+
+            $items = collect($validated['items'])->map(fn (array $item) => [
+                'product_id' => (int) $item['productId'],
+                'quantity' => (int) $item['quantity'],
+            ])->values()->all();
+
+            $order = $this->orderBillingService->createOrder([
+                'store_id' => (int) $storeIds->first(),
+                'items' => $items,
                 'payment_method' => $validated['paymentMethod'],
                 'status' => 'pending',
-            ]);
+                'currency' => 'COP',
+            ], (int) $user->id);
+
+            $order->loadMissing('ordenproducts.product');
 
             return response()->json([
                 'orderId' => $order->id,
+                'order' => [
+                    'id' => (int) $order->id,
+                    'subtotal' => (float) ($order->subtotal ?? 0),
+                    'tax_total' => (float) ($order->tax_total ?? 0),
+                    'total' => (float) ($order->total ?? 0),
+                    'currency' => (string) ($order->currency ?? 'COP'),
+                    'invoice_number' => $order->invoice_number,
+                ],
                 'message' => 'Orden creada exitosamente',
             ], 201);
         } catch (\Exception $e) {
@@ -89,6 +116,8 @@ class WompiController extends Controller
 
         try {
             $order = Order::findOrFail($validated['orderId']);
+            $orderAmountInCents = (int) round(((float) ($order->total ?? 0)) * 100);
+            $amountInCents = $orderAmountInCents > 0 ? $orderAmountInCents : (int) $validated['amount'];
 
             // Generar referencia única
             $reference = 'ORDER-' . $order->id . '-' . time();
@@ -97,7 +126,7 @@ class WompiController extends Controller
             $transactionData = [
                 'public_key' => $this->publicKey,
                 'currency' => $validated['currency'],
-                'amount_in_cents' => $validated['amount'],
+                'amount_in_cents' => $amountInCents,
                 'reference' => $reference,
                 'redirect_url' => $validated['redirectUrl'],
                 'customer_data' => [

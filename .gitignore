@@ -27,3 +27,8 @@
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local QA temp artifacts
+/.tmp_*.php
+/.tmp_*
+**/.tmp_*

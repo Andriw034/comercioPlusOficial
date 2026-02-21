@@ -19,6 +19,11 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
+            $request->merge([
+                'email' => strtolower(trim((string) $request->input('email', ''))),
+                'role' => strtolower(trim((string) $request->input('role', ''))),
+            ]);
+
             $data = $request->validate([
                 'name'     => 'required|string|max:255',
                 'email'    => 'required|email:rfc,dns|unique:users,email',
@@ -55,6 +60,10 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
+            $request->merge([
+                'email' => strtolower(trim((string) $request->input('email', ''))),
+            ]);
+
             $credentials = $request->validate([
                 'email'    => 'required|email',
                 'password' => 'required|string',

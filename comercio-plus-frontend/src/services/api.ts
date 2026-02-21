@@ -2,11 +2,33 @@ import axios, { AxiosError } from 'axios'
 import { API_BASE_URL } from '@/lib/runtime'
 
 if (!API_BASE_URL) {
-  console.error('[api] Missing VITE_API_BASE_URL. Set an absolute backend URL (e.g. https://xxxx.up.railway.app/api).')
+  console.error('[api] Missing API base URL. Requests will fallback to /api.')
+}
+
+const TOKEN_KEY = 'token'
+const USER_KEY = 'user'
+
+const clearStoredSession = () => {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(USER_KEY)
+}
+
+const readToken = (): string | null => {
+  const sessionToken = sessionStorage.getItem(TOKEN_KEY)
+  if (sessionToken && sessionToken.trim().length > 0) return sessionToken
+
+  const localToken = localStorage.getItem(TOKEN_KEY)
+  if (localToken && localToken.trim().length > 0) {
+    clearStoredSession()
+  }
+
+  return null
 }
 
 const API = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || '/api',
   timeout: 30000,
   headers: {
     Accept: 'application/json',
@@ -16,15 +38,13 @@ const API = axios.create({
 
 API.interceptors.request.use(
   (config) => {
-    if (!API_BASE_URL) {
-      return Promise.reject(new Error('Missing VITE_API_BASE_URL configuration in production.'))
-    }
-
     config.withCredentials = false
 
-    const token = localStorage.getItem('token')
+    const token = readToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else if (config.headers && 'Authorization' in config.headers) {
+      delete config.headers.Authorization
     }
 
     return config
@@ -36,10 +56,15 @@ API.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     const status = error.response?.status
+    const requestUrl = String(error.config?.url || '')
+    const isAuthFlowRequest =
+      requestUrl.includes('/login') ||
+      requestUrl.includes('/register') ||
+      requestUrl.includes('/me')
 
-    if (status === 401) {
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
+    if (status === 401 && !isAuthFlowRequest) {
+      clearStoredSession()
+      delete API.defaults.headers.common.Authorization
       window.location.href = '/login'
     }
 
@@ -48,4 +73,3 @@ API.interceptors.response.use(
 )
 
 export default API
-

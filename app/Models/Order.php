@@ -14,7 +14,12 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'store_id',
+        'subtotal',
+        'tax_total',
         'total',
+        'currency',
+        'invoice_number',
+        'invoice_date',
         'date',
         'items',
         'customer',
@@ -38,9 +43,12 @@ class Order extends Model
         'items' => 'array',
         'customer' => 'array',
         'wompi_data' => 'array',
+        'subtotal' => 'decimal:2',
+        'tax_total' => 'decimal:2',
         'total' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'date' => 'datetime',
+        'invoice_date' => 'datetime',
         'payment_approved_at' => 'datetime',
         'payment_failed_at' => 'datetime',
     ];
@@ -62,6 +70,11 @@ class Order extends Model
     public function ordenproducts()
     {
         return $this->hasMany(OrderProduct::class);
+    }
+
+    public function orderProducts()
+    {
+        return $this->ordenproducts();
     }
 
     /**

@@ -8,9 +8,14 @@ import PublicLayout from '@/components/layouts/PublicLayout'
 import Category from './category/page'
 import CreateStore from './store/create/page'
 import Dashboard from './dashboard/page'
+import DashboardCategoriesPage from './dashboard/categories/page'
 import DashboardCustomers from './dashboard/customers/page'
+import DashboardInventoryPage from './dashboard/inventory/page'
 import Login from './login/page'
 import ManageProducts from './dashboard/products/page'
+import DashboardReportsPage from './dashboard/reports/page'
+import DashboardSettingsPage from './dashboard/settings/page'
+import DashboardOrdersPage from './dashboard/orders/page'
 import Register from './register/page'
 import StoreDetail from './store/page'
 import Stores from './stores/page'
@@ -24,6 +29,7 @@ import HowItWorks from '@/pages/HowItWorks'
 import StoreProducts from '@/pages/StoreProducts'
 import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
+import CheckoutSuccess from '@/pages/CheckoutSuccess'
 import SimpleContentPage from '@/pages/SimpleContentPage'
 import ForgotPassword from '@/pages/ForgotPassword'
 
@@ -46,6 +52,9 @@ export default function App() {
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
+          <Route path="/payment/success" element={<CheckoutSuccess />} />
+          <Route path="/orders/:id" element={<CheckoutSuccess />} />
           <Route path="/category/:id" element={<Category />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
@@ -130,6 +139,11 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/customers" element={<DashboardCustomers />} />
           <Route path="/dashboard/store" element={<DashboardStore />} />
+          <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
+          <Route path="/dashboard/orders" element={<DashboardOrdersPage />} />
+          <Route path="/dashboard/inventory" element={<DashboardInventoryPage />} />
+          <Route path="/dashboard/reports" element={<DashboardReportsPage />} />
+          <Route path="/dashboard/categories" element={<DashboardCategoriesPage />} />
           <Route path="/dashboard/products" element={<ManageProducts />} />
           <Route path="/dashboard/products/create" element={<ManageProducts />} />
           <Route path="/dashboard/products/:id/edit" element={<ManageProducts />} />

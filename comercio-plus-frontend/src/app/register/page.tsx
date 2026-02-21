@@ -24,7 +24,11 @@ export default function Register() {
     setError('')
 
     try {
-      const { data } = await API.post('/register', form)
+      const payload = {
+        ...form,
+        email: form.email.trim().toLowerCase(),
+      }
+      const { data } = await API.post('/register', payload)
       if (data?.token) {
         const user = await hydrateSession(data.token)
         navigate(resolvePostAuthRoute(user))
@@ -33,7 +37,15 @@ export default function Register() {
       }
     } catch (err: any) {
       const status = err?.response?.status
-      const message = err?.response?.data?.message || 'Error al crear la cuenta. Verifica tus datos.'
+      const fieldErrors = err?.response?.data?.errors as Record<string, string[] | string> | undefined
+      const firstErrorValue = fieldErrors ? Object.values(fieldErrors)[0] : undefined
+      const firstFieldError = Array.isArray(firstErrorValue)
+        ? (firstErrorValue[0] ?? '')
+        : (typeof firstErrorValue === 'string' ? firstErrorValue : '')
+      const message =
+        firstFieldError ||
+        err?.response?.data?.message ||
+        'Error al crear la cuenta. Verifica tus datos.'
       setError(status ? `${message} (HTTP ${status})` : message)
     } finally {
       setLoading(false)

@@ -17,6 +17,7 @@ const iconMap = {
   // E-commerce
   cart: LucideIcons.ShoppingCart,
   store: LucideIcons.Store,
+  bike: LucideIcons.Bike,
   package: LucideIcons.Package,
   tag: LucideIcons.Tag,
   'credit-card': LucideIcons.CreditCard,
@@ -55,6 +56,11 @@ const iconMap = {
   message: LucideIcons.MessageSquare,
   phone: LucideIcons.Phone,
   send: LucideIcons.Send,
+  facebook: LucideIcons.Facebook,
+  instagram: LucideIcons.Instagram,
+  twitter: LucideIcons.Twitter,
+  linkedin: LucideIcons.Linkedin,
+  youtube: LucideIcons.Youtube,
   
   // Negocio
   trending: LucideIcons.TrendingUp,
@@ -89,6 +95,7 @@ const iconMap = {
   rocket: LucideIcons.Rocket,
   headset: LucideIcons.Headphones,
   bank: LucideIcons.Building2,
+  wallet: LucideIcons.Wallet,
   smartphone: LucideIcons.Smartphone,
   refresh: LucideIcons.RefreshCw,
   external: LucideIcons.ExternalLink,

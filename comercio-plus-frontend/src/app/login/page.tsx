@@ -18,9 +18,11 @@ export default function Login() {
     setError('')
 
     try {
+      const email = form.email.trim().toLowerCase()
+      const password = form.password
       const { data } = await API.post('/login', {
-        email: form.email,
-        password: form.password,
+        email,
+        password,
         remember: form.remember,
       })
 
@@ -34,7 +36,15 @@ export default function Login() {
       }
     } catch (err: any) {
       const status = err?.response?.status
-      const message = err?.response?.data?.message || 'Error al iniciar sesion. Verifica tus credenciales.'
+      const fieldErrors = err?.response?.data?.errors as Record<string, string[] | string> | undefined
+      const firstErrorValue = fieldErrors ? Object.values(fieldErrors)[0] : undefined
+      const firstFieldError = Array.isArray(firstErrorValue)
+        ? (firstErrorValue[0] ?? '')
+        : (typeof firstErrorValue === 'string' ? firstErrorValue : '')
+      const message =
+        firstFieldError ||
+        err?.response?.data?.message ||
+        'Error al iniciar sesion. Verifica tus credenciales.'
       setError(status ? `${message} (HTTP ${status})` : message)
     } finally {
       setLoading(false)

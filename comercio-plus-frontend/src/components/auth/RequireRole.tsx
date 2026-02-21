@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { clearSession, getStoredUserRaw } from '@/services/auth-session'
 
 type Role = 'merchant' | 'client'
 
@@ -10,7 +11,7 @@ type Props = {
 
 export default function RequireRole({ role, children }: Props) {
   const location = useLocation()
-  const userData = localStorage.getItem('user')
+  const userData = getStoredUserRaw()
 
   if (!userData) {
     const redirect = encodeURIComponent(`${location.pathname}${location.search}`)
@@ -26,8 +27,7 @@ export default function RequireRole({ role, children }: Props) {
 
   const allowed = Array.isArray(role) ? role : [role]
   if (!userRole) {
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
+    clearSession()
     const redirect = encodeURIComponent(`${location.pathname}${location.search}`)
     return <Navigate to={`/login?redirect=${redirect}`} replace />
   }

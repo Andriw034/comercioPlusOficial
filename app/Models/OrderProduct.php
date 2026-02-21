@@ -9,10 +9,18 @@ use Illuminate\Database\Eloquent\Model;
 class OrderProduct extends Model
 {
     use HasFactory;
- 
- protected $fillable = [
-    'unit_price',
- ];
+
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+        'base_price',
+        'tax_amount',
+        'tax_rate_applied',
+        'total_line',
+        'price',
+    ];
     protected $allowIncluded = [
       'unit_price',
     ];
@@ -25,6 +33,39 @@ class OrderProduct extends Model
         'unit_price',
         
     ];
+
+    protected $casts = [
+        'unit_price' => 'decimal:2',
+        'base_price' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
+        'tax_rate_applied' => 'decimal:4',
+        'total_line' => 'decimal:2',
+    ];
+
+    protected $appends = [
+        'line_subtotal',
+        'line_total',
+    ];
+
+    public function setPriceAttribute($value): void
+    {
+        $this->attributes['unit_price'] = $value;
+    }
+
+    public function getPriceAttribute()
+    {
+        return $this->attributes['unit_price'] ?? null;
+    }
+
+    public function getLineSubtotalAttribute()
+    {
+        return $this->attributes['base_price'] ?? null;
+    }
+
+    public function getLineTotalAttribute()
+    {
+        return $this->attributes['total_line'] ?? null;
+    }
 
     
     public function order()

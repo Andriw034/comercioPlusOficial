@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
+import { clearSession } from '@/services/auth-session'
 import GlassCard from '@/components/ui/GlassCard'
 import Button, { buttonVariants } from '@/components/ui/button'
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/format'
-import type { Product, Store } from '@/types/api'
+import type { Store } from '@/types/api'
 
 type Order = {
   id: number
@@ -22,8 +23,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [stores, setStores] = useState<Store[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const [productsCount, setProductsCount] = useState(0)
   const [orders, setOrders] = useState<Order[]>([])
+  const [monthlySales, setMonthlySales] = useState(0)
+  const [monthlyOrdersCount, setMonthlyOrdersCount] = useState(0)
 
   const user = useMemo(() => {
     const userData = localStorage.getItem('user')
@@ -31,24 +34,6 @@ export default function Dashboard() {
   }, [])
 
   const primaryStore = useMemo(() => stores[0] || null, [stores])
-  const productsCount = useMemo(() => products.length, [products])
-  const monthlySales = useMemo(() => {
-    const now = new Date()
-    return orders.reduce((acc, order) => {
-      const date = new Date(order.date || order.created_at || now)
-      if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-        return acc + Number(order.total_amount ?? order.total ?? 0)
-      }
-      return acc
-    }, 0)
-  }, [orders])
-  const monthlyOrdersCount = useMemo(() => {
-    const now = new Date()
-    return orders.filter((order) => {
-      const date = new Date(order.date || order.created_at || now)
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
-    }).length
-  }, [orders])
   const monthlySalesHint = useMemo(
     () =>
       monthlySales === 0
@@ -86,36 +71,56 @@ export default function Dashboard() {
     return []
   }
 
+  const normalizeTotal = (response: any) => {
+    if (typeof response?.data?.total === 'number') return response.data.total
+    if (typeof response?.data?.meta?.total === 'number') return response.data.meta.total
+    const rows = normalizeList(response)
+    return Array.isArray(rows) ? rows.length : 0
+  }
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError('')
-
-      const [storeRes, ordersRes] = await Promise.all([
-        API.get('/my/store'),
-        API.get('/merchant/orders'),
-      ])
-
+      const storeRes = await API.get('/my/store')
       const store = storeRes?.data ? [storeRes.data] : []
       setStores(store)
 
-      if (storeRes?.data?.id) {
-        const productsRes = await API.get('/products', {
-          params: {
-            store_id: storeRes.data.id,
-            per_page: 100,
-          },
-        })
-        setProducts(normalizeList(productsRes))
-      } else {
-        setProducts([])
+      if (!storeRes?.data?.id) {
+        setProductsCount(0)
+        setOrders([])
+        setMonthlySales(0)
+        setMonthlyOrdersCount(0)
+        return
       }
 
+      const [productsRes, ordersRes, summaryRes] = await Promise.all([
+        API.get('/products', {
+          params: {
+            store_id: storeRes.data.id,
+            per_page: 1,
+          },
+        }),
+        API.get('/merchant/orders', {
+          params: {
+            per_page: 5,
+          },
+        }),
+        API.get('/reports/summary'),
+      ])
+
+      setProductsCount(normalizeTotal(productsRes))
       setOrders(normalizeList(ordersRes))
+      setMonthlySales(Number(summaryRes?.data?.data?.gross_sales ?? 0))
+      setMonthlyOrdersCount(Number(summaryRes?.data?.data?.orders_count ?? 0))
     } catch (err: any) {
       if (err.response?.status === 404) {
         setStores([])
-        setProducts([])
+        setProductsCount(0)
+        setOrders([])
+        setMonthlySales(0)
+        setMonthlyOrdersCount(0)
+        localStorage.removeItem('store')
         setError('')
       } else {
         console.error('Dashboard loading error:', err)
@@ -132,8 +137,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
+      clearSession()
       navigate('/login')
     }
   }

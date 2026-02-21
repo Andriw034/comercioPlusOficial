@@ -1,378 +1,262 @@
-# INFORME GENERAL DEL PROYECTO COMERCIO PLUS
+# INFORME GENERAL DEL PROYECTO COMERCIOPLUS
 
-**Fecha de Generación:** $(date)  
-**Versión del Informe:** 1.0  
-**Proyecto:** Comercio Plus - Plataforma de E-commerce para Tiendas de Repuestos de Motos  
-**Framework Principal:** Laravel 11 + Vue 3 + Inertia.js  
-
----
-
-## ÍNDICE
-
-1. [VISIÓN GENERAL DEL PROYECTO](#1-visión-general-del-proyecto)
-2. [ESTRUCTURA DEL PROYECTO](#2-estructura-del-proyecto)
-3. [ANÁLISIS DE LA ARQUITECTURA](#3-análisis-de-la-arquitectura)
-4. [BASE DE DATOS Y MODELOS](#4-base-de-datos-y-modelos)
-5. [API REST](#5-api-rest)
-6. [FRONTEND VUE.JS](#6-frontend-vuejs)
-7. [AUTENTICACIÓN Y AUTORIZACIÓN](#7-autenticación-y-autorización)
-8. [FUNCIONALIDADES PRINCIPALES](#8-funcionalidades-principales)
-9. [PROBLEMAS IDENTIFICADOS](#9-problemas-identificados)
-10. [RECOMENDACIONES DE LIMPIEZA](#10-recomendaciones-de-limpieza)
-11. [PLAN DE MEJORAS](#11-plan-de-mejoras)
-12. [CONCLUSIÓN](#12-conclusión)
+Fecha de actualizacion: 2026-02-19
+Version del informe: 2.0
+Estado del proyecto: Condicional para produccion
 
 ---
 
-## 1. VISIÓN GENERAL DEL PROYECTO
+## 1) Resumen ejecutivo
 
-### Descripción
-Comercio Plus es una plataforma de e-commerce especializada en tiendas de repuestos de motos, construida con Laravel 11 en el backend y Vue 3 con Inertia.js en el frontend. La aplicación permite a los usuarios crear tiendas virtuales, gestionar productos, procesar pedidos y realizar compras.
+ComercioPlus tiene una base funcional valida en backend Laravel y frontend React/Vite, pero no esta listo para produccion sin correcciones prioritarias.
 
-### Tecnologías Principales
-- **Backend:** Laravel 11, PHP 8.1+
-- **Frontend:** Vue 3, Inertia.js, Tailwind CSS
-- **Base de Datos:** MySQL (configurado en Laravel)
-- **Autenticación:** Laravel Sanctum
-- **Permisos:** Spatie Laravel Permission
-- **Testing:** Pest PHP
-- **Build Tool:** Vite
+Estado general por dimension:
+- Funcionalidad core: Media
+- Calidad API: Media
+- Seguridad operativa: Media-Baja
+- UX/UI y consistencia visual: Media-Baja
+- Escalabilidad de frontend: Baja-Media
+- Observabilidad: Baja
 
-### Estado Actual
-- ✅ Servidor Laravel funcionando en http://127.0.0.1:8000
-- ✅ Servidor Vite funcionando en http://127.0.0.1:5176
-- ✅ Estructura básica implementada
-- ⚠️ Múltiples archivos duplicados y sin función
-- ⚠️ Código legacy y pruebas incompletas
+Dictamen actual:
+- Apto: No
+- Apto condicional: Si (con plan correctivo corto)
+- No apto: No (el producto puede evolucionar rapidamente con ajustes concretos)
 
 ---
 
-## 2. ESTRUCTURA DEL PROYECTO
+## 2) Alcance y metodologia
 
-### Directorios Principales
-```
-c:/xampp/htdocs/ComercioRealPlus-main/
-├── app/                          # Código de aplicación Laravel
-├── bootstrap/                    # Archivos de arranque
-├── config/                       # Configuraciones
-├── database/                     # Migraciones, seeders, factories
-├── public/                       # Archivos públicos
-├── resources/                    # Vistas, assets
-│   ├── css/
-│   ├── js/                       # Código Vue.js
-│   └── views/                    # Vistas Blade
-├── routes/                       # Definición de rutas
-├── storage/                      # Archivos temporales
-├── tests/                        # Tests automatizados
-├── tests-e2e/                    # Tests end-to-end
-├── vendor/                       # Dependencias PHP
-├── node_modules/                 # Dependencias JavaScript
-└── [ARCHIVOS DUPLICADOS/SIN FUNCIÓN]
-```
+Este informe consolida el estado real del repositorio a fecha 2026-02-19, basado en:
+- Inspeccion de rutas y controladores Laravel
+- Inspeccion de modelos y configuracion clave
+- Revision de frontend React/Vite activo
+- Revision de capa Blade existente
+- Consolidacion de hallazgos del QA report actual
 
-### Archivos Problemáticos Identificados
-1. **Duplicados:**
-   - `01-REPORTE-AUDITORIA.md` (duplicado en raíz y comercio-plus-frontend/)
-   - Múltiples archivos de informes en diferentes directorios
-   - `database/migrations/2025_09_04_072100_create_permissions_table.php` vs `2025_09_04_052938_create_permissions_table.php`
-
-2. **Sin Función:**
-   - `comercio-plus-frontend/` - Directorio completo sin integración
-   - `inforem/` - Directorio de informes obsoletos
-   - `informe/` - Archivos de informes duplicados
-   - `src/` - Directorio vacío o sin uso
-   - Múltiples archivos `.php` sueltos en raíz
-
-3. **Archivos Legacy:**
-   - `php-build.tar.gz`, `php-static.tar.gz`, etc. - No necesarios en producción
-   - `create_test_db.php` - Script temporal
-   - `check_db.php` - Script de debugging
+Limitaciones de este corte:
+- No se ejecutaron en este documento todas las pruebas de carga ni un ciclo completo de regresion automatizada
+- El informe refleja el estado del codigo inspeccionado en repo
 
 ---
 
-## 3. ANÁLISIS DE LA ARQUITECTURA
+## 3) Arquitectura actual real
 
-### Arquitectura General
-La aplicación sigue una arquitectura **MVC (Model-View-Controller)** con separación clara entre:
-- **Modelos (app/Models/):** Representan entidades de negocio
-- **Controladores (app/Http/Controllers/):** Manejan lógica de negocio
-- **Vistas:** Blade templates y componentes Vue.js
+## 3.1 Backend
+- Framework: Laravel 11
+- Auth API: Sanctum (Bearer token)
+- Roles/permisos: Spatie Permission (instalado y usado de forma parcial)
+- Pagos: Integracion Wompi (endpoints create/status/webhook)
+- Uploads: Cloudinary con fallback a storage public
 
-### Patrón de Diseño Implementado
-- **Repository Pattern:** No implementado consistentemente
-- **Service Layer:** Parcialmente implementado en `app/Services/`
-- **Policy Pattern:** Usado para autorización (`app/Policies/`)
-- **Middleware:** Para autenticación y permisos
+## 3.2 Frontend
+- Frontend activo principal: React + Vite + Tailwind en `comercio-plus-frontend`
+- Estado de sesion frontend: `localStorage` (`token`, `user`, `cart`, `cp-theme`)
+- Cliente HTTP: axios con interceptor Bearer
+- Dark mode: `class` + ThemeProvider
 
-### Puntos Fuertes
-1. **Separación clara** entre API y web routes
-2. **Uso de Inertia.js** para SPA experience
-3. **Sistema de permisos robusto** con Spatie Laravel Permission
-4. **Testing framework** con Pest PHP
-5. **Estructura modular** de componentes Vue.js
+## 3.3 Capa legacy coexistente
+- Existe capa Blade y restos de Vue en `resources/js`
+- No hay una estrategia totalmente cerrada de frontera entre React y Blade
 
-### Puntos Débiles
-1. **Mezcla de Blade y Vue.js** sin estrategia clara
-2. **Controladores sobrecargados** con lógica de negocio
-3. **Falta de servicios** para lógica reutilizable
-4. **Rutas duplicadas** entre web y API
-5. **Modelos sin relaciones** bien definidas
+Nota importante de correccion respecto a versiones previas del informe:
+- `comercio-plus-frontend` NO es un directorio sin uso; es la app frontend activa
+- El framework frontend principal actual NO es Vue + Inertia en la experiencia principal de usuario
 
 ---
 
-## 4. BASE DE DATOS Y MODELOS
+## 4) Inventario backend consolidado
 
-### Tablas Principales
-1. **users** - Usuarios del sistema
-2. **stores** - Tiendas virtuales
-3. **products** - Productos de las tiendas
-4. **categories** - Categorías de productos
-5. **orders** - Pedidos realizados
-6. **carts** - Carritos de compra
-7. **roles/permissions** - Sistema de permisos
+## 4.1 API publica (ejemplos relevantes)
+- `POST /api/register`
+- `POST /api/login`
+- `GET /api/public-stores`
+- `GET /api/products`
+- `GET /api/categories`
+- `POST /api/orders/create`
+- `POST /api/payments/wompi/create`
+- `POST /api/payments/wompi/webhook`
 
-### Modelos Implementados
-- ✅ `User`, `Store`, `Product`, `Category`, `Order`
-- ✅ `Cart`, `CartProduct`, `OrderProduct`
-- ⚠️ Relaciones parcialmente definidas
-- ❌ Falta de scopes y mutators
+## 4.2 API autenticada (ejemplos relevantes)
+- `GET /api/me`
+- `POST /api/logout`
+- `GET /api/my/store`
+- `POST /api/stores`
+- `PUT /api/stores/{store}`
+- `POST /api/products`
+- `PUT /api/products/{product}`
+- `DELETE /api/products/{product}`
+- `GET /api/merchant/orders`
+- `GET /api/merchant/customers`
 
-### Problemas en Base de Datos
-1. **Migraciones duplicadas** para permisos
-2. **Columnas nullable** sin validación consistente
-3. **Falta de índices** en campos de búsqueda
-4. **Relaciones many-to-many** sin tablas pivot apropiadas
+## 4.3 Web routes (Blade/Breeze)
+- `/`, `/login`, `/register`, `/forgot-password`, `/dashboard`, `/profile`, etc.
 
----
-
-## 5. API REST
-
-### Endpoints Principales
-```php
-// Públicas
-GET    /api/products
-GET    /api/categories
-GET    /api/public-stores
-GET    /api/ping
-
-// Autenticadas
-GET    /api/user
-GET    /api/cart
-POST   /api/cart
-GET    /api/orders
-POST   /api/orders
-```
-
-### Controladores API
-- ✅ `ProductController`, `CategoryController`
-- ✅ `UserController`, `OrderController`, `CartController`
-- ⚠️ Falta de transformación de datos (API Resources)
-- ❌ Sin versionado de API
-
-### Problemas en API
-1. **Falta de rate limiting**
-2. **Sin documentación** (Swagger/OpenAPI)
-3. **Respuestas inconsistentes**
-4. **Falta de validación** robusta en requests
+## 4.4 Observacion de autorizacion
+- En `routes/api.php` domina `auth:sanctum`
+- El control de rol/ownership depende mucho de validaciones dentro de controladores
+- Falta endurecer autorizacion declarativa por ruta/middleware/policies en endpoints sensibles
 
 ---
 
-## 6. FRONTEND VUE.JS
+## 5) Inventario frontend consolidado
 
-### Estructura de Componentes
-```
-resources/js/
-├── Pages/           # Páginas principales
-├── components/      # Componentes reutilizables
-├── layouts/         # Layouts base
-├── stores/          # Estado con Pinia
-├── types/           # Definiciones TypeScript
-└── lib/            # Utilidades
-```
+## 5.1 Rutas UI activas (react-router)
+Publicas:
+- `/`, `/stores`, `/store/:id`, `/stores/:storeSlug/products`, `/products`, `/product/:id`, `/cart`, `/checkout`, `/category/:id`, `/privacy`, `/terms`, etc.
 
-### Páginas Implementadas
-- ✅ `Login.vue`, `Register.vue`
-- ✅ `Products/Index.vue`, `Products/Show.vue`
-- ✅ `Cart/Index.vue`, `Checkout/Index.vue`
-- ✅ `Stores/Show.vue`
-- ⚠️ `Home.vue` - Básico
+Auth:
+- `/login`, `/register`, `/forgot-password`
 
-### Estado de Frontend
-1. **Componentes bien estructurados**
-2. **Uso de Pinia** para state management
-3. **TypeScript** parcialmente implementado
-4. **Tailwind CSS** para estilos
+Merchant protegidas:
+- `/dashboard`, `/dashboard/customers`, `/dashboard/store`, `/dashboard/products`, `/dashboard/products/create`, `/dashboard/products/:id/edit`
 
-### Problemas en Frontend
-1. **Mezcla de Blade y Vue** sin transición clara
-2. **Componentes no reutilizables**
-3. **Falta de tests** para componentes
-4. **Estilos inconsistentes**
+## 5.2 Layouts activos
+- `PublicLayout`
+- `AuthLayout`
+- `DashboardLayout`
+- `AppShell`
+
+## 5.3 Hallazgo estructural frontend
+Hay duplicacion de sistema de componentes base:
+- `components/ui/*` y `components/*` conviven (Button/Input/Badge/Card)
+- Esto impacta consistencia visual, mantenibilidad y velocidad de entrega
 
 ---
 
-## 7. AUTENTICACIÓN Y AUTORIZACIÓN
+## 6) Flujos criticos actuales
 
-### Sistema de Autenticación
-- ✅ Laravel Sanctum para API
-- ✅ Middleware de autenticación
-- ✅ Guards configurados
+## 6.1 Visitante -> Auth
+- Registro/login funcional via API
+- Hidratacion de sesion via `GET /api/me`
 
-### Sistema de Permisos
-- ✅ Spatie Laravel Permission
-- ✅ Roles y permisos definidos
-- ⚠️ Policies parcialmente implementadas
+## 6.2 Comerciante
+- Redireccion post-login segun `has_store`
+- Creacion/edicion de tienda via `/api/stores`
+- CRUD de productos y categorias desde dashboard
 
-### Problemas de Seguridad
-1. **Falta de 2FA**
-2. **Sin rate limiting** en login
-3. **Permisos no validados** en todos los endpoints
-4. **Falta de logging** de actividades
+## 6.3 Cliente
+- Navegacion por tiendas/productos publicos
+- Carrito local en frontend
+- Checkout con creacion de orden y flujo Wompi
 
----
-
-## 8. FUNCIONALIDADES PRINCIPALES
-
-### Flujo de Usuario
-1. **Registro/Login** ✅
-2. **Creación de tienda** ⚠️ (Wizard básico)
-3. **Gestión de productos** ✅
-4. **Carrito de compras** ✅
-5. **Proceso de checkout** ⚠️ (Básico)
-6. **Panel de administración** ⚠️ (Parcial)
-
-### Funcionalidades Implementadas
-- ✅ CRUD de productos
-- ✅ Sistema de categorías
-- ✅ Carrito persistente
-- ✅ Órdenes básicas
-- ⚠️ Sistema de pagos (No implementado)
-- ❌ Reviews y ratings
+## 6.4 Admin
+- Infraestructura parcial backend
+- Sin panel React admin dedicado en el router principal actual
 
 ---
 
-## 9. PROBLEMAS IDENTIFICADOS
+## 7) Hallazgos generales clave
 
-### Críticos
-1. **Archivos duplicados** afectan mantenibilidad
-2. **Código legacy** sin eliminar
-3. **Dependencias no utilizadas**
-4. **Tests incompletos**
+## 7.1 Hallazgos backend
+- Middleware de rol no aplicado de forma consistente en rutas API
+- Endpoints con permisos evaluados en controlador en vez de politica/middleware por ruta
+- Riesgo de regresion en ownership en algunos recursos tipo CRUD generico
 
-### Funcionales
-1. **API sin documentación**
-2. **Frontend inconsistente**
-3. **Base de datos sin optimizaciones**
-4. **Falta de validaciones**
+## 7.2 Hallazgos frontend
+- Rutas core mezclan vistas legacy y nuevas
+- Navbar/Footer publico inconsistente (solo home en layout actual)
+- Dashboard con problemas de uso en mobile por sidebar fijo
+- Dark mode implementado pero con cobertura desigual
+- Existen clases Tailwind no definidas en algunos componentes
+- Uso de `alert()` y redireccion dura en flujos sensibles de UX
 
-### de Rendimiento
-1. **Sin caché implementado**
-2. **Queries N+1** en algunos controladores
-3. **Assets no optimizados**
-4. **Sin CDN configurado**
-
----
-
-## 10. RECOMENDACIONES DE LIMPIEZA
-
-### Archivos a Eliminar
-```bash
-# Directorios completos
-rm -rf comercio-plus-frontend/
-rm -rf inforem/
-rm -rf informe/
-rm -rf src/
-
-# Archivos duplicados
-rm 01-REPORTE-AUDITORIA.md
-rm database/migrations/2025_09_04_052938_create_permissions_table.php
-
-# Archivos legacy
-rm php-build.tar.gz
-rm php-static.tar.gz
-rm php.apk
-rm php.deb
-rm php.tar.gz
-rm create_test_db.php
-rm check_db.php
-rm tmp_user_php.txt
-rm login_test.ps1
-
-# Informes obsoletos
-rm ANALISIS_COMPLETO.md
-rm INFORME_COMPLETO_APLICACION.md
-rm PLAN_MIGRACION_NEXT_TO_LARAVEL.md
-```
-
-### Archivos a Consolidar
-1. **Informes:** Mantener solo `INFORME_GENERAL_PROYECTO.md`
-2. **TODOs:** Consolidar en un solo archivo `TODO_MASTER.md`
-3. **Planes de prueba:** Unificar en `PLAN_PRUEBAS_MASTER.md`
-
-### Dependencias a Revisar
-- Verificar uso de todas las dependencias en `composer.json`
-- Limpiar `package.json` de paquetes no utilizados
-- Actualizar versiones desactualizadas
+## 7.3 Hallazgos de arquitectura global
+- Coexistencia React + Blade + remanentes Vue sin contrato claro
+- Documentacion historica contiene afirmaciones desactualizadas sobre stack activo
 
 ---
 
-## 11. PLAN DE MEJORAS
+## 8) Matriz de riesgos (estado actual)
 
-### Fase 1: Limpieza (Prioridad Alta)
-1. ✅ Eliminar archivos duplicados
-2. ✅ Remover código legacy
-3. ✅ Consolidar informes
-4. ✅ Limpiar dependencias
-
-### Fase 2: Arquitectura (Prioridad Alta)
-1. Implementar Repository Pattern
-2. Crear Service Layer completo
-3. Definir API Resources
-4. Optimizar base de datos
-
-### Fase 3: Funcionalidades (Prioridad Media)
-1. Completar sistema de pagos
-2. Implementar reviews y ratings
-3. Mejorar UX/UI
-4. Añadir notificaciones
-
-### Fase 4: Calidad (Prioridad Media)
-1. Completar tests (90%+ cobertura)
-2. Implementar CI/CD
-3. Añadir monitoring
-4. Documentar API
-
-### Fase 5: Rendimiento (Prioridad Baja)
-1. Implementar caché
-2. Optimizar queries
-3. Configurar CDN
-4. Implementar queue system
+| Riesgo | Severidad | Probabilidad | Impacto | Estado |
+|---|---|---|---|---|
+| Autorizacion API no uniforme por rol/politica | Critical | Alta | Alto | Abierto |
+| Inconsistencia UI por doble sistema de componentes | Critical | Alta | Alto | Abierto |
+| Problemas responsive en dashboard merchant | Critical | Alta | Alto | Abierto |
+| Contraste y accesibilidad insuficiente en partes de UI | Major | Alta | Medio-Alto | Abierto |
+| Flujo UX con alertas y redireccion dura | Major | Media | Medio | Abierto |
+| Coexistencia de capas frontend sin frontera formal | Major | Media | Medio-Alto | Abierto |
+| Observabilidad limitada (errores y trazabilidad) | Major | Media | Medio | Abierto |
 
 ---
 
-## 12. CONCLUSIÓN
+## 9) Estado por modulo
 
-### Estado Actual
-Comercio Plus tiene una **base sólida** con arquitectura bien estructurada, pero requiere **limpieza urgente** y **mejoras funcionales**.
-
-### Puntuación General
-- **Arquitectura:** 7/10
-- **Código:** 6/10
-- **Funcionalidades:** 5/10
-- **Testing:** 4/10
-- **Documentación:** 3/10
-
-### Recomendación
-**Proceder inmediatamente** con la limpieza de archivos duplicados y legacy, luego implementar las mejoras críticas de arquitectura antes de añadir nuevas funcionalidades.
-
-### Próximos Pasos
-1. Ejecutar limpieza de archivos
-2. Actualizar este informe automáticamente
-3. Implementar mejoras de arquitectura
-4. Completar funcionalidades críticas
+| Modulo | Estado | Comentario |
+|---|---|---|
+| Auth/API session | Medio | Funciona, pero endurecer control por rol y rate limits |
+| Store management | Medio | Flujo principal operativo |
+| Products/Categories | Medio | Operativo, con deuda de permisos y UI consistency |
+| Cart/Checkout/Wompi | Medio-Bajo | Flujo existe, UX y robustez deben mejorar |
+| Frontend UX/UI | Medio-Bajo | Calidad visual buena en partes, inconsistente global |
+| Responsive | Medio-Bajo | Problemas claros en dashboard y tablas |
+| Dark mode | Medio-Bajo | Implementado parcialmente |
+| Security hardening | Medio-Bajo | Falta estandarizar controles y politicas por endpoint |
+| Testing automation | Bajo-Medio | Falta ampliar cobertura E2E + feature tests |
+| Observabilidad | Bajo | Requiere plan formal de logs/errores/metricas |
 
 ---
 
-**Fin del Informe**
+## 10) Recomendaciones priorizadas
 
-*Este informe se actualizará automáticamente cada vez que se realice un cambio significativo en el proyecto.*
+## 10.1 Quick wins (0-2 semanas)
+1. Unificar rutas frontend core en la version React actual (eliminar mezcla legacy en rutas activas).
+2. Definir `components/ui/*` como unico sistema base y migrar imports criticos.
+3. Corregir dashboard mobile (`aside` responsive + drawer).
+4. Reemplazar clases Tailwind no definidas por clases validas.
+5. Eliminar `alert()` en checkout y sustituir por feedback UI consistente.
+6. Ajustar contraste de botones primarios para cumplir AA en texto normal.
+
+## 10.2 Mediano plazo (2-6 semanas)
+1. Aplicar autorizacion por rol/policy en rutas API sensibles.
+2. Estandarizar respuestas JSON con Resources/DTO.
+3. Crear suite minima de Feature tests para auth/store/product/category.
+4. Implementar suite E2E para flujos criticos (auth, tienda, producto, checkout).
+5. Definir frontera oficial entre React y Blade (plan de migracion o convivencia controlada).
+
+## 10.3 Largo plazo (6-12 semanas)
+1. Observabilidad integral: logs estructurados, error tracking, metricas clave.
+2. Contratos API versionados y documentados (OpenAPI).
+3. Mejoras de performance backend/frontend con benchmarking continuo.
+4. CI/CD obligatorio con quality gates (lint, test, build).
+
+---
+
+## 11) Comandos operativos recomendados
+
+Backend:
+- `composer install`
+- `cp .env.example .env`
+- `php artisan key:generate`
+- `php artisan migrate --seed`
+- `php artisan test`
+- `composer audit`
+
+Frontend:
+- `npm ci`
+- `npm run lint`
+- `npm run build`
+- `npm audit`
+
+E2E:
+- `npx playwright install`
+- `npx playwright test`
+
+Carga:
+- `k6 run scripts/load/products.js`
+
+---
+
+## 12) Conclusiones
+
+El proyecto no esta estancado: tiene funcionalidad real y una base tecnica utilizable. El principal problema hoy no es falta de features, sino falta de consolidacion tecnica y de estandares transversales (UI system, permisos por ruta, responsive, accesibilidad y observabilidad).
+
+Decision recomendada al 2026-02-19:
+- Mantener rumbo sobre stack actual (Laravel + React/Vite)
+- Ejecutar plan correctivo corto con enfoque en riesgos Critical/Major
+- Evitar decisiones de limpieza basadas en supuestos antiguos (por ejemplo eliminar frontend activo)
+
+---
+
+Fin del informe.

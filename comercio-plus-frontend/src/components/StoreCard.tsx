@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import Card from '@/components/Card'
+import { Icon } from '@/components/Icon'
 import type { Store } from '@/types'
 
 interface StoreCardProps extends Store {
@@ -52,8 +53,11 @@ const StoreCard: FC<StoreCardProps> = ({
           {description}
         </p>
         <div className="flex items-center gap-4 text-caption text-dark-600">
-          <span>⭐ {rating}</span>
-          <span>•</span>
+          <span className="inline-flex items-center gap-1">
+            <Icon name="star" size={14} className="fill-amber-400 text-amber-400" />
+            {rating}
+          </span>
+          <span>&middot;</span>
           <span>{productCount} productos</span>
         </div>
       </div>

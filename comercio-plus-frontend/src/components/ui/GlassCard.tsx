@@ -9,10 +9,10 @@ export default function GlassCard({ className = '', children, ...props }: Props)
     <div
       className={`
         rounded-xl p-5 sm:p-6
-        border border-[#E5E7EB]
-        bg-white
+        border border-[#E2E8F0]
+        bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)]
         text-[14px] leading-[1.55] text-[#1F2937]
-        shadow-[0_2px_8px_rgba(0,0,0,0.05)]
+        shadow-[0_14px_28px_rgba(15,23,42,0.08)]
         ${className}
       `.trim()}
       {...props}

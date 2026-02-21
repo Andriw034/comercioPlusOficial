@@ -15,18 +15,28 @@ const defaultItems: SidebarItem[] = [
 ]
 
 const emojiToIconMap: Record<string, IconName> = {
-  '📦': 'package',
-  '👥': 'users',
-  '📊': 'chart',
-  '⚙️': 'settings',
-  '⚙': 'settings',
+  '\uD83D\uDCE6': 'package',
+  '\uD83D\uDC65': 'users',
+  '\uD83D\uDCCA': 'chart',
+  '\u2699\uFE0F': 'settings',
+  '\u2699': 'settings',
 }
 
 function resolveSidebarIcon(icon: string): IconName {
   if (emojiToIconMap[icon]) return emojiToIconMap[icon]
-  if (icon === 'package' || icon === 'users' || icon === 'chart' || icon === 'settings') {
+
+  if (
+    icon === 'package' ||
+    icon === 'users' ||
+    icon === 'chart' ||
+    icon === 'settings' ||
+    icon === 'store' ||
+    icon === 'tag' ||
+    icon === 'list'
+  ) {
     return icon
   }
+
   return 'grid'
 }
 

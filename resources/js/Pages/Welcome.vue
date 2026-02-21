@@ -1,4 +1,4 @@
- <script setup>
+<script setup>
 import { Link } from '@inertiajs/vue3'
 </script>
 
@@ -23,29 +23,29 @@ import { Link } from '@inertiajs/vue3'
 
     <!-- Hero Section -->
     <section class="bg-cp-bg">
-      <div class="container mx-auto px-6 py-20 lg:py-28">
-        <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <div class="container mx-auto px-6 py-16 lg:py-24 min-h-[78vh] flex items-center">
+        <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center w-full">
           <!-- Card central -->
-          <div class="bg-cp-surface rounded-xxl-24 shadow-cp-card p-10">
-            <h1 class="text-4xl lg:text-5xl font-semibold text-cp-text leading-tight">
+          <div class="bg-cp-surface rounded-xxl-24 shadow-cp-card p-8 lg:p-12">
+            <h1 class="text-4xl lg:text-5xl font-semibold text-cp-text leading-tight max-w-xl">
               Tu negocio empieza con ComercioPlus
             </h1>
-            <p class="mt-4 text-lg text-cp-sub">
-              Prueba gratis durante 14 días — crea tu tienda, añade productos y comienza a vender.
+            <p class="mt-6 text-lg leading-relaxed text-cp-sub max-w-lg">
+              Prueba gratis durante 14 días - crea tu tienda, añade productos y comienza a vender.
             </p>
-            <form class="mt-6 flex flex-col sm:flex-row gap-3">
+            <form class="mt-8 flex flex-col sm:flex-row gap-3 lg:gap-4">
               <input
                 aria-label="email"
                 type="email"
                 placeholder="Tu correo electrónico"
                 class="flex-1 h-14 rounded-lg border border-gray-200 px-4 focus:outline-none focus:ring-2 focus:ring-comercioplus"
               />
-              <button class="h-14 px-6 rounded-lg bg-comercioplus text-white font-medium">
+              <button class="h-14 px-6 rounded-lg bg-comercioplus text-white font-medium whitespace-nowrap">
                 Iniciar prueba
               </button>
             </form>
-            <div class="mt-4 flex items-center gap-4 text-sm text-cp-sub">
-              <span>Ejemplos: </span>
+            <div class="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-cp-sub">
+              <span class="shrink-0">Ejemplos:</span>
               <div class="flex gap-3">
                 <!-- Placeholder images -->
                 <div class="h-6 w-16 bg-gray-200 rounded"></div>
@@ -56,7 +56,7 @@ import { Link } from '@inertiajs/vue3'
           </div>
           <!-- Collage -->
           <div class="relative">
-            <img src="/images/hero-moto.jpg" alt="Collage" class="rounded-xxl-24 shadow-cp-card w-full object-cover">
+            <img src="/images/hero-moto.jpg" alt="Collage" class="rounded-xxl-24 shadow-cp-card w-full h-[320px] sm:h-[420px] lg:h-[560px] object-cover">
           </div>
         </div>
       </div>

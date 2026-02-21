@@ -6,14 +6,19 @@ use App\Http\Controllers\Api\CartProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PublicCategoryController;
 use App\Http\Controllers\Api\PublicProductController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\TaxSettingController;
+use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WompiController;
+use App\Http\Controllers\Api\InventoryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -32,6 +37,12 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']));
 */
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+Route::get('/login', fn () => response()->json([
+    'message' => 'Metodo no permitido. Usa POST /api/login para autenticar.',
+], 405));
+Route::get('/register', fn () => response()->json([
+    'message' => 'Metodo no permitido. Usa POST /api/register para crear cuenta.',
+], 405));
 
 // Public aliases used by frontend and tests.
 Route::get('/public-stores', [StoreController::class, 'publicStores']);
@@ -72,6 +83,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stores', [StoreController::class, 'store']);
     Route::put('/stores/{store}', [StoreController::class, 'update']);
     Route::delete('/stores/{store}', [StoreController::class, 'destroy']);
+    Route::prefix('stores/{store}')->group(function () {
+        Route::get('tax-settings', [TaxSettingController::class, 'show']);
+        Route::put('tax-settings', [TaxSettingController::class, 'update']);
+
+        Route::get('reports', [ReportController::class, 'index']);
+        Route::get('reports/latest', [ReportController::class, 'latest']);
+        Route::post('reports/generate', [ReportController::class, 'generate']);
+
+        Route::get('inventory/low-stock', [InventoryController::class, 'lowStock']);
+        Route::get('inventory/movements', [InventoryController::class, 'movements']);
+        Route::post('inventory/adjust', [InventoryController::class, 'adjust']);
+
+        Route::get('reorder/suggestions', [PurchaseRequestController::class, 'suggestions']);
+        Route::get('reorder/requests', [PurchaseRequestController::class, 'index']);
+        Route::post('reorder/requests', [PurchaseRequestController::class, 'store']);
+        Route::get('reorder/requests/{purchaseRequest}', [PurchaseRequestController::class, 'show']);
+        Route::put('reorder/requests/{purchaseRequest}', [PurchaseRequestController::class, 'update']);
+    });
 
     // Customer-store interactions.
     Route::post('/stores/register-customer', [CustomerController::class, 'registerCustomer']);
@@ -84,11 +113,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/merchant/orders/{id}/status', [OrderController::class, 'updateStatus']);
     Route::get('/merchant/customers', [CustomerController::class, 'myCustomers']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);
+    Route::get('/reports/summary', [ReportController::class, 'summary']);
+    Route::get('/reports/sales', [ReportController::class, 'sales']);
+    Route::get('/reports/tax', [ReportController::class, 'tax']);
+    Route::get('/reports/top-products', [ReportController::class, 'topProducts']);
+    Route::get('/reports/inventory', [ReportController::class, 'inventory']);
+    Route::get('/reports/export/sales.csv', [ReportController::class, 'exportSalesCsv']);
+    Route::get('/reports/export/tax.csv', [ReportController::class, 'exportTaxCsv']);
+    Route::get('/inventory/summary', [InventoryController::class, 'summary']);
+    Route::get('/inventory/movements', [InventoryController::class, 'merchantMovements']);
+    Route::post('/inventory/adjust', [InventoryController::class, 'merchantAdjust']);
+    Route::get('/inventory/invoices', [InventoryController::class, 'invoices']);
 
     // Product/category management.
     Route::post('/products', [ProductController::class, 'store']);
     Route::put('/products/{product}', [ProductController::class, 'update']);
     Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+
+    // Media uploads for dashboard forms.
+    Route::post('/uploads/products', [UploadController::class, 'storeProductImage']);
+    Route::post('/uploads/stores/logo', [UploadController::class, 'storeStoreLogo']);
+    Route::post('/uploads/stores/cover', [UploadController::class, 'storeStoreCover']);
+    Route::post('/uploads/profiles/photo', [UploadController::class, 'storeProfilePhoto']);
 
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);
