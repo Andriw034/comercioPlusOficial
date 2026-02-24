@@ -4,7 +4,9 @@
 .env
 .env.*
 !.env.example
+!.env.*.example
 !comercio-plus-frontend/.env.example
+!comercio-plus-frontend/.env.*.example
 .phpunit.result.cache
 /storage/*.key
 /storage/logs/
