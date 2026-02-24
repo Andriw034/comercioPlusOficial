@@ -14,6 +14,9 @@ class OrderProduct extends Model
         'order_id',
         'product_id',
         'quantity',
+        'qty_picked',
+        'qty_packed',
+        'qty_missing',
         'unit_price',
         'base_price',
         'tax_amount',
@@ -35,6 +38,10 @@ class OrderProduct extends Model
     ];
 
     protected $casts = [
+        'quantity' => 'integer',
+        'qty_picked' => 'integer',
+        'qty_packed' => 'integer',
+        'qty_missing' => 'integer',
         'unit_price' => 'decimal:2',
         'base_price' => 'decimal:2',
         'tax_amount' => 'decimal:2',
@@ -45,6 +52,7 @@ class OrderProduct extends Model
     protected $appends = [
         'line_subtotal',
         'line_total',
+        'pending_qty',
     ];
 
     public function setPriceAttribute($value): void
@@ -67,6 +75,15 @@ class OrderProduct extends Model
         return $this->attributes['total_line'] ?? null;
     }
 
+    public function getPendingQtyAttribute(): int
+    {
+        $ordered = (int) ($this->attributes['quantity'] ?? 0);
+        $picked = (int) ($this->attributes['qty_picked'] ?? 0);
+        $missing = (int) ($this->attributes['qty_missing'] ?? 0);
+
+        return max(0, $ordered - $picked - $missing);
+    }
+
     
     public function order()
     {
@@ -75,6 +92,11 @@ class OrderProduct extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function pickingEvents()
+    {
+        return $this->hasMany(OrderPickingEvent::class);
     }
 
     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente

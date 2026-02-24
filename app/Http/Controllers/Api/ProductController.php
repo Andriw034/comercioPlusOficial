@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\ProductCode;
 use App\Models\Store;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ProductController extends Controller
@@ -34,7 +37,7 @@ class ProductController extends Controller
 
             $query = Product::query()
                 ->included()
-                ->with(['category', 'store']);
+                ->with(['category', 'store', 'productCodes']);
 
             if ($request->filled('search')) {
                 $query->where('name', 'like', '%' . $request->search . '%');
@@ -93,6 +96,12 @@ class ProductController extends Controller
             'status'      => 'nullable|in:draft,active,0,1,true,false',
             'image'       => 'nullable|file|max:5120|mimetypes:image/jpeg,image/png,image/webp,image/avif',
             'image_url'   => 'nullable|url|max:2048',
+            'codes' => 'nullable|array|max:10',
+            'codes.*.type' => 'required_with:codes|in:barcode,qr,sku',
+            'codes.*.value' => 'required_with:codes|string|max:191',
+            'codes.*.is_primary' => 'sometimes|boolean',
+            'primary_code_type' => 'nullable|in:barcode,qr,sku',
+            'primary_code_value' => 'nullable|string|max:191',
         ]);
 
         // ????????? Obtener tienda del usuario autenticado
@@ -100,6 +109,12 @@ class ProductController extends Controller
 
         $data['store_id'] = $store->id;
         $data['user_id']  = $request->user()->id;
+
+        $incomingCodes = $this->normalizeIncomingCodes($request);
+        $this->assertUniqueCodesForStore(
+            storeId: (int) $store->id,
+            codes: $incomingCodes,
+        );
 
         if (array_key_exists('status', $data)) {
             $normalized = $this->normalizeStatus($data['status']);
@@ -138,11 +153,15 @@ class ProductController extends Controller
             $data['image'] = $data['image_url'];
         }
 
-        $product = Product::create($data);
+        $product = DB::transaction(function () use ($data, $incomingCodes, $store) {
+            $product = Product::create($data);
+            $this->syncProductCodes($product, (int) $store->id, $incomingCodes, true);
+            return $product;
+        });
 
         return response()->json([
             'status' => 'created',
-            'data'   => $this->withImageUrl($product->load('category', 'store')),
+            'data'   => $this->withImageUrl($product->load('category', 'store', 'productCodes')),
         ], 201);
     }
 
@@ -153,7 +172,7 @@ class ProductController extends Controller
     {
         return response()->json([
             'status' => 'ok',
-            'data'   => $this->withImageUrl($product->load('category', 'store')),
+            'data'   => $this->withImageUrl($product->load('category', 'store', 'productCodes')),
         ]);
     }
 
@@ -177,7 +196,18 @@ class ProductController extends Controller
             'status'      => 'sometimes|in:draft,active,0,1,true,false',
             'image'       => 'sometimes|nullable|file|max:5120|mimetypes:image/jpeg,image/png,image/webp,image/avif',
             'image_url'   => 'sometimes|nullable|url|max:2048',
+            'codes' => 'sometimes|array|max:10',
+            'codes.*.type' => 'required_with:codes|in:barcode,qr,sku',
+            'codes.*.value' => 'required_with:codes|string|max:191',
+            'codes.*.is_primary' => 'sometimes|boolean',
+            'primary_code_type' => 'nullable|in:barcode,qr,sku',
+            'primary_code_value' => 'nullable|string|max:191',
         ]);
+
+        $codesProvided = $request->has('codes')
+            || $request->filled('primary_code_value')
+            || $request->filled('primary_code_type');
+        $incomingCodes = $codesProvided ? $this->normalizeIncomingCodes($request) : null;
 
         if (array_key_exists('description', $data) && $data['description'] === null) {
             $data['description'] = '';
@@ -222,11 +252,24 @@ class ProductController extends Controller
             $data['image'] = $data['image_url'];
         }
 
-        $product->update($data);
+        if ($codesProvided) {
+            $this->assertUniqueCodesForStore(
+                storeId: (int) $product->store_id,
+                codes: $incomingCodes ?? [],
+                exceptProductId: (int) $product->id,
+            );
+        }
+
+        DB::transaction(function () use ($product, $data, $codesProvided, $incomingCodes) {
+            $product->update($data);
+            if ($codesProvided) {
+                $this->syncProductCodes($product, (int) $product->store_id, $incomingCodes ?? [], true);
+            }
+        });
 
         return response()->json([
             'status' => 'updated',
-            'data'   => $this->withImageUrl($product->load('category', 'store')),
+            'data'   => $this->withImageUrl($product->fresh()->load('category', 'store', 'productCodes')),
         ]);
     }
 
@@ -316,6 +359,134 @@ class ProductController extends Controller
             return 0;
         }
         return null;
+    }
+
+    private function normalizeIncomingCodes(Request $request): array
+    {
+        $rawCodes = $request->input('codes', []);
+        if (!is_array($rawCodes)) {
+            $rawCodes = [];
+        }
+
+        $primaryType = $request->input('primary_code_type');
+        $primaryValue = trim((string) $request->input('primary_code_value', ''));
+
+        if ($primaryValue !== '') {
+            $rawCodes[] = [
+                'type' => $primaryType ?: 'barcode',
+                'value' => $primaryValue,
+                'is_primary' => true,
+            ];
+        }
+
+        $normalized = [];
+        $seen = [];
+
+        foreach ($rawCodes as $rawCode) {
+            if (!is_array($rawCode)) {
+                continue;
+            }
+
+            $type = strtolower(trim((string) ($rawCode['type'] ?? '')));
+            $value = trim((string) ($rawCode['value'] ?? ''));
+            $isPrimary = (bool) ($rawCode['is_primary'] ?? false);
+
+            if (!in_array($type, ['barcode', 'qr', 'sku'], true)) {
+                continue;
+            }
+
+            if ($value === '') {
+                continue;
+            }
+
+            $key = $type . '|' . mb_strtolower($value);
+            if (isset($seen[$key])) {
+                throw ValidationException::withMessages([
+                    'codes' => ["Codigo duplicado en la solicitud: {$type} {$value}."],
+                ]);
+            }
+            $seen[$key] = true;
+
+            $normalized[] = [
+                'type' => $type,
+                'value' => $value,
+                'is_primary' => $isPrimary,
+            ];
+        }
+
+        if ($normalized !== []) {
+            $hasPrimary = collect($normalized)->contains(fn (array $code) => $code['is_primary'] === true);
+            if (! $hasPrimary) {
+                $normalized[0]['is_primary'] = true;
+            } else {
+                $primaryAssigned = false;
+                foreach ($normalized as $index => $code) {
+                    if ($code['is_primary'] && ! $primaryAssigned) {
+                        $primaryAssigned = true;
+                        continue;
+                    }
+                    if ($code['is_primary']) {
+                        $normalized[$index]['is_primary'] = false;
+                    }
+                }
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function assertUniqueCodesForStore(int $storeId, array $codes, ?int $exceptProductId = null): void
+    {
+        if ($codes === []) {
+            return;
+        }
+
+        $query = ProductCode::query()
+            ->where('store_id', $storeId)
+            ->where(function ($where) use ($codes) {
+                foreach ($codes as $code) {
+                    $where->orWhere(function ($row) use ($code) {
+                        $row
+                            ->where('type', $code['type'])
+                            ->where('value', $code['value']);
+                    });
+                }
+            });
+
+        if ($exceptProductId !== null) {
+            $query->where('product_id', '!=', $exceptProductId);
+        }
+
+        $conflict = $query->first();
+        if ($conflict) {
+            throw ValidationException::withMessages([
+                'codes' => ["El codigo {$conflict->value} ({$conflict->type}) ya existe en otro producto de tu tienda."],
+            ]);
+        }
+    }
+
+    private function syncProductCodes(Product $product, int $storeId, array $codes, bool $replace): void
+    {
+        if ($replace) {
+            ProductCode::query()
+                ->where('product_id', (int) $product->id)
+                ->where('store_id', $storeId)
+                ->delete();
+        }
+
+        if ($codes === []) {
+            return;
+        }
+
+        foreach ($codes as $code) {
+            ProductCode::query()->create([
+                'product_id' => (int) $product->id,
+                'store_id' => $storeId,
+                'type' => $code['type'],
+                'value' => $code['value'],
+                'is_primary' => (bool) ($code['is_primary'] ?? false),
+            ]);
+        }
     }
 }
 

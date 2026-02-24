@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { useMemo } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   AlertCircle,
   AlertTriangle,
@@ -19,6 +19,7 @@ import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/button'
+import useDebouncedValue from '@/hooks/useDebouncedValue'
 
 // -- Types ---------------------------------------------------------------------
 
@@ -104,6 +105,14 @@ const REASONS: Record<AdjustType, string[]> = {
   out: ['Venta', 'Dano o merma', 'Devolucion a proveedor', 'Muestra o regalo', 'Otro motivo'],
   adjustment: ['Conteo fisico', 'Correccion de sistema', 'Ajuste por auditoria', 'Otro motivo'],
 }
+
+const INVENTORY_CACHE_TTL_MS = 60_000
+
+let inventoryCache: {
+  updatedAt: number
+  items: StockItem[]
+  stats: InventoryStats | null
+} | null = null
 
 // -- Helpers -------------------------------------------------------------------
 
@@ -263,6 +272,7 @@ function AdjustDrawer({
       onSaved()
       onClose()
     } catch (err: any) {
+      console.error('[inventory] Error al registrar ajuste:', err)
       setError(err?.response?.data?.message || 'Error al registrar el movimiento.')
     } finally {
       setSaving(false)
@@ -425,7 +435,8 @@ function KardexDrawer({
         const payload = data as ApiMovementResponse | ApiMovementItem[]
         const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
         setMovements(rows.map(normalizeMovement))
-      } catch {
+      } catch (err) {
+        console.error('[inventory] Error al cargar kardex:', err)
         setMovements([])
       } finally {
         setLoading(false)
@@ -521,13 +532,22 @@ export default function DashboardInventoryPage() {
   const [stats, setStats] = useState<InventoryStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [statusFilter, setStatusFilter] = useState<StockStatus>('all')
   const [adjustItem, setAdjustItem] = useState<StockItem | null>(null)
   const [kardexItem, setKardexItem] = useState<StockItem | null>(null)
   const [sortBy, setSortBy] = useState<SortBy>('name')
+  const debouncedSearch = useDebouncedValue(searchInput, 350)
 
-  const load = async () => {
+  const load = async (force = false) => {
+    if (!force && inventoryCache && Date.now() - inventoryCache.updatedAt < INVENTORY_CACHE_TTL_MS) {
+      setItems(inventoryCache.items)
+      setStats(inventoryCache.stats)
+      setLoadError('')
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     setLoadError('')
 
@@ -544,19 +564,26 @@ export default function DashboardInventoryPage() {
 
       setItems(mapped)
 
+      let nextStats: InventoryStats | null = null
       if (!Array.isArray(payload) && payload?.stats) {
-        setStats({
+        nextStats = {
           total_products: toNumber(payload.stats.total_products),
           low_stock_products: toNumber(payload.stats.low_stock_products),
           out_of_stock_products: toNumber(payload.stats.out_of_stock_products),
           inventory_value: toNumber(payload.stats.inventory_value),
-        })
-      } else {
-        setStats(null)
+        }
+      }
+
+      setStats(nextStats)
+      inventoryCache = {
+        updatedAt: Date.now(),
+        items: mapped,
+        stats: nextStats,
       }
     } catch (err: any) {
       const status = err?.response?.status
       const message = err?.response?.data?.message
+      console.error('[inventory] Error al cargar inventario:', err)
 
       if (status === 404) {
         setLoadError('No existe la ruta GET /api/inventory/summary en el backend.')
@@ -594,7 +621,7 @@ export default function DashboardInventoryPage() {
   }, [items, lowStock.length, outOfStock.length, stats])
 
   const displayed = useMemo(() => {
-    const query = search.trim().toLowerCase()
+    const query = debouncedSearch.trim().toLowerCase()
 
     const filtered = items.filter((item) => {
       const matchesSearch =
@@ -617,7 +644,7 @@ export default function DashboardInventoryPage() {
       if (sortBy === 'deficit') return b.deficit - a.deficit
       return a.product_name.localeCompare(b.product_name)
     })
-  }, [items, search, sortBy, statusFilter])
+  }, [debouncedSearch, items, sortBy, statusFilter])
 
   const statusFilters: Array<{ key: StockStatus; label: string; count: number }> = [
     { key: 'all', label: 'Todos', count: items.length },
@@ -634,8 +661,7 @@ export default function DashboardInventoryPage() {
 
         <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[12px] uppercase tracking-[0.2em] text-slate-300">Dashboard</p>
-            <h1 className="mt-1 font-display text-[30px] font-black tracking-tight">Inventario</h1>
+            <h1 className="font-display text-[30px] font-black tracking-tight text-orange-300">Inventario</h1>
             <p className="mt-1 text-[13px] text-slate-300">
               Control de stock, ajustes manuales y trazabilidad por producto.
             </p>
@@ -645,8 +671,14 @@ export default function DashboardInventoryPage() {
             <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[12px] font-semibold backdrop-blur">
               <Boxes size={14} /> Valor actual: {fmtCurrency(totals.inventoryValue)}
             </span>
+            <Link
+              to="/dashboard/inventory/receive"
+              className="inline-flex items-center gap-2 rounded-xl border border-orange-300/60 bg-orange-500/25 px-3 py-2 text-[12px] font-semibold text-orange-100 transition-colors hover:bg-orange-500/35"
+            >
+              <ArrowUpCircle size={14} /> Ingreso por escaner (IN)
+            </Link>
             <button
-              onClick={load}
+              onClick={() => load(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-white/20"
             >
               <RefreshCw size={14} /> Recargar
@@ -711,7 +743,7 @@ export default function DashboardInventoryPage() {
         <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
           <AlertCircle size={16} />
           <span>{loadError}</span>
-          <button onClick={load} className="ml-auto text-[12px] font-semibold underline">Reintentar</button>
+          <button onClick={() => load(true)} className="ml-auto text-[12px] font-semibold underline">Reintentar</button>
         </div>
       )}
 
@@ -721,8 +753,8 @@ export default function DashboardInventoryPage() {
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar por nombre o referencia..."
               className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
             />
@@ -764,10 +796,22 @@ export default function DashboardInventoryPage() {
             <Loader2 className="mb-2 h-7 w-7 animate-spin text-orange-500" />
             <p className="text-[13px]">Cargando inventario...</p>
           </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center text-slate-500 dark:text-white/40">
+            <PackageSearch className="mb-2 h-8 w-8" />
+            <p className="text-[14px] font-semibold">Aun no hay productos en inventario</p>
+            <p className="mt-1 text-[12px] opacity-80">Crea tu primer producto para comenzar a gestionar stock.</p>
+            <Link
+              to="/dashboard/products"
+              className="mt-4 inline-flex rounded-xl bg-orange-500 px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-orange-600"
+            >
+              Ir a Productos
+            </Link>
+          </div>
         ) : displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-white/30">
             <PackageSearch className="mb-2 h-8 w-8" />
-            <p className="text-[13px]">No hay productos para mostrar</p>
+            <p className="text-[13px]">No hay resultados con los filtros actuales</p>
             <p className="mt-1 text-[12px] opacity-70">Prueba con otro termino o cambia el filtro.</p>
           </div>
         ) : (
@@ -867,7 +911,7 @@ export default function DashboardInventoryPage() {
       </GlassCard>
 
       {adjustItem && (
-        <AdjustDrawer item={adjustItem} onClose={() => setAdjustItem(null)} onSaved={load} />
+        <AdjustDrawer item={adjustItem} onClose={() => setAdjustItem(null)} onSaved={() => load(true)} />
       )}
       {kardexItem && (
         <KardexDrawer item={kardexItem} onClose={() => setKardexItem(null)} />
@@ -875,5 +919,7 @@ export default function DashboardInventoryPage() {
     </div>
   )
 }
+
+
 
 

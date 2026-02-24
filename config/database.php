@@ -53,7 +53,11 @@ $pgsqlEnvDetected = (bool) (
 );
 
 $defaultConnectionFromEnv = $normalizeConnection(env('DB_CONNECTION'));
-if ($databaseUrlConnection !== null) {
+$appEnv = strtolower(trim((string) env('APP_ENV', '')));
+if ($appEnv === 'testing' && $defaultConnectionFromEnv !== null) {
+    // In tests always honor phpunit/env DB connection to avoid hitting shared DBs.
+    $defaultConnection = $defaultConnectionFromEnv;
+} elseif ($databaseUrlConnection !== null) {
     $defaultConnection = $databaseUrlConnection;
 } elseif ($mysqlEnvDetected && !$pgsqlEnvDetected) {
     $defaultConnection = 'mysql';

@@ -80,6 +80,7 @@ class TaxSettingController extends Controller
 
         $exampleInput = 100000.0;
         $preview = $settings->calculateTax($exampleInput);
+        $taxAmount = round((float) $preview['tax'], 2);
 
         return response()->json([
             'message' => 'Configuracion de IVA actualizada correctamente.',
@@ -88,14 +89,16 @@ class TaxSettingController extends Controller
                 'preview' => [
                     'example_input' => round($exampleInput, 2),
                     'base_sin_iva' => round((float) $preview['base'], 2),
-                    'iva' => round((float) $preview['tax'], 2),
+                    'iva' => $taxAmount,
+                    'iva_calculado' => $taxAmount,
                     'total' => round((float) $preview['total'], 2),
                 ],
             ],
             'preview' => [
                 'example_input' => round($exampleInput, 2),
                 'base_sin_iva' => round((float) $preview['base'], 2),
-                'iva' => round((float) $preview['tax'], 2),
+                'iva' => $taxAmount,
+                'iva_calculado' => $taxAmount,
                 'total' => round((float) $preview['total'], 2),
             ],
         ]);

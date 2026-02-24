@@ -13,6 +13,12 @@
     scroll-behavior: smooth;
   }
 
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
   body {
     @apply font-sans text-slate-900;
     background-color: #f8fafc;
@@ -22,11 +28,31 @@
       linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   }
 
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html.dark body {
+    @apply text-slate-100;
+    background-color: #020617;
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(249, 115, 22, 0.2) 0, transparent 36%),
+      radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.16) 0, transparent 42%),
+      linear-gradient(180deg, #020617 0%, #0b1220 100%);
+  }
+
   h1,
   h2,
   h3,
   h4 {
     @apply font-display text-slate-950;
+  }
+
+  html.dark h1,
+  html.dark h2,
+  html.dark h3,
+  html.dark h4 {
+    @apply text-slate-50;
   }
 
   ::-webkit-scrollbar {
@@ -43,6 +69,18 @@
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-brand-500;
+  }
+
+  html.dark ::-webkit-scrollbar-track {
+    @apply bg-slate-900;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-600;
   }
 }
 
@@ -69,6 +107,17 @@
     outline: none;
   }
 
+  html.dark .input-dark,
+  html.dark .select-dark,
+  html.dark .textarea-dark {
+    @apply border-white/10 bg-slate-900 text-slate-100;
+  }
+
+  html.dark .input-dark::placeholder,
+  html.dark .textarea-dark::placeholder {
+    @apply text-slate-400;
+  }
+
   .native-select {
     appearance: none;
     background-repeat: no-repeat;
@@ -80,6 +129,10 @@
 
   .dashboard-section {
     @apply rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-premium backdrop-blur-sm;
+  }
+
+  html.dark .dashboard-section {
+    @apply border-white/10 bg-slate-900/50;
   }
 
   .dashboard-section-title {
@@ -97,6 +150,11 @@
   .section-subtitle {
     @apply text-body text-slate-600;
   }
+
+  html.dark .dashboard-section-subtitle,
+  html.dark .section-subtitle {
+    @apply text-slate-300;
+  }
 }
 
 @layer utilities {
@@ -110,6 +168,10 @@
 
   .glass-dark {
     @apply border border-white/10 bg-slate-900/60 backdrop-blur-xl;
+  }
+
+  html.dark .glass {
+    @apply border-white/10 bg-slate-900/60;
   }
 
   .line-clamp-2 {
@@ -133,5 +195,73 @@
 
   .animate-delay-400 {
     animation-delay: 0.4s;
+  }
+
+  .dashboard-reveal {
+    animation: dashboard-fade-up 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes dashboard-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-reveal {
+    animation: none !important;
+  }
+
+  .animate-scanner-line {
+    animation: none !important;
+  }
+}
+
+@keyframes scanner-line {
+  0% {
+    top: 18%;
+    opacity: 1;
+  }
+  48% {
+    top: 82%;
+    opacity: 1;
+  }
+  50% {
+    top: 82%;
+    opacity: 0;
+  }
+  52% {
+    top: 18%;
+    opacity: 0;
+  }
+  54% {
+    top: 18%;
+    opacity: 1;
+  }
+  100% {
+    top: 18%;
+    opacity: 1;
+  }
+}
+
+.animate-scanner-line {
+  animation: scanner-line 2s ease-in-out infinite;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

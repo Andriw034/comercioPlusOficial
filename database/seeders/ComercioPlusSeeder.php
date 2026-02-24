@@ -429,7 +429,7 @@ class ComercioPlusSeeder extends Seeder
         }
 
         // -------------------------
-        // ORDERS, ORDER_PRODUCTS, ORDER_ITEMS
+        // ORDERS, ORDER_PRODUCTS
         // -------------------------
         if (Schema::hasTable('orders') && Schema::hasTable('users')) {
             $clientEmail = 'ana@cliente.com';
@@ -475,16 +475,6 @@ class ComercioPlusSeeder extends Seeder
                         ]);
                         $opData = array_merge($opData, ['created_at' => now(), 'updated_at' => now()]);
                         DB::table('order_products')->updateOrInsert(['order_id' => $order_id, 'product_id' => $product->id], $opData);
-                    }
-                    if (Schema::hasTable('order_items')) {
-                        $oiData = $this->setIfColumnExists('order_items', [
-                            'order_id' => $order_id,
-                            'product_id' => $product->id,
-                            'quantity' => 2,
-                            'price' => $product->price ?? 0
-                        ]);
-                        $oiData = array_merge($oiData, ['created_at' => now(), 'updated_at' => now()]);
-                        DB::table('order_items')->updateOrInsert(['order_id' => $order_id, 'product_id' => $product->id], $oiData);
                     }
                 }
             }

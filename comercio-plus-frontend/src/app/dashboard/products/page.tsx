@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import API from '@/lib/api'
 import Button, { buttonVariants } from '@/components/ui/button'
@@ -12,6 +12,11 @@ import type { Category, Product, Store } from '@/types/api'
 import { resolveMediaUrl, formatPrice } from '@/lib/format'
 import { extractList } from '@/lib/api-response'
 import { uploadProductImage } from '@/services/uploads'
+import { lookupMerchantProductCode } from '@/services/productCodeLookup'
+import ProductMethodSelector, { type InputMethod } from '@/components/products/create/ProductMethodSelector'
+import ProductScannerKeyboardPanel, { type ScanState } from '@/components/products/create/ProductScannerKeyboardPanel'
+
+const ProductScannerCameraModal = lazy(() => import('@/components/products/ProductScannerCameraModal'))
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
@@ -35,13 +40,17 @@ const MOTORCYCLE_CATEGORY_PRESETS = [
 ]
 
 type ProductTab = 'all' | 'active' | 'out_of_stock'
-
 type ToastVariant = 'success' | 'error'
 
 interface ToastState {
   id: number
   message: string
   variant: ToastVariant
+}
+
+interface ScannerFeedbackState {
+  type: 'ok' | 'error' | 'info'
+  message: string
 }
 
 const normalizeCategoryLabel = (value: string) =>
@@ -55,6 +64,8 @@ const INITIAL_FORM = {
   id: null as number | null,
   name: '',
   slug: '',
+  code_type: 'barcode' as 'barcode' | 'qr' | 'sku',
+  code_value: '',
   price: '',
   stock: '',
   category_id: '',
@@ -80,6 +91,44 @@ const extractCategoryList = (payload: unknown): Category[] => {
   return extractList<Category>(payload)
 }
 
+const getProductCodes = (product: Product) =>
+  product.codes || product.product_codes || product.productCodes || []
+
+const getPrimaryProductCode = (product: Product) => {
+  const codes = getProductCodes(product)
+  if (!codes.length) return null
+  return codes.find((code) => code.is_primary) || codes[0]
+}
+
+const parseScanCode = (
+  rawCode: string,
+  fallbackType: 'barcode' | 'qr' | 'sku',
+): { type: 'barcode' | 'qr' | 'sku'; value: string } | null => {
+  const normalized = rawCode.trim()
+  if (!normalized) return null
+
+  const lower = normalized.toLowerCase()
+  if (lower.startsWith('sku:')) {
+    const value = normalized.slice(4).trim()
+    return value ? { type: 'sku', value } : null
+  }
+
+  if (lower.startsWith('barcode:')) {
+    const value = normalized.slice(8).trim()
+    return value ? { type: 'barcode', value } : null
+  }
+
+  if (lower.startsWith('qr:')) {
+    const value = normalized.slice(3).trim()
+    return value ? { type: 'qr', value } : null
+  }
+
+  return {
+    type: fallbackType,
+    value: normalized,
+  }
+}
+
 export default function ManageProducts() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -87,6 +136,7 @@ export default function ManageProducts() {
 
   const formSectionRef = useRef<HTMLDivElement | null>(null)
   const listEndRef = useRef<HTMLDivElement | null>(null)
+  const scannerInputRef = useRef<HTMLInputElement | null>(null)
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -107,12 +157,18 @@ export default function ManageProducts() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [storeId, setStoreId] = useState<number | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [entryMethod, setEntryMethod] = useState<InputMethod>('manual')
 
   const [filters, setFilters] = useState({ search: '' })
   const [activeTab, setActiveTab] = useState<ProductTab>('all')
   const [form, setForm] = useState(INITIAL_FORM)
   const [toast, setToast] = useState<ToastState | null>(null)
   const [shouldScrollToListEnd, setShouldScrollToListEnd] = useState(false)
+  const [scanCodeInput, setScanCodeInput] = useState('')
+  const [scanLookupBusy, setScanLookupBusy] = useState(false)
+  const [scanConsecutiveFailures, setScanConsecutiveFailures] = useState(0)
+  const [scanFeedback, setScanFeedback] = useState<ScannerFeedbackState | null>(null)
+  const [cameraModalOpen, setCameraModalOpen] = useState(false)
 
   const categorySeedRef = useRef(false)
 
@@ -135,6 +191,12 @@ export default function ManageProducts() {
     setPreview('')
     setImageFile(null)
     setFormError('')
+    setEntryMethod('manual')
+    setScanCodeInput('')
+    setScanLookupBusy(false)
+    setScanConsecutiveFailures(0)
+    setScanFeedback(null)
+    setCameraModalOpen(false)
   }
 
   const closeForm = () => {
@@ -151,16 +213,20 @@ export default function ManageProducts() {
 
   const openCreate = () => {
     clearForm()
+    setEntryMethod('keyboard')
     setShowForm(true)
     navigate('/dashboard/products/create')
     scrollToForm()
   }
 
   const applyProductToForm = (item: Product) => {
+    const primaryCode = getPrimaryProductCode(item)
     setForm({
       id: item.id,
       name: item.name || '',
       slug: item.slug || '',
+      code_type: (primaryCode?.type as 'barcode' | 'qr' | 'sku') || 'barcode',
+      code_value: primaryCode?.value || '',
       price: item.price?.toString() || '',
       stock: item.stock?.toString() || '',
       category_id: item.category_id?.toString() || '',
@@ -170,6 +236,9 @@ export default function ManageProducts() {
     setPreview(resolveMediaUrl(item.image_url || item.image) || '')
     setImageFile(null)
     setFormError('')
+    setScanCodeInput('')
+    setScanConsecutiveFailures(0)
+    setScanFeedback(null)
   }
 
   const openEdit = (item: Product, withNavigate = true) => {
@@ -310,6 +379,113 @@ export default function ManageProducts() {
     setPreview(file ? URL.createObjectURL(file) : '')
   }
 
+  const registerScannerFailure = (message: string) => {
+    setScanConsecutiveFailures((previous) => {
+      const next = previous + 1
+
+      if (next >= 3) {
+        setEntryMethod('manual')
+        setScanFeedback({
+          type: 'error',
+          message: 'No pude validar el codigo en 3 intentos. Continua en modo manual.',
+        })
+      } else {
+        setScanFeedback({
+          type: 'error',
+          message,
+        })
+      }
+
+      return next
+    })
+  }
+
+  const handleScannerLookup = async (rawCode?: string) => {
+    if (scanLookupBusy) return
+
+    const parsed = parseScanCode(rawCode ?? scanCodeInput, form.code_type)
+    if (!parsed) {
+      registerScannerFailure('Escanea un codigo valido o escribelo manualmente.')
+      return
+    }
+
+    setScanLookupBusy(true)
+    setScanFeedback(null)
+    setForm((previous) => ({
+      ...previous,
+      code_type: parsed.type,
+      code_value: parsed.value,
+    }))
+
+    try {
+      const response = await lookupMerchantProductCode({
+        code: parsed.value,
+        code_type: parsed.type,
+      })
+
+      const foundProduct = response?.data?.product
+      if (response?.data?.found && foundProduct) {
+        applyProductToForm(foundProduct)
+        setForm((previous) => ({
+          ...previous,
+          code_type: parsed.type,
+          code_value: parsed.value,
+        }))
+        setEntryMethod('manual')
+        setScanConsecutiveFailures(0)
+        setScanFeedback({
+          type: 'ok',
+          message: `Codigo encontrado. Cargue "${foundProduct.name}" para editarlo.`,
+        })
+        return
+      }
+
+      setScanConsecutiveFailures(0)
+      setScanFeedback({
+        type: 'info',
+        message: 'Codigo disponible. Completa el formulario para crear el producto.',
+      })
+      setEntryMethod('manual')
+    } catch (err: any) {
+      const apiError = err?.response?.data
+      const isNotFound = apiError?.error_code === 'PRODUCT_NOT_FOUND'
+
+      if (isNotFound) {
+        registerScannerFailure('No encuentro ese codigo. Puedes continuar creando el producto manualmente.')
+      } else {
+        registerScannerFailure(apiError?.message || 'No pude consultar el codigo en este momento.')
+      }
+    } finally {
+      setScanLookupBusy(false)
+      setScanCodeInput('')
+      window.setTimeout(() => {
+        scannerInputRef.current?.focus()
+        scannerInputRef.current?.select()
+      }, 30)
+    }
+  }
+
+  const openCameraScanner = () => {
+    setEntryMethod('camera')
+    setCameraModalOpen(true)
+  }
+
+  const handleEntryMethodChange = (method: InputMethod) => {
+    if (method === 'camera') {
+      openCameraScanner()
+      return
+    }
+
+    setEntryMethod(method)
+    setCameraModalOpen(false)
+  }
+
+  const handleCameraDetected = (rawCode: string) => {
+    setEntryMethod('manual')
+    setScanCodeInput(rawCode)
+    void handleScannerLookup(rawCode)
+  }
+
   const save = async (event: FormEvent) => {
     event.preventDefault()
 
@@ -331,11 +507,24 @@ export default function ManageProducts() {
         imageUrl = upload.url
       }
 
-      const payload: Record<string, string> = {}
+      const payload: Record<string, unknown> = {}
       Object.entries(form).forEach(([key, value]) => {
         if (key === 'id') return
+        if (key === 'code_type' || key === 'code_value') return
         if (value !== null && value !== '') payload[key] = String(value)
       })
+
+      const codeValue = form.code_value.trim()
+      if (codeValue !== '') {
+        payload.codes = [
+          {
+            type: form.code_type,
+            value: codeValue,
+            is_primary: true,
+          },
+        ]
+      }
+
       if (imageUrl) payload.image_url = imageUrl
 
       const response = form.id
@@ -352,12 +541,15 @@ export default function ManageProducts() {
       if (isCreating) {
         clearForm()
         setShowForm(true)
+        setEntryMethod('keyboard')
         setShouldScrollToListEnd(true)
         showToast('Repuesto creado correctamente.', 'success')
       } else {
         if (responseProduct?.id) {
           applyProductToForm(responseProduct)
         }
+        setScanConsecutiveFailures(0)
+        setScanFeedback(null)
         showToast('Repuesto actualizado correctamente.', 'success')
       }
     } catch (err: any) {
@@ -479,6 +671,7 @@ export default function ManageProducts() {
   useEffect(() => {
     if (location.pathname === '/dashboard/products/create') {
       clearForm()
+      setEntryMethod('keyboard')
       setShowForm(true)
       scrollToForm()
       return
@@ -489,6 +682,7 @@ export default function ManageProducts() {
       if (productToEdit) {
         openEdit(productToEdit, false)
       }
+      setEntryMethod('manual')
       return
     }
 
@@ -497,13 +691,26 @@ export default function ManageProducts() {
     }
   }, [location.pathname, params.id, products])
 
+  useEffect(() => {
+    if (!showForm || entryMethod !== 'keyboard') return
+
+    const timeoutId = window.setTimeout(() => {
+      scannerInputRef.current?.focus()
+      scannerInputRef.current?.select()
+    }, 70)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [entryMethod, showForm])
+
   const orderedProducts = useMemo(
     () => [...products].sort((a, b) => toNumber(a.id) - toNumber(b.id)),
     [products],
   )
 
   const filteredProducts = useMemo(() => {
-    const searchTerm = filters.search.trim().toLowerCase()
+      const searchTerm = filters.search.trim().toLowerCase()
 
     return orderedProducts.filter((item) => {
       const stock = toNumber(item.stock)
@@ -516,7 +723,8 @@ export default function ManageProducts() {
 
       const categoryName = item.category?.name || ''
       const slug = item.slug || ''
-      const searchable = `${item.name || ''} ${categoryName} ${slug} ${item.id || ''}`.toLowerCase()
+      const codes = getProductCodes(item).map((code) => code.value).join(' ')
+      const searchable = `${item.name || ''} ${categoryName} ${slug} ${item.id || ''} ${codes}`.toLowerCase()
       return searchable.includes(searchTerm)
     })
   }, [orderedProducts, filters.search, activeTab])
@@ -525,6 +733,15 @@ export default function ManageProducts() {
   const activeProducts = products.filter((item) => normalizeStatus(item.status) === 'active').length
   const outOfStockProducts = products.filter((item) => toNumber(item.stock) === 0).length
   const catalogValue = products.reduce((sum, item) => sum + toNumber(item.price) * toNumber(item.stock), 0)
+  const keyboardScanState: ScanState =
+    scanFeedback?.type === 'error'
+      ? 'error'
+      : scanFeedback?.type === 'ok'
+        ? 'success'
+        : scanCodeInput.trim().length > 0
+          ? 'ready'
+          : 'idle'
+  const keyboardStatusMessage = scanFeedback?.message || (scanConsecutiveFailures > 0 ? `Intentos fallidos: ${scanConsecutiveFailures}/3` : undefined)
 
   return (
     <div className="flex min-h-[calc(100vh-2.5rem)] flex-col gap-4 text-[#0F172A]">
@@ -583,328 +800,398 @@ export default function ManageProducts() {
         </GlassCard>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,480px)]">
-        <GlassCard className="flex min-h-0 flex-col border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
-          <div className="border-b border-[#E2E8F0] px-4 py-4 sm:px-5">
-            <div className="flex flex-wrap items-end justify-between gap-3">
+      <div ref={formSectionRef}>
+        <GlassCard className="border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-4 shadow-[0_20px_40px_rgba(15,23,42,0.08)] sm:p-5">
+          {!showForm ? (
+            <div className="flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-[linear-gradient(120deg,#FFF7ED_0%,#FFEDD5_55%,#FFE4D6_100%)] px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-[32px] font-black leading-none tracking-[-0.025em]">Catalogo de repuestos</h2>
-                <p className="mt-1 text-[13px] text-[#64748B]">Filtra y revisa tu inventario en segundos.</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A3412]">Nuevo producto</p>
+                <h3 className="mt-1 text-[30px] font-black leading-none tracking-[-0.02em] text-[#0F172A]">Nuevo repuesto / accesorio</h3>
+                <p className="mt-2 text-[14px] text-[#475569]">Completa los datos y publica en el catalogo.</p>
               </div>
 
-              <Input
-                value={filters.search}
-                onChange={(event) => setFilters({ search: event.target.value })}
-                className="h-10 w-full text-[13px] sm:w-[260px]"
-                placeholder="Buscar por nombre, categoria o ID"
-              />
+              <Button onClick={openCreate} className="h-11 rounded-xl px-6 text-[14px] font-semibold sm:self-end">
+                <Icon name="plus" size={16} />
+                Crear producto
+              </Button>
             </div>
-
-            <div className="mt-3 inline-flex rounded-lg border border-[#E2E8F0] bg-white p-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition ${
-                  activeTab === 'all' ? 'bg-[#0F172A] text-white' : 'text-[#475569] hover:bg-[#F1F5F9]'
-                }`}
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('active')}
-                className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition ${
-                  activeTab === 'active' ? 'bg-[#0F172A] text-white' : 'text-[#475569] hover:bg-[#F1F5F9]'
-                }`}
-              >
-                Activos
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('out_of_stock')}
-                className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition ${
-                  activeTab === 'out_of_stock' ? 'bg-[#0F172A] text-white' : 'text-[#475569] hover:bg-[#F1F5F9]'
-                }`}
-              >
-                Sin stock
-              </button>
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
-            {loading && <p className="text-[13px] text-[#64748B]">Cargando productos...</p>}
-            {error && <p className="mb-3 text-[13px] text-red-600">{error}</p>}
-
-            {!loading && filteredProducts.length === 0 && (
-              <div className="rounded-xl border border-dashed border-[#CBD5E1] px-4 py-8 text-center">
-                <p className="text-[13px] text-[#64748B]">No hay productos para este filtro.</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {filteredProducts.map((item) => {
-                const imageUrl = resolveMediaUrl(item.image_url || item.image)
-                const price = toNumber(item.price)
-                const stock = toNumber(item.stock)
-                const isActive = normalizeStatus(item.status) === 'active'
-
-                return (
-                  <div
-                    key={item.id}
-                    className="group flex flex-wrap items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] px-3 py-2.5 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#CBD5E1]"
-                  >
-                    <div className="h-12 w-12 overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt={item.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
-                          <Icon name="package" size={18} />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-semibold text-[#0F172A]">{item.name}</p>
-                      <p className="truncate text-[12px] text-[#64748B]">
-                        {item.category?.name || 'Sin categoria'}
-                        {' - '}
-                        ID: {item.id}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-                      <Badge
-                        variant={stock === 0 ? 'danger' : 'neutral'}
-                        className={stock === 0 ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-100 text-slate-700'}
-                      >
-                        Stock: {stock}
-                      </Badge>
-
-                      <Badge
-                        variant={isActive ? 'success' : 'warning'}
-                        className={isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}
-                      >
-                        {isActive ? 'Activo' : 'Borrador'}
-                      </Badge>
-
-                      <p className="min-w-[110px] text-right text-[20px] font-black tracking-[-0.02em] text-[#0F172A]">
-                        ${formatPrice(price)}
-                      </p>
-
-                      <div className="flex items-center gap-2 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(item)}
-                          className={buttonVariants(
-                            'secondary',
-                            'h-8 rounded-full bg-[#0F5FA8] px-4 text-[12px] font-semibold shadow-none hover:bg-[#0B4D8A]',
-                          )}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => remove(item)}
-                          className={buttonVariants(
-                            'danger',
-                            'h-8 rounded-full bg-[#EF476F] px-4 text-[12px] font-semibold shadow-none hover:bg-[#d83f65]',
-                          )}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-
-              <div ref={listEndRef} />
-            </div>
-          </div>
-        </GlassCard>
-
-        <div ref={formSectionRef} className="min-h-0 xl:sticky xl:top-6 xl:self-start">
-          <GlassCard className="flex h-full min-h-[520px] flex-col border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-4 shadow-[0_20px_40px_rgba(15,23,42,0.08)] sm:p-4">
-            {!showForm ? (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-8 text-center">
-                <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 text-orange-600">
-                  <Icon name="package" size={18} />
-                </div>
-                <h3 className="text-[20px] font-bold text-[#0F172A]">Nuevo repuesto / accesorio</h3>
-                <p className="mt-1 text-[13px] text-[#64748B]">Completa los datos y publica en el catalogo.</p>
-                <Button onClick={openCreate} className="mt-4 h-10 rounded-xl px-5 text-[13px]">
-                  Crear producto
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-3 flex items-start justify-between gap-3 border-b border-[#E2E8F0] pb-3">
-                  <div>
-                    <h3 className="text-[22px] font-bold leading-tight text-[#0F172A]">
-                      {form.id ? 'Editar producto' : 'Nuevo producto'}
-                    </h3>
-                    <p className="text-[12px] text-[#64748B]">Completa los datos y publica en tu catalogo.</p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={closeForm}
-                    className="rounded-md border border-[#E2E8F0] p-1 text-[#64748B] transition hover:bg-[#F1F5F9]"
-                    aria-label="Cerrar formulario"
-                  >
-                    <Icon name="x" size={16} />
-                  </button>
+          ) : (
+            <>
+              <div className="mb-4 flex items-start justify-between gap-3 border-b border-[#E2E8F0] pb-3">
+                <div>
+                  <h3 className="text-[24px] font-bold leading-tight text-[#0F172A]">{form.id ? 'Editar producto' : 'Nuevo producto'}</h3>
+                  <p className="text-[13px] text-[#64748B]">Completa los datos y publica en tu catalogo.</p>
                 </div>
 
-                <form className="flex min-h-0 flex-1 flex-col gap-2.5 pr-1" onSubmit={save}>
-                  <Input
-                    label="Nombre"
-                    value={form.name}
-                    required
-                    onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-                  />
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="rounded-md border border-[#E2E8F0] p-1 text-[#64748B] transition hover:bg-[#F1F5F9]"
+                  aria-label="Cerrar formulario"
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              </div>
 
-                  <Input
-                    label="Slug (opcional)"
-                    value={form.slug}
-                    onChange={(event) => setForm((previous) => ({ ...previous, slug: event.target.value }))}
-                  />
+              <div className="mb-4">
+                <ProductMethodSelector active={entryMethod} onChange={handleEntryMethodChange} disabled={saving} />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+              {entryMethod === 'keyboard' && (
+                <ProductScannerKeyboardPanel
+                  inputRef={scannerInputRef}
+                  code={scanCodeInput}
+                  scanState={keyboardScanState}
+                  statusMessage={keyboardStatusMessage}
+                  disabled={saving}
+                  busy={scanLookupBusy}
+                  onCodeChange={setScanCodeInput}
+                  onSubmit={() => void handleScannerLookup()}
+                />
+              )}
+
+              <form className="space-y-3" onSubmit={save}>
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="space-y-3">
                     <Input
-                      label="Precio"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.price}
+                      label="Nombre"
+                      value={form.name}
                       required
-                      onChange={(event) => setForm((previous) => ({ ...previous, price: event.target.value }))}
+                      onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
                     />
 
                     <Input
-                      label="Stock"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={form.stock}
-                      required
-                      onChange={(event) => setForm((previous) => ({ ...previous, stock: event.target.value }))}
+                      label="Slug (opcional)"
+                      value={form.slug}
+                      onChange={(event) => setForm((previous) => ({ ...previous, slug: event.target.value }))}
                     />
-                  </div>
 
-                  <Select
-                    label="Categoria"
-                    value={form.category_id}
-                    required
-                    onChange={(event) => setForm((previous) => ({ ...previous, category_id: event.target.value }))}
-                  >
-                    <option value="">
-                      {categoriesLoading
-                        ? 'Cargando categorias...'
-                        : categories.length
-                          ? 'Selecciona una categoria'
-                          : 'Sin categorias disponibles'}
-                    </option>
-                    {!categoriesLoading &&
-                      categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                  </Select>
-
-                  {!categoriesLoading && categories.length === 0 && (
-                    <div className="space-y-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                      <p className="text-[12px] font-semibold text-[#334155]">No tienes categorias. Crea una para continuar.</p>
-
-                      {!storeId && (
-                        <div className="space-y-2">
-                          <p className="text-[12px] text-[#64748B]">Primero debes crear tu tienda.</p>
-                          <Link to="/dashboard/store" className={buttonVariants('secondary', 'inline-flex h-9 text-[12px]')}>
-                            Ir a crear tienda
-                          </Link>
-                        </div>
-                      )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Select
+                        label="Tipo de codigo"
+                        value={form.code_type}
+                        onChange={(event) =>
+                          setForm((previous) => ({
+                            ...previous,
+                            code_type: event.target.value as 'barcode' | 'qr' | 'sku',
+                          }))
+                        }
+                      >
+                        <option value="barcode">Codigo de barras</option>
+                        <option value="qr">QR</option>
+                        <option value="sku">SKU</option>
+                      </Select>
 
                       <Input
-                        placeholder="Nombre de categoria"
-                        value={categoryName}
-                        onChange={(event) => setCategoryName(event.target.value)}
+                        label="Codigo (opcional)"
+                        value={form.code_value}
+                        onChange={(event) => setForm((previous) => ({ ...previous, code_value: event.target.value }))}
+                        placeholder="Ej: 7701234567890"
                       />
-
-                      <Textarea
-                        placeholder="Descripcion (opcional)"
-                        rows={2}
-                        value={categoryDescription}
-                        onChange={(event) => setCategoryDescription(event.target.value)}
-                      />
-
-                      <Button
-                        type="button"
-                        onClick={createCategory}
-                        loading={creatingCategory}
-                        className="h-9 rounded-lg px-4 text-[12px]"
-                      >
-                        {creatingCategory ? 'Creando...' : 'Crear categoria'}
-                      </Button>
-
-                      {categoryCreateMessage && <p className="text-[12px] text-emerald-700">{categoryCreateMessage}</p>}
-                      {categoryCreateError && <p className="text-[12px] text-red-600">{categoryCreateError}</p>}
                     </div>
-                  )}
 
-                  <Select
-                    label="Estado"
-                    value={form.status}
-                    onChange={(event) => setForm((previous) => ({ ...previous, status: event.target.value }))}
-                  >
-                    <option value="active">Activo</option>
-                    <option value="draft">Borrador</option>
-                  </Select>
-
-                  <Textarea
-                    label="Descripcion"
-                    rows={3}
-                    value={form.description}
-                    onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
-                  />
-
-                  <div className="space-y-2 rounded-xl border border-[#E2E8F0] p-3">
-                    <label className={buttonVariants('secondary', 'h-9 cursor-pointer rounded-lg px-4 text-[12px]')}>
-                      <Icon name="upload" size={14} />
-                      Subir imagen
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/avif"
-                        onChange={onImage}
-                        className="hidden"
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        label="Precio"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={form.price}
+                        required
+                        onChange={(event) => setForm((previous) => ({ ...previous, price: event.target.value }))}
                       />
-                    </label>
 
-                    {preview && (
-                      <div className="h-24 w-24 overflow-hidden rounded-xl border border-[#E2E8F0]">
-                        <img src={preview} alt="Vista previa del producto" className="h-full w-full object-cover" />
+                      <Input
+                        label="Stock"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={form.stock}
+                        required
+                        onChange={(event) => setForm((previous) => ({ ...previous, stock: event.target.value }))}
+                      />
+                    </div>
+
+                    <Select
+                      label="Categoria"
+                      value={form.category_id}
+                      required
+                      onChange={(event) => setForm((previous) => ({ ...previous, category_id: event.target.value }))}
+                    >
+                      <option value="">
+                        {categoriesLoading
+                          ? 'Cargando categorias...'
+                          : categories.length
+                            ? 'Selecciona una categoria'
+                            : 'Sin categorias disponibles'}
+                      </option>
+                      {!categoriesLoading &&
+                        categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                    </Select>
+
+                    {!categoriesLoading && categories.length === 0 && (
+                      <div className="space-y-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                        <p className="text-[12px] font-semibold text-[#334155]">No tienes categorias. Crea una para continuar.</p>
+
+                        {!storeId && (
+                          <div className="space-y-2">
+                            <p className="text-[12px] text-[#64748B]">Primero debes crear tu tienda.</p>
+                            <Link to="/dashboard/store" className={buttonVariants('secondary', 'inline-flex h-9 text-[12px]')}>
+                              Ir a crear tienda
+                            </Link>
+                          </div>
+                        )}
+
+                        <Input
+                          placeholder="Nombre de categoria"
+                          value={categoryName}
+                          onChange={(event) => setCategoryName(event.target.value)}
+                        />
+
+                        <Textarea
+                          placeholder="Descripcion (opcional)"
+                          rows={2}
+                          value={categoryDescription}
+                          onChange={(event) => setCategoryDescription(event.target.value)}
+                        />
+
+                        <Button
+                          type="button"
+                          onClick={createCategory}
+                          loading={creatingCategory}
+                          className="h-9 rounded-lg px-4 text-[12px]"
+                        >
+                          {creatingCategory ? 'Creando...' : 'Crear categoria'}
+                        </Button>
+
+                        {categoryCreateMessage && <p className="text-[12px] text-emerald-700">{categoryCreateMessage}</p>}
+                        {categoryCreateError && <p className="text-[12px] text-red-600">{categoryCreateError}</p>}
                       </div>
                     )}
                   </div>
 
-                  {formError && <p className="text-[12px] text-red-600">{formError}</p>}
-                  {categoriesError && <p className="text-[12px] text-red-600">{categoriesError}</p>}
+                  <div className="space-y-3">
+                    <Select
+                      label="Estado"
+                      value={form.status}
+                      onChange={(event) => setForm((previous) => ({ ...previous, status: event.target.value }))}
+                    >
+                      <option value="active">Activo</option>
+                      <option value="draft">Borrador</option>
+                    </Select>
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button type="button" variant="outline" onClick={closeForm} className="h-10 rounded-lg px-4 text-[13px]">
-                      Cerrar
-                    </Button>
-                    <Button type="submit" loading={saving} className="h-10 flex-1 rounded-lg px-4 text-[13px] font-semibold">
-                      {saving ? 'Guardando...' : form.id ? 'Actualizar' : 'Guardar producto'}
-                    </Button>
+                    <Textarea
+                      label="Descripcion"
+                      rows={5}
+                      value={form.description}
+                      onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
+                    />
+
+                    <div className="space-y-2 rounded-xl border border-[#E2E8F0] p-3">
+                      <label className={buttonVariants('secondary', 'h-9 cursor-pointer rounded-lg px-4 text-[12px]')}>
+                        <Icon name="upload" size={14} />
+                        Subir imagen
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/avif"
+                          onChange={onImage}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {preview && (
+                        <div className="h-24 w-24 overflow-hidden rounded-xl border border-[#E2E8F0]">
+                          <img src={preview} alt="Vista previa del producto" className="h-full w-full object-cover" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </form>
-              </>
-            )}
-          </GlassCard>
-        </div>
+                </div>
+
+                {formError && <p className="text-[12px] text-red-600">{formError}</p>}
+                {categoriesError && <p className="text-[12px] text-red-600">{categoriesError}</p>}
+
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                  <Button type="button" variant="outline" onClick={closeForm} className="h-10 rounded-lg px-5 text-[13px]">
+                    Cerrar
+                  </Button>
+                  <Button type="submit" loading={saving} className="h-10 rounded-lg px-5 text-[13px] font-semibold">
+                    {saving ? 'Guardando...' : form.id ? 'Actualizar' : 'Guardar producto'}
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
+        </GlassCard>
       </div>
+
+      <GlassCard className="flex flex-col border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+        <div className="border-b border-[#E2E8F0] px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-[32px] font-black leading-none tracking-[-0.025em]">Catalogo de repuestos</h2>
+              <p className="mt-1 text-[13px] text-[#64748B]">Filtra y revisa tu inventario en segundos.</p>
+            </div>
+
+            <Input
+              value={filters.search}
+              onChange={(event) => setFilters({ search: event.target.value })}
+              className="h-11 w-full text-[13px] lg:w-[380px]"
+              placeholder="Buscar por nombre, categoria, codigo o ID"
+            />
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('all')}
+              className={`rounded-lg border px-4 py-2 text-[12px] font-semibold transition ${
+                activeTab === 'all'
+                  ? 'border-[#0F172A] bg-[#0F172A] text-white'
+                  : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
+              }`}
+            >
+              Todos ({totalProducts})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('active')}
+              className={`rounded-lg border px-4 py-2 text-[12px] font-semibold transition ${
+                activeTab === 'active'
+                  ? 'border-[#0F172A] bg-[#0F172A] text-white'
+                  : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
+              }`}
+            >
+              Activos ({activeProducts})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('out_of_stock')}
+              className={`rounded-lg border px-4 py-2 text-[12px] font-semibold transition ${
+                activeTab === 'out_of_stock'
+                  ? 'border-[#0F172A] bg-[#0F172A] text-white'
+                  : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
+              }`}
+            >
+              Sin stock ({outOfStockProducts})
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 py-3 sm:px-5">
+          {loading && <p className="text-[13px] text-[#64748B]">Cargando productos...</p>}
+          {error && <p className="mb-3 text-[13px] text-red-600">{error}</p>}
+
+          {!loading && filteredProducts.length === 0 && (
+            <div className="rounded-xl border border-dashed border-[#CBD5E1] px-4 py-8 text-center">
+              <p className="text-[13px] text-[#64748B]">No hay productos para este filtro.</p>
+            </div>
+          )}
+
+          <div className="space-y-2.5">
+            {filteredProducts.map((item) => {
+              const imageUrl = resolveMediaUrl(item.image_url || item.image)
+              const price = toNumber(item.price)
+              const stock = toNumber(item.stock)
+              const isActive = normalizeStatus(item.status) === 'active'
+              const primaryCode = getPrimaryProductCode(item)
+
+              return (
+                <div
+                  key={item.id}
+                  className="group flex flex-wrap items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] px-3 py-2.5 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#CBD5E1]"
+                >
+                  <div className="h-12 w-12 overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={item.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
+                        <Icon name="package" size={18} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-semibold text-[#0F172A]">{item.name}</p>
+                    <p className="truncate text-[12px] text-[#64748B]">
+                      {item.category?.name || 'Sin categoria'}
+                      {' - '}
+                      ID: {item.id}
+                    </p>
+                    {primaryCode && (
+                      <p className="truncate text-[11px] text-[#64748B]">
+                        {primaryCode.type.toUpperCase()}: {primaryCode.value}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:justify-end">
+                    <Badge
+                      variant={stock === 0 ? 'danger' : 'neutral'}
+                      className={stock === 0 ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-100 text-slate-700'}
+                    >
+                      Stock: {stock}
+                    </Badge>
+
+                    <Badge
+                      variant={isActive ? 'success' : 'warning'}
+                      className={isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}
+                    >
+                      {isActive ? 'Activo' : 'Borrador'}
+                    </Badge>
+
+                    <p className="min-w-[110px] text-right text-[20px] font-black tracking-[-0.02em] text-[#0F172A]">
+                      ${formatPrice(price)}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(item)}
+                        className={buttonVariants(
+                          'secondary',
+                          'h-8 rounded-full bg-[#0F5FA8] px-4 text-[12px] font-semibold text-white shadow-none hover:bg-[#0B4D8A]',
+                        )}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => remove(item)}
+                        className={buttonVariants(
+                          'danger',
+                          'h-8 rounded-full bg-[#EF476F] px-4 text-[12px] font-semibold text-white shadow-none hover:bg-[#d83f65]',
+                        )}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
+            <div ref={listEndRef} />
+          </div>
+        </div>
+      </GlassCard>
+
+      <Suspense fallback={null}>
+        <ProductScannerCameraModal
+          open={cameraModalOpen}
+          onClose={() => {
+            setCameraModalOpen(false)
+            if (entryMethod === 'camera') {
+              setEntryMethod('manual')
+            }
+          }}
+          onDetected={handleCameraDetected}
+        />
+      </Suspense>
     </div>
   )
 }

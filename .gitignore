@@ -32,3 +32,12 @@ Thumbs.db
 /.tmp_*.php
 /.tmp_*
 **/.tmp_*
+/.modified
+/tmp_user_php.txt
+/vite.log
+/vercel.root.backup.json
+/exports/
+/informe/
+/inforem/
+/colorful-creative-login-form/
+/comercio-plus-frontend/.tmp_*

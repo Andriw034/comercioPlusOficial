@@ -60,6 +60,11 @@ class Store extends Model
         return $this->hasMany(InventoryMovement::class);
     }
 
+    public function productCodes()
+    {
+        return $this->hasMany(ProductCode::class);
+    }
+
     public function purchaseRequests()
     {
         return $this->hasMany(PurchaseRequest::class);

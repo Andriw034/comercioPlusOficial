@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -129,8 +130,8 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $user = Auth::user();
-        if ($category->store->user_id !== $user->id) {
-            return response()->json(['message' => 'No autorizado para actualizar esta categoria.'], 403);
+        if ($authorizationError = $this->categoryAuthorizationError($user, $category, 'actualizar')) {
+            return $authorizationError;
         }
 
         $validated = $request->validate([
@@ -162,8 +163,8 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         $user = Auth::user();
-        if ($category->store->user_id !== $user->id) {
-            return response()->json(['message' => 'No autorizado para eliminar esta categoria.'], 403);
+        if ($authorizationError = $this->categoryAuthorizationError($user, $category, 'eliminar')) {
+            return $authorizationError;
         }
 
         if ($category->products()->exists()) {
@@ -197,5 +198,29 @@ class CategoryController extends Controller
         }
 
         return in_array($column, self::$categoriesColumns ?? [], true);
+    }
+
+    private function categoryAuthorizationError($user, Category $category, string $action): ?JsonResponse
+    {
+        if (!$user) {
+            return response()->json(['message' => 'Debes iniciar sesion para continuar.'], 401);
+        }
+
+        $isAdmin = method_exists($user, 'hasRole') && $user->hasRole(['admin']);
+        if ($isAdmin) {
+            return null;
+        }
+
+        $categoryStoreId = $category->store_id;
+        if (!$categoryStoreId) {
+            return response()->json(['message' => "No puedes {$action} una categoria global del sistema."], 403);
+        }
+
+        $userStoreId = $user->store?->id;
+        if (!$userStoreId || (int) $userStoreId !== (int) $categoryStoreId) {
+            return response()->json(['message' => "No autorizado para {$action} esta categoria."], 403);
+        }
+
+        return null;
     }
 }

@@ -29,6 +29,13 @@ export interface Store {
   is_visible?: boolean
 }
 
+export interface ProductCode {
+  id?: number
+  type: 'barcode' | 'qr' | 'sku'
+  value: string
+  is_primary?: boolean
+}
+
 export interface Product {
   id: number
   name: string
@@ -46,6 +53,9 @@ export interface Product {
   reviews_count?: number
   category?: Category
   store?: Store
+  product_codes?: ProductCode[]
+  productCodes?: ProductCode[]
+  codes?: ProductCode[]
 }
 
 export interface PaginatedResponse<T> {

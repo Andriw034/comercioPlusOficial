@@ -19,6 +19,9 @@ use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WompiController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\Merchant\InventoryReceiveController;
+use App\Http\Controllers\Api\Merchant\OrderPickingController;
+use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -111,6 +114,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Merchant dashboard.
     Route::get('/merchant/orders', [OrderController::class, 'merchantIndex']);
     Route::put('/merchant/orders/{id}/status', [OrderController::class, 'updateStatus']);
+    Route::get('/merchant/orders/{order}/picking', [OrderPickingController::class, 'show']);
+    Route::post('/merchant/orders/{order}/picking/scan', [OrderPickingController::class, 'scan']);
+    Route::post('/merchant/orders/{order}/picking/manual', [OrderPickingController::class, 'manual']);
+    Route::post('/merchant/orders/{order}/picking/fallback', [OrderPickingController::class, 'fallback']);
+    Route::post('/merchant/orders/{order}/picking/complete', [OrderPickingController::class, 'complete']);
+    Route::post('/merchant/orders/{order}/picking/reset', [OrderPickingController::class, 'reset']);
+    Route::get('/merchant/picking/events', [OrderPickingController::class, 'events']);
     Route::get('/merchant/customers', [CustomerController::class, 'myCustomers']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);
     Route::get('/reports/summary', [ReportController::class, 'summary']);
@@ -124,6 +134,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/movements', [InventoryController::class, 'merchantMovements']);
     Route::post('/inventory/adjust', [InventoryController::class, 'merchantAdjust']);
     Route::get('/inventory/invoices', [InventoryController::class, 'invoices']);
+    Route::post('/merchant/inventory/scan-in', [InventoryReceiveController::class, 'scanIn']);
+    Route::post('/merchant/inventory/create-from-scan', [InventoryReceiveController::class, 'createFromScan']);
+    Route::get('/merchant/inventory/movements', [InventoryReceiveController::class, 'movements']);
+    Route::post('/merchant/products/lookup-code', [ProductCodeLookupController::class, 'lookup']);
 
     // Product/category management.
     Route::post('/products', [ProductController::class, 'store']);

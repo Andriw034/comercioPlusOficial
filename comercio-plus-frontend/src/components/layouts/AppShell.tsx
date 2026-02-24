@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 
 type Props = {
   children: ReactNode
@@ -20,13 +20,10 @@ export default function AppShell({
   const isAuth = variant === 'auth'
   const isDashboard = variant === 'dashboard'
 
-  return (
-    <div
-      className={`relative flex min-h-screen flex-col overflow-x-hidden text-slate-900 ${
-        isDashboard ? 'bg-[#F3F4F6]' : 'bg-[#F9FAFB]'
-      }`}
-    >
+  const baseBg = isDashboard ? 'bg-[#F3F4F6] dark:bg-slate-950' : 'bg-[#F9FAFB] dark:bg-slate-950'
 
+  return (
+    <div className={`relative flex min-h-screen flex-col overflow-x-hidden ${baseBg} text-slate-900 dark:text-slate-100`}>
       {header && !isAuth && <div className="relative z-20">{header}</div>}
 
       <main

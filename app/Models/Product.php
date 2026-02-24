@@ -36,7 +36,7 @@ class Product extends Model
         'allow_backorder' => 'boolean',
     ];
 
-    protected $allowIncluded = ['store', 'category', 'ratings'];
+    protected $allowIncluded = ['store', 'category', 'ratings', 'productCodes'];
 
     public function category()
     {
@@ -56,6 +56,17 @@ class Product extends Model
     public function inventoryMovements()
     {
         return $this->hasMany(InventoryMovement::class);
+    }
+
+    public function productCodes()
+    {
+        return $this->hasMany(ProductCode::class);
+    }
+
+    // Alias corto para consumo en APIs futuras.
+    public function codes()
+    {
+        return $this->productCodes();
     }
 
     public function needsReorder(): bool

@@ -31,6 +31,7 @@ class Order extends Model
         'total_amount',
         'payment_method',
         'status',
+        'fulfillment_status',
         'payment_reference',
         'wompi_transaction_id',
         'payment_status',
@@ -52,6 +53,14 @@ class Order extends Model
         'payment_approved_at' => 'datetime',
         'payment_failed_at' => 'datetime',
     ];
+
+    public const FULFILLMENT_PENDING_PICK = 'pending_pick';
+    public const FULFILLMENT_PICKING = 'picking';
+    public const FULFILLMENT_PICKED = 'picked';
+    public const FULFILLMENT_PACKED = 'packed';
+    public const FULFILLMENT_READY = 'ready';
+    public const FULFILLMENT_DELIVERED = 'delivered';
+    public const FULFILLMENT_CANCELLED = 'cancelled';
 
     /**
      * Relación con el usuario
@@ -75,6 +84,16 @@ class Order extends Model
     public function orderProducts()
     {
         return $this->ordenproducts();
+    }
+
+    public function pickingEvents()
+    {
+        return $this->hasMany(OrderPickingEvent::class);
+    }
+
+    public function pickingSessions()
+    {
+        return $this->hasMany(OrderPickingSession::class);
     }
 
     /**

@@ -266,6 +266,7 @@ class OrderController extends Controller
             'invoice_date' => $order->invoice_date ?? $order->date ?? $order->created_at,
             'date' => $order->date ?? $order->created_at,
             'status' => (string) $order->status,
+            'fulfillment_status' => (string) ($order->fulfillment_status ?? 'pending_pick'),
             'payment_method' => $order->payment_method,
             'store_id' => (int) $order->store_id,
             'store_name' => $order->store?->name,

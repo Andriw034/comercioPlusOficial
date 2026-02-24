@@ -1,9 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+
+    // si este repo también incluye Laravel Blade/Vue, lo dejamos:
     "./resources/**/*.blade.php",
-    "./resources/**/*.js",
-    "./resources/**/*.vue",
+    "./resources/**/*.{js,ts,vue}",
   ],
   theme: {
     extend: {
@@ -13,7 +17,7 @@ export default {
       colors: {
         // COLORES OFICIALES COMERCIOPLUS (NARANJA PRINCIPAL)
         primary: '#FF6A00',
-        
+
         // PALETA COMERCIOPLUS COMPLETA (para degradados suaves)
         comercioplus: {
           DEFAULT: '#FF6A00',
@@ -23,12 +27,12 @@ export default {
           300: '#FFC096',
           400: '#FFA169',
           500: '#FF823D',
-          600: '#FF6A00',  // Color oficial principal
+          600: '#FF6A00',
           700: '#E65700',
           800: '#B34400',
           900: '#803100',
         },
-        
+
         // COLORES AUXILIARES DE SISTEMA
         'cp-bg': '#FDFDFD',
         'cp-surface': '#FFFFFF',

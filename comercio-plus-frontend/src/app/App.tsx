@@ -11,11 +11,13 @@ import Dashboard from './dashboard/page'
 import DashboardCategoriesPage from './dashboard/categories/page'
 import DashboardCustomers from './dashboard/customers/page'
 import DashboardInventoryPage from './dashboard/inventory/page'
+import InventoryReceivePage from './dashboard/inventory/receive/page'
 import Login from './login/page'
 import ManageProducts from './dashboard/products/page'
 import DashboardReportsPage from './dashboard/reports/page'
 import DashboardSettingsPage from './dashboard/settings/page'
 import DashboardOrdersPage from './dashboard/orders/page'
+import OrderPickingPage from './dashboard/orders/picking/page'
 import Register from './register/page'
 import StoreDetail from './store/page'
 import Stores from './stores/page'
@@ -124,6 +126,7 @@ export default function App() {
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/registro" element={<Navigate to="/register" replace />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
 
@@ -141,7 +144,9 @@ export default function App() {
           <Route path="/dashboard/store" element={<DashboardStore />} />
           <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
           <Route path="/dashboard/orders" element={<DashboardOrdersPage />} />
+          <Route path="/dashboard/orders/:id/picking" element={<OrderPickingPage />} />
           <Route path="/dashboard/inventory" element={<DashboardInventoryPage />} />
+          <Route path="/dashboard/inventory/receive" element={<InventoryReceivePage />} />
           <Route path="/dashboard/reports" element={<DashboardReportsPage />} />
           <Route path="/dashboard/categories" element={<DashboardCategoriesPage />} />
           <Route path="/dashboard/products" element={<ManageProducts />} />
