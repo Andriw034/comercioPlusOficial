@@ -30,7 +30,7 @@ const fallbackApiBaseUrl = (() => {
   if (rawApiBaseUrl) return rawApiBaseUrl
 
   if (import.meta.env.DEV) {
-    return 'http://127.0.0.1:8000/api'
+    return '/api'
   }
 
   if (typeof window !== 'undefined') {
@@ -53,5 +53,5 @@ if (!import.meta.env.DEV && !rawApiBaseUrl && typeof window !== 'undefined') {
 }
 
 if (import.meta.env.DEV && !rawApiBaseUrl && typeof window !== 'undefined') {
-  console.warn('[runtime] Missing VITE_API_BASE_URL in development. Using fallback local API http://127.0.0.1:8000/api.')
+  console.warn('[runtime] Missing VITE_API_BASE_URL in development. Using fallback /api (Vite proxy).')
 }

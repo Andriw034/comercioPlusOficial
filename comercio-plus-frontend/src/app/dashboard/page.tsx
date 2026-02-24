@@ -498,7 +498,7 @@ export default function Dashboard() {
                     {card.badge === 'warning' ? 'Atencion' : card.badge === 'success' ? 'Estable' : 'Accion'}
                   </Badge>
                 </div>
-                <p className="text-[28px] font-bold leading-none text-[#1A1A2E]">{card.value}</p>
+                <p className="break-words text-[24px] font-bold leading-tight text-[#1A1A2E] sm:text-[28px]">{card.value}</p>
                 <p className="text-[12px] text-slate-500 dark:text-white/60">{card.hint}</p>
                 <p className="text-[12px] font-medium text-[#C2410C] dark:text-[#FDBA74]">{card.action}</p>
               </GlassCard>
@@ -529,7 +529,7 @@ export default function Dashboard() {
                       <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-[10px] font-semibold text-orange-700 dark:bg-orange-500/20 dark:text-orange-200">
                         {action.tag}
                       </div>
-                      <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{action.title}</p>
+                      <p className="break-words text-[14px] font-semibold text-slate-900 dark:text-white">{action.title}</p>
                       <p className="mt-1 text-[12px] text-slate-500 dark:text-white/60">{action.hint}</p>
                     </Link>
                   ))}
@@ -670,7 +670,7 @@ export default function Dashboard() {
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5"
                   >
                     <div>
-                      <p className="text-[13px] font-semibold text-slate-900 dark:text-white">Pedido #{order.id}</p>
+                      <p className="break-words text-[13px] font-semibold text-slate-900 dark:text-white">Pedido #{order.id}</p>
                       <p className="text-[12px] text-slate-500 dark:text-white/60">{formatDate(order.date)}</p>
                     </div>
                     <div className="flex items-center gap-3">

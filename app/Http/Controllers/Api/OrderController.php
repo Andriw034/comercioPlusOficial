@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Schema;
 
 class OrderController extends Controller
 {
+    private ?bool $ordersHasSubtotalColumn = null;
+
+    private ?bool $ordersHasTaxTotalColumn = null;
+
     public function __construct(private readonly OrderBillingService $orderBillingService)
     {
     }
@@ -252,10 +256,10 @@ class OrderController extends Controller
             ];
         })->values()->all();
 
-        $subtotal = Schema::hasColumn('orders', 'subtotal')
+        $subtotal = $this->hasOrdersSubtotalColumn()
             ? (float) ($order->subtotal ?? 0)
             : (float) collect($items)->sum('line_subtotal');
-        $taxTotal = Schema::hasColumn('orders', 'tax_total')
+        $taxTotal = $this->hasOrdersTaxTotalColumn()
             ? (float) ($order->tax_total ?? 0)
             : (float) collect($items)->sum('tax_amount');
         $total = (float) ($order->total ?? ($subtotal + $taxTotal));
@@ -279,5 +283,23 @@ class OrderController extends Controller
             'currency' => $order->currency ?? 'COP',
             'items' => $items,
         ];
+    }
+
+    private function hasOrdersSubtotalColumn(): bool
+    {
+        if ($this->ordersHasSubtotalColumn === null) {
+            $this->ordersHasSubtotalColumn = Schema::hasColumn('orders', 'subtotal');
+        }
+
+        return $this->ordersHasSubtotalColumn;
+    }
+
+    private function hasOrdersTaxTotalColumn(): bool
+    {
+        if ($this->ordersHasTaxTotalColumn === null) {
+            $this->ordersHasTaxTotalColumn = Schema::hasColumn('orders', 'tax_total');
+        }
+
+        return $this->ordersHasTaxTotalColumn;
     }
 }

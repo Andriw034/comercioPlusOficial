@@ -33,7 +33,8 @@ const readToken = (): string | null => {
 
   const localToken = localStorage.getItem(TOKEN_KEY)
   if (localToken && localToken.trim().length > 0) {
-    clearStoredSession()
+    sessionStorage.setItem(TOKEN_KEY, localToken)
+    return localToken
   }
 
   return null
@@ -62,6 +63,10 @@ const API = axios.create({
   },
   withCredentials: false,
 })
+
+if (import.meta.env.DEV) {
+  console.info(`[api] baseURL: ${String(API.defaults.baseURL || '')}`)
+}
 
 API.interceptors.request.use(
   (config) => {

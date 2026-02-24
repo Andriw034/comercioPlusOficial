@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Merchant\InventoryReceiveController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
 use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,6 +33,39 @@ use Illuminate\Support\Facades\Route;
 
 // Health check for smoke tests.
 Route::get('/health', fn () => response()->json(['status' => 'ok']));
+Route::get('/health/integrations', function () {
+    $dbOk = false;
+    $dbMessage = null;
+
+    try {
+        DB::connection()->getPdo();
+        $dbOk = true;
+    } catch (\Throwable $e) {
+        $dbMessage = $e->getMessage();
+    }
+
+    $cloudinaryConfigured = trim((string) config('services.cloudinary.cloud_name', '')) !== ''
+        && trim((string) config('services.cloudinary.api_key', '')) !== ''
+        && trim((string) config('services.cloudinary.api_secret', '')) !== '';
+
+    return response()->json([
+        'status' => $dbOk ? 'ok' : 'degraded',
+        'app_env' => app()->environment(),
+        'database' => [
+            'ok' => $dbOk,
+            'connection' => config('database.default'),
+            'database' => config('database.connections.mysql.database'),
+            'host' => config('database.connections.mysql.host'),
+            'error' => $dbOk ? null : $dbMessage,
+        ],
+        'cloudinary' => [
+            'configured' => $cloudinaryConfigured,
+            'cloud_name_present' => trim((string) config('services.cloudinary.cloud_name', '')) !== '',
+            'api_key_present' => trim((string) config('services.cloudinary.api_key', '')) !== '',
+            'api_secret_present' => trim((string) config('services.cloudinary.api_secret', '')) !== '',
+        ],
+    ], $dbOk ? 200 : 503);
+});
 
 /*
 |--------------------------------------------------------------------------

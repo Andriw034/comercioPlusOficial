@@ -10,6 +10,11 @@ type ThemeContextValue = {
 }
 
 const THEME_STORAGE_KEY = 'cp-theme'
+const FORCED_THEME = (() => {
+  const raw = String(import.meta.env.VITE_FORCE_THEME || '').toLowerCase().trim()
+  if (raw === 'light' || raw === 'dark') return raw as Theme
+  return null
+})()
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null)
 
@@ -19,6 +24,7 @@ const getSystemTheme = (): Theme => {
 }
 
 const getStoredTheme = (): Theme | null => {
+  if (FORCED_THEME) return FORCED_THEME
   if (typeof window === 'undefined') return null
   const savedTheme = localStorage.getItem(THEME_STORAGE_KEY)
   return savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : null
@@ -29,14 +35,17 @@ const applyTheme = (theme: Theme) => {
 }
 
 export default function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme() ?? getSystemTheme())
+  const [theme, setThemeState] = useState<Theme>(() => FORCED_THEME ?? getStoredTheme() ?? getSystemTheme())
 
   useLayoutEffect(() => {
     applyTheme(theme)
-    localStorage.setItem(THEME_STORAGE_KEY, theme)
+    if (!FORCED_THEME) {
+      localStorage.setItem(THEME_STORAGE_KEY, theme)
+    }
   }, [theme])
 
   useEffect(() => {
+    if (FORCED_THEME) return
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     const onChange = () => {
       const stored = getStoredTheme()
@@ -50,10 +59,12 @@ export default function ThemeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setTheme = useCallback((nextTheme: Theme) => {
+    if (FORCED_THEME) return
     setThemeState(nextTheme)
   }, [])
 
   const toggleTheme = useCallback(() => {
+    if (FORCED_THEME) return
     setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'))
   }, [])
 

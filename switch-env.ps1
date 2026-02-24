@@ -27,7 +27,7 @@ Copy-IfExists -Source $backendSource -Destination $backendDest
 Write-Host "Backend actualizado: $backendSource -> $backendDest" -ForegroundColor Green
 
 $frontendSource = Join-Path "comercio-plus-frontend" ".env.$Target"
-$frontendDest = Join-Path "comercio-plus-frontend" ".env"
+$frontendDest = Join-Path "comercio-plus-frontend" ".env.local"
 
 if (Test-Path $frontendSource) {
   Copy-Item -Path $frontendSource -Destination $frontendDest -Force
@@ -41,4 +41,4 @@ Write-Host "Limpiando cache de configuracion Laravel..." -ForegroundColor Cyan
 php artisan config:clear | Out-Host
 
 Write-Host "Entorno activo listo: $Target" -ForegroundColor Green
-
+Write-Host "Importante: reinicia php artisan serve y npm run dev para aplicar el nuevo entorno." -ForegroundColor Yellow

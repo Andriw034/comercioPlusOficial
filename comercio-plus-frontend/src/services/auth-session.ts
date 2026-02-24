@@ -29,9 +29,10 @@ export function getStoredToken(): string | null {
   const sessionToken = getSessionToken()
   if (sessionToken) return sessionToken
 
-  // If the browser/tab session ended, stale local credentials are invalid.
-  if (getLocalToken()) {
-    clearSession()
+  const localToken = getLocalToken()
+  if (localToken) {
+    sessionStorage.setItem(TOKEN_KEY, localToken)
+    return localToken
   }
 
   return null
@@ -41,24 +42,32 @@ export function getStoredUserRaw(): string | null {
   const userRaw = sessionStorage.getItem(USER_KEY)
   if (userRaw) return userRaw
 
-  // Mirror stale user cleanup when token does not exist in current session.
-  if (localStorage.getItem(USER_KEY)) {
-    clearSession()
+  const localUser = localStorage.getItem(USER_KEY)
+  if (localUser) {
+    sessionStorage.setItem(USER_KEY, localUser)
+    return localUser
   }
 
   return null
 }
 
-export async function hydrateSession(token: string): Promise<AuthUser> {
-  localStorage.setItem(TOKEN_KEY, token)
+export async function hydrateSession(token: string, persist = true): Promise<AuthUser> {
   sessionStorage.setItem(TOKEN_KEY, token)
+  if (persist) {
+    localStorage.setItem(TOKEN_KEY, token)
+  } else {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+  }
   API.defaults.headers.common.Authorization = `Bearer ${token}`
 
   const { data } = await API.get('/me')
   const user: AuthUser = data
   const serializedUser = JSON.stringify(user)
-  localStorage.setItem(USER_KEY, serializedUser)
   sessionStorage.setItem(USER_KEY, serializedUser)
+  if (persist) {
+    localStorage.setItem(USER_KEY, serializedUser)
+  }
   if (!user.has_store && !user.store_id) {
     localStorage.removeItem('store')
   }

@@ -6,12 +6,27 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
   error?: string
   leftIcon?: ReactNode
   rightIcon?: ReactNode
+  rightIconButton?: boolean
+  rightIconAriaLabel?: string
+  onRightIconClick?: () => void
   containerClassName?: string
 }
 
 const Input = forwardRef<HTMLInputElement, Props>(
   (
-    { className = '', label, hint, error, leftIcon, rightIcon, containerClassName = '', ...props },
+    {
+      className = '',
+      label,
+      hint,
+      error,
+      leftIcon,
+      rightIcon,
+      rightIconButton = false,
+      rightIconAriaLabel = 'Accion del campo',
+      onRightIconClick,
+      containerClassName = '',
+      ...props
+    },
     ref,
   ) => {
     const input = leftIcon || rightIcon ? (
@@ -26,11 +41,21 @@ const Input = forwardRef<HTMLInputElement, Props>(
           className={`input-dark ${leftIcon ? 'pl-11' : ''} ${rightIcon ? 'pr-11' : ''} ${className}`.trim()}
           {...props}
         />
-        {rightIcon && (
-          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
-            {rightIcon}
-          </span>
-        )}
+        {rightIcon &&
+          (rightIconButton ? (
+            <button
+              type="button"
+              onClick={onRightIconClick}
+              aria-label={rightIconAriaLabel}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/40 dark:hover:text-slate-200"
+            >
+              {rightIcon}
+            </button>
+          ) : (
+            <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+              {rightIcon}
+            </span>
+          ))}
       </div>
     ) : (
       <input ref={ref} className={`input-dark ${className}`.trim()} {...props} />

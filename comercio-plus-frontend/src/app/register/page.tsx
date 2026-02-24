@@ -4,12 +4,15 @@ import API from '@/lib/api'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import { Icon } from '@/components/Icon'
 import { hydrateSession, resolvePostAuthRoute } from '@/services/auth-session'
 
 export default function Register() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false)
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -133,12 +136,16 @@ export default function Register() {
           className="h-10 py-2"
           id="password"
           name="password"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           autoComplete="new-password"
           required
           placeholder="••••••••"
           value={form.password}
           onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+          rightIcon={<Icon name={showPassword ? 'eye-off' : 'eye'} size={16} />}
+          rightIconButton
+          rightIconAriaLabel={showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+          onRightIconClick={() => setShowPassword((previous) => !previous)}
         />
 
         <Input
@@ -146,12 +153,16 @@ export default function Register() {
           className="h-10 py-2"
           id="password_confirmation"
           name="password_confirmation"
-          type="password"
+          type={showPasswordConfirmation ? 'text' : 'password'}
           autoComplete="new-password"
           required
           placeholder="••••••••"
           value={form.password_confirmation}
           onChange={(e) => setForm((prev) => ({ ...prev, password_confirmation: e.target.value }))}
+          rightIcon={<Icon name={showPasswordConfirmation ? 'eye-off' : 'eye'} size={16} />}
+          rightIconButton
+          rightIconAriaLabel={showPasswordConfirmation ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+          onRightIconClick={() => setShowPasswordConfirmation((previous) => !previous)}
         />
 
         {error && <div className="text-sm text-red-600">{error}</div>}

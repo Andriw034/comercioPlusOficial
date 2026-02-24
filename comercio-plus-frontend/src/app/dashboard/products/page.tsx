@@ -779,23 +779,23 @@ export default function ManageProducts() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <GlassCard className="h-[108px] border-transparent bg-[linear-gradient(135deg,#FF6B35_0%,#E65A2B_100%)] p-4 text-white sm:p-4">
-          <p className="text-[40px] font-black leading-none">{totalProducts}</p>
+        <GlassCard className="h-[108px] border-transparent !bg-[linear-gradient(135deg,#FF6B35_0%,#E65A2B_100%)] p-4 !text-white sm:p-4">
+          <p className="truncate text-[32px] font-black leading-none sm:text-[40px]">{totalProducts}</p>
           <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/90">Total productos</p>
         </GlassCard>
 
         <GlassCard className="h-[108px] border-[#E2E8F0] p-4 sm:p-4">
-          <p className="text-[40px] font-black leading-none">{activeProducts}</p>
+          <p className="truncate text-[32px] font-black leading-none sm:text-[40px]">{activeProducts}</p>
           <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">Activos</p>
         </GlassCard>
 
         <GlassCard className="h-[108px] border-[#E2E8F0] p-4 sm:p-4">
-          <p className="text-[40px] font-black leading-none">{outOfStockProducts}</p>
+          <p className="truncate text-[32px] font-black leading-none sm:text-[40px]">{outOfStockProducts}</p>
           <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">Sin stock</p>
         </GlassCard>
 
         <GlassCard className="h-[108px] border-[#E2E8F0] p-4 sm:p-4">
-          <p className="text-[40px] font-black leading-none">${formatPrice(catalogValue)}</p>
+          <p className="truncate text-[26px] font-black leading-none tracking-[-0.02em] sm:text-[34px]">${formatPrice(catalogValue)}</p>
           <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">Valor catalogo</p>
         </GlassCard>
       </div>
@@ -806,7 +806,7 @@ export default function ManageProducts() {
             <div className="flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-[linear-gradient(120deg,#FFF7ED_0%,#FFEDD5_55%,#FFE4D6_100%)] px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A3412]">Nuevo producto</p>
-                <h3 className="mt-1 text-[30px] font-black leading-none tracking-[-0.02em] text-[#0F172A]">Nuevo repuesto / accesorio</h3>
+                <h3 className="mt-1 text-[24px] font-black leading-none tracking-[-0.02em] text-[#0F172A] sm:text-[30px]">Nuevo repuesto / accesorio</h3>
                 <p className="mt-2 text-[14px] text-[#475569]">Completa los datos y publica en el catalogo.</p>
               </div>
 
@@ -1033,7 +1033,7 @@ export default function ManageProducts() {
         <div className="border-b border-[#E2E8F0] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-[32px] font-black leading-none tracking-[-0.025em]">Catalogo de repuestos</h2>
+              <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] sm:text-[32px]">Catalogo de repuestos</h2>
               <p className="mt-1 text-[13px] text-[#64748B]">Filtra y revisa tu inventario en segundos.</p>
             </div>
 
@@ -1144,7 +1144,7 @@ export default function ManageProducts() {
                       {isActive ? 'Activo' : 'Borrador'}
                     </Badge>
 
-                    <p className="min-w-[110px] text-right text-[20px] font-black tracking-[-0.02em] text-[#0F172A]">
+                    <p className="min-w-[100px] text-right text-[16px] font-black tracking-[-0.02em] text-[#0F172A] sm:min-w-[110px] sm:text-[20px]">
                       ${formatPrice(price)}
                     </p>
 

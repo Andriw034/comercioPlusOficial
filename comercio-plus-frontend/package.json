@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mirror": "vite --mode vercel-mirror",
     "build": "tsc -b && vite build",
+    "build:mirror": "tsc -b && vite build --mode vercel-mirror",
     "lint": "eslint .",
     "preview": "vite preview"
   },

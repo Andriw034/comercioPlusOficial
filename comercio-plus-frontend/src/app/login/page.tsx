@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import API from '@/lib/api'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
+import { Icon } from '@/components/Icon'
 import { hydrateSession, resolvePostAuthRoute } from '@/services/auth-session'
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ email: '', password: '', remember: false })
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -27,7 +29,7 @@ export default function Login() {
       })
 
       if (data?.token) {
-        const user = await hydrateSession(data.token)
+        const user = await hydrateSession(data.token, form.remember)
         const redirectParam = searchParams.get('redirect')
         if (redirectParam) navigate(redirectParam)
         else navigate(resolvePostAuthRoute(user))
@@ -41,9 +43,21 @@ export default function Login() {
       const firstFieldError = Array.isArray(firstErrorValue)
         ? (firstErrorValue[0] ?? '')
         : (typeof firstErrorValue === 'string' ? firstErrorValue : '')
+      const backendMessage = err?.response?.data?.message as string | undefined
+      const normalizedBackendMessage = (backendMessage || '').toLowerCase()
+
+      if (
+        status === 503 ||
+        normalizedBackendMessage.includes('base de datos') ||
+        normalizedBackendMessage.includes('db/migrations')
+      ) {
+        setError('Servidor temporalmente no disponible. Intenta de nuevo en 1-2 minutos.')
+        return
+      }
+
       const message =
         firstFieldError ||
-        err?.response?.data?.message ||
+        backendMessage ||
         'Error al iniciar sesion. Verifica tus credenciales.'
       setError(status ? `${message} (HTTP ${status})` : message)
     } finally {
@@ -77,12 +91,16 @@ export default function Login() {
           className="h-10 py-2"
           id="password"
           name="password"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           autoComplete="current-password"
           required
           placeholder="••••••••"
           value={form.password}
           onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+          rightIcon={<Icon name={showPassword ? 'eye-off' : 'eye'} size={16} />}
+          rightIconButton
+          rightIconAriaLabel={showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+          onRightIconClick={() => setShowPassword((previous) => !previous)}
         />
 
         <div className="flex items-center justify-between pt-0.5">

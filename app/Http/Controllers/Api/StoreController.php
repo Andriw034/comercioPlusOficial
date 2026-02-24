@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 class StoreController extends Controller
 {
@@ -48,9 +50,20 @@ class StoreController extends Controller
     */
     public function publicStores()
     {
-        $stores = Store::where('is_visible', true)->get()->map(fn ($store) => $this->withMediaUrls($store));
+        try {
+            $stores = Store::where('is_visible', true)->get()->map(fn ($store) => $this->withMediaUrls($store));
+            return response()->json($stores);
+        } catch (Throwable $e) {
+            Log::error('Public stores listing failed', [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
 
-        return response()->json($stores);
+            return response()->json([
+                'message' => 'Catalogo temporalmente no disponible. Intenta nuevamente.',
+                'data' => [],
+            ], 503);
+        }
     }
 
     /*
