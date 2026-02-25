@@ -1,9 +1,8 @@
-import { useMemo } from 'react'
+﻿import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Badge from '@/components/Badge'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
-import Header from '@/components/Header'
 import type { Product } from '@/types'
 
 const mockProducts: Product[] = [
@@ -12,8 +11,8 @@ const mockProducts: Product[] = [
     name: 'Jarrones Artesanales',
     price: 45990,
     stock: 25,
-    category: 'Decoración',
-    description: 'Piezas únicas hechas a mano por artesanos locales.',
+    category: 'Decoracion',
+    description: 'Piezas unicas hechas a mano por artesanos locales.',
   },
   {
     id: '2',
@@ -32,10 +31,9 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="min-h-screen bg-dark-50">
-        <Header links={[{ label: 'Productos', href: '/products', active: true }]} />
-        <main className="max-w-7xl mx-auto px-6 lg:px-10 py-20">
+        <main className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
           <Card className="text-center">
-            <h2 className="text-h2 mb-3">Producto no encontrado</h2>
+            <h2 className="mb-3 text-h2">Producto no encontrado</h2>
             <Link to="/products">
               <Button variant="primary">Volver a productos</Button>
             </Link>
@@ -47,37 +45,38 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-dark-50">
-      <Header
-        links={[
-          { label: 'Tiendas', href: '/' },
-          { label: 'Productos', href: '/products', active: true },
-        ]}
-      />
+      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
+          <Link to="/stores" className="font-medium text-slate-600 transition hover:text-slate-900">
+            Tiendas
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link to="/products" className="font-medium text-slate-600 transition hover:text-slate-900">
+            Productos
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="font-semibold text-slate-900">Detalle</span>
+        </div>
 
-      <main className="max-w-7xl mx-auto px-6 lg:px-10 py-10">
         <div className="mb-6">
           <Link to="/products" className="text-body-sm text-dark-600 hover:text-primary">
             ← Volver a productos
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <div className="rounded-md overflow-hidden h-[460px] bg-gradient-to-br from-primary to-secondary" />
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+          <div className="h-[460px] overflow-hidden rounded-md bg-gradient-to-br from-primary to-secondary" />
 
           <Card>
             <div className="mb-4">
               <Badge variant="info">{product.category || 'General'}</Badge>
             </div>
 
-            <h1 className="text-h1 mb-3">{product.name}</h1>
-            <p className="text-3xl font-bold text-primary mb-4">
-              ${product.price.toLocaleString('es-CL')}
-            </p>
-            <p className="text-body text-dark-600 mb-6">
-              {product.description || 'Sin descripción'}
-            </p>
+            <h1 className="mb-3 text-h1">{product.name}</h1>
+            <p className="mb-4 text-3xl font-bold text-primary">${product.price.toLocaleString('es-CO')}</p>
+            <p className="mb-6 text-body text-dark-600">{product.description || 'Sin descripcion'}</p>
 
-            <div className="flex items-center gap-3 mb-8">
+            <div className="mb-8 flex items-center gap-3">
               <Badge variant={product.stock && product.stock > 0 ? 'success' : 'danger'}>
                 {product.stock && product.stock > 0 ? `Stock: ${product.stock}` : 'Sin stock'}
               </Badge>

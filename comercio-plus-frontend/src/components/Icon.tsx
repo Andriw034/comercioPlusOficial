@@ -1,8 +1,7 @@
-import * as LucideIcons from 'lucide-react'
+﻿import * as LucideIcons from 'lucide-react'
+import { emojiIconMap, resolveIconVariant, type IconVariant } from '@/ui/icon-config'
 
-// Mapeo de nombres simples a componentes Lucide
 const iconMap = {
-  // Navegación
   home: LucideIcons.Home,
   search: LucideIcons.Search,
   menu: LucideIcons.Menu,
@@ -13,8 +12,7 @@ const iconMap = {
   'chevron-up': LucideIcons.ChevronUp,
   'chevron-left': LucideIcons.ChevronLeft,
   'chevron-right': LucideIcons.ChevronRight,
-  
-  // E-commerce
+
   cart: LucideIcons.ShoppingCart,
   store: LucideIcons.Store,
   bike: LucideIcons.Bike,
@@ -22,8 +20,7 @@ const iconMap = {
   tag: LucideIcons.Tag,
   'credit-card': LucideIcons.CreditCard,
   truck: LucideIcons.Truck,
-  
-  // Usuario
+
   user: LucideIcons.User,
   'user-plus': LucideIcons.UserPlus,
   users: LucideIcons.Users,
@@ -31,8 +28,7 @@ const iconMap = {
   bell: LucideIcons.Bell,
   settings: LucideIcons.Settings,
   logout: LucideIcons.LogOut,
-  
-  // Acciones
+
   plus: LucideIcons.Plus,
   minus: LucideIcons.Minus,
   edit: LucideIcons.Edit,
@@ -42,16 +38,14 @@ const iconMap = {
   download: LucideIcons.Download,
   'eye': LucideIcons.Eye,
   'eye-off': LucideIcons.EyeOff,
-  
-  // Estado
+
   check: LucideIcons.Check,
   alert: LucideIcons.AlertCircle,
   info: LucideIcons.Info,
   'x-circle': LucideIcons.XCircle,
   'check-circle': LucideIcons.CheckCircle,
   loader: LucideIcons.Loader2,
-  
-  // Comunicación
+
   mail: LucideIcons.Mail,
   message: LucideIcons.MessageSquare,
   phone: LucideIcons.Phone,
@@ -61,37 +55,32 @@ const iconMap = {
   twitter: LucideIcons.Twitter,
   linkedin: LucideIcons.Linkedin,
   youtube: LucideIcons.Youtube,
-  
-  // Negocio
+
   trending: LucideIcons.TrendingUp,
   dollar: LucideIcons.DollarSign,
   chart: LucideIcons.BarChart3,
   'pie-chart': LucideIcons.PieChart,
   calendar: LucideIcons.Calendar,
   clock: LucideIcons.Clock,
-  
-  // Seguridad
+
   shield: LucideIcons.Shield,
   lock: LucideIcons.Lock,
   unlock: LucideIcons.Unlock,
   key: LucideIcons.Key,
-  
-  // Multimedia
+
   image: LucideIcons.Image,
   file: LucideIcons.File,
   'file-text': LucideIcons.FileText,
   folder: LucideIcons.Folder,
   camera: LucideIcons.Camera,
-  
-  // UI
+
   grid: LucideIcons.Grid,
   list: LucideIcons.List,
   star: LucideIcons.Star,
   filter: LucideIcons.Filter,
   'more-vertical': LucideIcons.MoreVertical,
   'more-horizontal': LucideIcons.MoreHorizontal,
-  
-  // Misceláneos
+
   rocket: LucideIcons.Rocket,
   headset: LucideIcons.Headphones,
   bank: LucideIcons.Building2,
@@ -102,8 +91,7 @@ const iconMap = {
   link: LucideIcons.Link,
   copy: LucideIcons.Copy,
   share: LucideIcons.Share2,
-  
-  // Fallback
+
   default: LucideIcons.Circle,
 }
 
@@ -114,40 +102,53 @@ interface IconProps {
   size?: number
   className?: string
   strokeWidth?: number
+  variant?: IconVariant
 }
 
-/**
- * Componente Icon optimizado para render natural
- * 
- * Características:
- * - Grosor adaptativo según tamaño (iconos pequeños más gruesos, grandes más finos)
- * - Tamaños normalizados para consistencia
- * - Render optimizado con geometricPrecision
- * - Accesibilidad integrada
- */
-export function Icon({ name, size = 20, className = '', strokeWidth }: IconProps) {
+export function Icon({ name, size = 20, className = '', strokeWidth, variant }: IconProps) {
   const IconComponent = iconMap[name] || iconMap.default
-
-  // Normalizar tamaño a entero para consistencia
+  const iconVariant = resolveIconVariant(variant)
   const normalizedSize = Math.round(size)
-  
-  // Grosor adaptativo: iconos pequeños más gruesos, grandes más finos
-  const computedStrokeWidth = strokeWidth ?? (
-    normalizedSize <= 16 ? 2.2 :
-    normalizedSize <= 20 ? 2.0 :
-    normalizedSize <= 24 ? 1.9 :
-    normalizedSize <= 32 ? 1.8 :
-    1.7
-  )
+
+  if (iconVariant === 'emoji') {
+    const emoji = emojiIconMap[name as keyof typeof emojiIconMap]
+    if (emoji) {
+      return (
+        <span
+          className={`inline-flex shrink-0 items-center justify-center align-middle ${className}`.trim()}
+          style={{
+            width: normalizedSize,
+            height: normalizedSize,
+            fontSize: Math.max(12, Math.round(normalizedSize * 0.82)),
+            lineHeight: 1,
+          }}
+          aria-hidden="true"
+        >
+          {emoji}
+        </span>
+      )
+    }
+  }
+
+  const computedStrokeWidth =
+    strokeWidth ??
+    (normalizedSize <= 16
+      ? 2.2
+      : normalizedSize <= 20
+        ? 2.0
+        : normalizedSize <= 24
+          ? 1.9
+          : normalizedSize <= 32
+            ? 1.8
+            : 1.7)
 
   return (
     <IconComponent
       size={normalizedSize}
       strokeWidth={computedStrokeWidth}
       className={`inline-flex shrink-0 align-middle ${className}`.trim()}
-      style={{ 
+      style={{
         shapeRendering: 'geometricPrecision',
-        // Optimización para render suave
         WebkitFontSmoothing: 'antialiased',
         MozOsxFontSmoothing: 'grayscale',
       }}
@@ -157,54 +158,52 @@ export function Icon({ name, size = 20, className = '', strokeWidth }: IconProps
   )
 }
 
-/**
- * Variante de ícono con fondo circular
- */
-export function IconCircle({ 
-  name, 
-  size = 40, 
+export function IconCircle({
+  name,
+  size = 40,
   iconSize = 20,
   className = '',
   iconClassName = '',
+  variant,
 }: {
   name: IconName
   size?: number
   iconSize?: number
   className?: string
   iconClassName?: string
+  variant?: IconVariant
 }) {
   return (
-    <div 
+    <div
       className={`inline-flex items-center justify-center rounded-full ${className}`.trim()}
       style={{ width: size, height: size }}
     >
-      <Icon name={name} size={iconSize} className={iconClassName} />
+      <Icon name={name} size={iconSize} className={iconClassName} variant={variant} />
     </div>
   )
 }
 
-/**
- * Variante de ícono con fondo redondeado
- */
-export function IconBox({ 
-  name, 
-  size = 40, 
+export function IconBox({
+  name,
+  size = 40,
   iconSize = 20,
   className = '',
   iconClassName = '',
+  variant,
 }: {
   name: IconName
   size?: number
   iconSize?: number
   className?: string
   iconClassName?: string
+  variant?: IconVariant
 }) {
   return (
-    <div 
+    <div
       className={`inline-flex items-center justify-center rounded-xl ${className}`.trim()}
       style={{ width: size, height: size }}
     >
-      <Icon name={name} size={iconSize} className={iconClassName} />
+      <Icon name={name} size={iconSize} className={iconClassName} variant={variant} />
     </div>
   )
 }

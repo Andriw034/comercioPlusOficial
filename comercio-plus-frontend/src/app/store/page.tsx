@@ -4,6 +4,15 @@ import API from '@/lib/api'
 import type { Product, Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
 import { formatPrice, resolveMediaUrl } from '@/lib/format'
+import CoverImage from '@/ui/images/CoverImage'
+import LogoImage from '@/ui/images/LogoImage'
+import {
+  getImageBrightness,
+  getStoredHeaderTheme,
+  getThemeClassesByBrightness,
+  storeHeaderTheme,
+  type ImageBrightness,
+} from '@/utils/imageTheme'
 
 type StoreMedia = Store & {
   logo?: string
@@ -16,6 +25,7 @@ export default function StoreDetail() {
   const [error, setError] = useState('')
   const [store, setStore] = useState<StoreMedia | null>(null)
   const [storeProducts, setStoreProducts] = useState<Product[]>([])
+  const [headerTheme, setHeaderTheme] = useState<ImageBrightness>('dark')
 
   useEffect(() => {
     const fetchStoreDetail = async () => {
@@ -80,12 +90,40 @@ export default function StoreDetail() {
     registerVisit()
   }, [store?.id])
 
+  const logo = resolveMediaUrl(store?.logo_url || store?.logo_path || store?.logo)
+  const cover = resolveMediaUrl(store?.cover_url || store?.cover_path || store?.background_url || store?.cover)
+  const storeId = store?.id || null
+  const adaptiveTheme = getThemeClassesByBrightness(headerTheme)
+
+  useEffect(() => {
+    if (!storeId) return
+
+    const cached = getStoredHeaderTheme(storeId)
+    if (cached) {
+      setHeaderTheme(cached)
+      return
+    }
+
+    if (!cover) {
+      setHeaderTheme('dark')
+      return
+    }
+
+    let mounted = true
+    getImageBrightness(cover).then((theme) => {
+      if (!mounted) return
+      setHeaderTheme(theme)
+      storeHeaderTheme(storeId, theme)
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [cover, storeId])
+
   if (loading) return <p className="text-[15px] text-[#4B5563]">Cargando tienda...</p>
   if (error) return <p className="text-[15px] text-red-600">{error}</p>
   if (!store) return <p className="text-[15px] text-[#4B5563]">Tienda no encontrada.</p>
-
-  const logo = resolveMediaUrl(store.logo_url || store.logo_path || store.logo)
-  const cover = resolveMediaUrl(store.cover_url || store.cover_path || store.background_url || store.cover)
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
@@ -94,22 +132,31 @@ export default function StoreDetail() {
       </div>
 
       <div className="relative">
-        <div
+        <CoverImage
+          src={cover}
+          ratio="free"
           className="h-[280px]"
-          style={{
-            background: cover
-              ? `url(${cover}) center/cover no-repeat`
-              : 'linear-gradient(135deg, #004E89 0%, #FF6B35 100%)',
+          onBrightnessChange={(theme) => {
+            setHeaderTheme(theme)
+            if (store?.id) storeHeaderTheme(store.id, theme)
           }}
-        />
+        >
+          <div className="flex h-full items-end px-6 pb-5 sm:px-10">
+            <div className={`rounded-2xl border px-4 py-3 backdrop-blur ${adaptiveTheme.chip}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${adaptiveTheme.textMuted}`}>
+                Tienda oficial
+              </p>
+              <p className={`text-xl font-black leading-tight ${adaptiveTheme.textPrimary}`}>{store.name}</p>
+            </div>
+          </div>
+        </CoverImage>
 
         <div className="px-6 sm:px-10">
           <div className="-mt-14 flex flex-col gap-6 sm:flex-row sm:items-end">
             <div className="h-28 w-28 overflow-hidden rounded-2xl border-[6px] border-white bg-white shadow-lg sm:h-36 sm:w-36">
-              {logo ? <img src={logo} alt={store.name} className="h-full w-full object-cover" /> : null}
+              <LogoImage src={logo} alt={store.name} className="h-full w-full rounded-none border-0 bg-white p-2" />
             </div>
             <div className="pb-4">
-              <h1 className="font-display text-[36px]">{store.name}</h1>
               <p className="mt-1 max-w-3xl text-[16px] text-[#4B5563]">
                 {store.description || 'Tienda verificada en ComercioPlus'}
               </p>

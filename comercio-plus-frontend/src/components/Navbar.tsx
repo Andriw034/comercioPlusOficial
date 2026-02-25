@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
 import { clearSession, getStoredToken, getStoredUserRaw } from '@/services/auth-session'
+import API from '@/lib/api'
 
 type AuthUser = {
   name?: string
@@ -85,10 +86,17 @@ export default function Navbar() {
     setUserOpen(false)
   }, [location.pathname])
 
-  const handleLogout = () => {
-    clearSession()
-    setUser(null)
-    navigate('/login')
+  const handleLogout = async () => {
+    try {
+      await API.post('/logout')
+    } catch {
+      // ignore backend logout error and clear local session anyway
+    } finally {
+      clearSession()
+      localStorage.removeItem('store')
+      setUser(null)
+      navigate('/login')
+    }
   }
 
   const navLinkStyle = (active: boolean): CSSProperties => ({

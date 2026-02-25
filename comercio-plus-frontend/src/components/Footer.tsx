@@ -5,15 +5,17 @@ import { useState } from 'react'
 export default function Footer() {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [notice, setNotice] = useState<string>('')
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setNotice('')
     
     // TODO: Conectar con API
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    alert('¡Gracias por suscribirte!')
+    setNotice('Gracias por suscribirte. Pronto recibiras novedades en tu correo.')
     setEmail('')
     setIsSubmitting(false)
   }
@@ -228,6 +230,11 @@ export default function Footer() {
             <p className="mb-6 text-sm text-slate-400">
               Recibe ofertas exclusivas, novedades y consejos para tu negocio
             </p>
+            {notice ? (
+              <div className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                {notice}
+              </div>
+            ) : null}
             <form onSubmit={handleNewsletterSubmit} className="flex gap-3">
               <input
                 type="email"

@@ -34,6 +34,13 @@ export default function Cart() {
   return (
     <div className="min-h-screen bg-slate-50 py-12">
       <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <Link to="/stores" className="font-medium text-slate-600 transition hover:text-slate-900">
+            Tiendas
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="font-semibold text-slate-900">Carrito</span>
+        </div>
         {/* Header */}
         <div className="mb-8">
           <h1 className="mb-2 text-4xl font-bold text-slate-900">Carrito de compras</h1>

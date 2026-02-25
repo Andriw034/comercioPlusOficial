@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import API from '@/lib/api'
 import { extractList } from '@/lib/api-response'
 import { resolveMediaUrl } from '@/lib/format'
 import { Icon } from '@/components/Icon'
+import CoverImage from '@/ui/images/CoverImage'
+import LogoImage from '@/ui/images/LogoImage'
+import { getThemeClassesByBrightness, type ImageBrightness } from '@/utils/imageTheme'
 import type { Store } from '@/types/api'
 
 type StoreCard = Store & {
@@ -26,9 +29,7 @@ export default function Stores() {
   const navigate = useNavigate()
   const [stores, setStores] = useState<StoreCard[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedStore, setSelectedStore] = useState<StoreCard | null>(null)
-  const [showRegisterModal, setShowRegisterModal] = useState(false)
-  const [isRegistering, setIsRegistering] = useState(false)
+  const [coverThemes, setCoverThemes] = useState<Record<number, ImageBrightness>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -62,38 +63,7 @@ export default function Stores() {
   const getStoreSlug = (store: StoreCard) => store.slug || slugify(store.name) || String(store.id)
 
   const handleStoreClick = (store: StoreCard) => {
-    setSelectedStore(store)
-    setShowRegisterModal(true)
-  }
-
-  const handleRegisterAsCustomer = async () => {
-    if (!selectedStore) return
-
-    const userRaw = localStorage.getItem('user')
-    const parsedUser = userRaw ? JSON.parse(userRaw) : null
-    const userId = parsedUser?.id || localStorage.getItem('userId')
-
-    setIsRegistering(true)
-    try {
-      await API.post('/stores/register-customer', {
-        storeId: selectedStore.id,
-        userId,
-      })
-
-      setShowRegisterModal(false)
-      navigate(`/stores/${getStoreSlug(selectedStore)}/products?registered=1`)
-    } catch {
-      setShowRegisterModal(false)
-      navigate(`/stores/${getStoreSlug(selectedStore)}/products`)
-    } finally {
-      setIsRegistering(false)
-    }
-  }
-
-  const handleSkipRegistration = () => {
-    if (!selectedStore) return
-    setShowRegisterModal(false)
-    navigate(`/stores/${getStoreSlug(selectedStore)}/products`)
+    navigate(`/stores/${getStoreSlug(store)}/products`)
   }
 
   return (
@@ -149,6 +119,7 @@ export default function Stores() {
               const cover = resolveMediaUrl(
                 store.cover_url || store.cover_path || store.background_url || store.cover,
               )
+              const coverTheme = getThemeClassesByBrightness(coverThemes[store.id] || 'dark')
               const rating = Number(store.rating || 0)
               const productsCount = Number(store.products_count || 0)
               const followers = Number(store.followers_count || 0)
@@ -165,30 +136,33 @@ export default function Stores() {
                   <div className="relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-white transition-all duration-300 hover:-translate-y-2 hover:border-comercioplus-500 hover:shadow-premium-xl">
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-comercioplus-500/0 to-comercioplus-600/0 opacity-0 transition-opacity duration-300 group-hover:opacity-10" />
 
-                    <div className="relative h-32 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-comercioplus-900">
-                      {cover ? (
-                        <img src={cover} alt="" className="h-full w-full object-cover opacity-50" />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-comercioplus-900" />
-                      )}
-
+                    <CoverImage
+                      src={cover}
+                      ratio="free"
+                      className="h-32"
+                      onBrightnessChange={(theme) =>
+                        setCoverThemes((previous) =>
+                          previous[store.id] === theme ? previous : { ...previous, [store.id]: theme },
+                        )
+                      }
+                    >
                       {(store.featured || false) && (
                         <div className="absolute left-3 top-3">
-                          <span className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
-                            <Icon name="star" size={14} className="fill-white" />
+                          <span className={`flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-bold shadow-lg ${coverTheme.chip}`}>
+                            <Icon name="star" size={14} className={coverTheme.icon} />
                             Destacada
                           </span>
                         </div>
                       )}
-                    </div>
+                    </CoverImage>
 
                     <div className="relative -mt-12 px-6">
                       <div className="relative inline-block">
                         {logo ? (
-                          <img
+                          <LogoImage
                             src={logo}
                             alt={store.name}
-                            className="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-lg"
+                            className="h-24 w-24 rounded-2xl border-4 border-white bg-white p-2 shadow-lg"
                           />
                         ) : (
                           <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-gradient-to-br from-comercioplus-600 to-comercioplus-700 shadow-lg">
@@ -245,106 +219,6 @@ export default function Stores() {
           </div>
         )}
       </div>
-
-      <AnimatePresence>
-        {showRegisterModal && selectedStore && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[110] bg-slate-900/80 backdrop-blur-sm"
-              onClick={() => !isRegistering && setShowRegisterModal(false)}
-            />
-
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-3">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="max-h-[88vh] w-full max-w-[430px] overflow-y-auto rounded-2xl bg-white p-6 shadow-premium-xl"
-            >
-              <div className="mb-4 flex justify-center">
-                {resolveMediaUrl(selectedStore.logo_url || selectedStore.logo_path || selectedStore.logo) ? (
-                  <img
-                    src={resolveMediaUrl(selectedStore.logo_url || selectedStore.logo_path || selectedStore.logo) || ''}
-                    alt={selectedStore.name}
-                    className="h-16 w-16 rounded-xl object-cover shadow-lg"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-comercioplus-600 to-comercioplus-700 shadow-lg">
-                    <Icon name="store" size={26} className="text-white" />
-                  </div>
-                )}
-              </div>
-
-              <h3 className="mb-1 text-center text-2xl font-bold leading-tight text-slate-900">Quieres registrarte como cliente?</h3>
-
-              <p className="mb-2 text-center text-base font-semibold text-comercioplus-600">{selectedStore.name}</p>
-
-              <p className="mb-4 text-center text-[14px] text-slate-600">
-                Al registrarte, recibiras ofertas exclusivas, notificaciones de nuevos productos y seguimiento
-                personalizado de tus pedidos.
-              </p>
-
-              <div className="mb-4 space-y-2 rounded-xl bg-slate-50 p-3">
-                <div className="flex items-start gap-2.5">
-                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-green-100">
-                    <Icon name="check" size={14} className="text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Ofertas exclusivas</p>
-                    <p className="text-[13px] text-slate-600">Descuentos solo para clientes</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                    <Icon name="bell" size={14} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Notificaciones</p>
-                    <p className="text-[13px] text-slate-600">Enterate de nuevos productos primero</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-comercioplus-100">
-                    <Icon name="package" size={14} className="text-comercioplus-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Seguimiento</p>
-                    <p className="text-[13px] text-slate-600">Historial completo de pedidos</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSkipRegistration}
-                  disabled={isRegistering}
-                  className="flex-1 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Solo ver productos
-                </button>
-                <button
-                  onClick={handleRegisterAsCustomer}
-                  disabled={isRegistering}
-                  className="flex-1 rounded-xl bg-comercioplus-600 px-4 py-2.5 font-semibold text-white transition-all hover:bg-comercioplus-700 hover:shadow-lg disabled:opacity-50"
-                >
-                  {isRegistering ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Registrando...
-                    </span>
-                  ) : (
-                    'Si, registrarme!'
-                  )}
-                </button>
-              </div>
-            </motion.div>
-            </div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
 import { useCart } from '@/context/CartContext'
 import API from '@/lib/api'
+import { getStoredToken } from '@/services/auth-session'
 
 type PaymentMethod = 'PSE' | 'NEQUI' | 'BANCOLOMBIA' | 'CARD'
 
@@ -15,11 +16,18 @@ interface CheckoutForm {
   notes: string
 }
 
+type CheckoutNotice = {
+  variant: 'error' | 'success'
+  message: string
+}
+
 export default function Checkout() {
   const navigate = useNavigate()
   const { items, totalPrice } = useCart()
+  const token = getStoredToken()
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [notice, setNotice] = useState<CheckoutNotice | null>(null)
   const [formData, setFormData] = useState<CheckoutForm>({
     email: '',
     name: '',
@@ -28,6 +36,17 @@ export default function Checkout() {
     city: '',
     notes: '',
   })
+
+  useEffect(() => {
+    if (items.length === 0) {
+      navigate('/cart', { replace: true })
+      return
+    }
+
+    if (!token) {
+      navigate(`/login?redirect=${encodeURIComponent('/checkout')}`, { replace: true })
+    }
+  }, [items.length, navigate, token])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({
@@ -38,15 +57,16 @@ export default function Checkout() {
 
   const handlePayment = async () => {
     if (!selectedMethod) {
-      alert('Por favor selecciona un metodo de pago')
+      setNotice({ variant: 'error', message: 'Selecciona un metodo de pago para continuar.' })
       return
     }
 
     if (!formData.email || !formData.name || !formData.phone) {
-      alert('Por favor completa todos los campos obligatorios')
+      setNotice({ variant: 'error', message: 'Completa email, nombre y telefono para continuar.' })
       return
     }
 
+    setNotice(null)
     setIsProcessing(true)
 
     try {
@@ -92,26 +112,50 @@ export default function Checkout() {
       window.location.href = paymentData.checkoutUrl
     } catch (error: any) {
       console.error('checkout error', error)
-      alert(
-        error?.response?.data?.error ||
+      setNotice({
+        variant: 'error',
+        message:
+          error?.response?.data?.error ||
           error?.response?.data?.message ||
           error?.message ||
-          'Error al procesar el pago. Por favor intenta nuevamente.',
-      )
+          'Error al procesar el pago. Intenta nuevamente.',
+      })
     } finally {
       setIsProcessing(false)
     }
   }
 
-  if (items.length === 0) {
-    navigate('/cart')
+  if (items.length === 0 || !token) {
     return null
   }
 
   return (
     <div className="min-h-screen bg-slate-50 py-12">
       <div className="mx-auto max-w-6xl px-6">
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <Link to="/stores" className="font-medium text-slate-600 transition hover:text-slate-900">
+            Tiendas
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link to="/cart" className="font-medium text-slate-600 transition hover:text-slate-900">
+            Carrito
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="font-semibold text-slate-900">Checkout</span>
+        </div>
         <h1 className="mb-8 text-4xl font-bold text-slate-900">Finalizar compra</h1>
+
+        {notice ? (
+          <div
+            className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+              notice.variant === 'error'
+                ? 'border-rose-200 bg-rose-50 text-rose-900'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            }`}
+          >
+            {notice.message}
+          </div>
+        ) : null}
 
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">

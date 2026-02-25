@@ -1,7 +1,6 @@
-import Badge from '@/components/Badge'
+﻿import Badge from '@/components/Badge'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
-import Header from '@/components/Header'
 
 const merchantSteps = [
   {
@@ -38,28 +37,26 @@ const benefits = [
 export default function HowItWorks() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header
-        links={[
-          { label: 'Tiendas', href: '/' },
-          { label: 'Productos', href: '/products' },
-          { label: 'Como Funciona', href: '/how-it-works', active: true },
-        ]}
-      />
-
       <section className="relative overflow-hidden bg-slate-950 py-24 text-white">
         <div className="absolute inset-0 bg-mesh opacity-70" />
         <div className="absolute -left-16 top-20 h-56 w-56 rounded-full bg-brand-500/25 blur-3xl" />
         <div className="absolute -right-20 top-8 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-6 text-center lg:px-10">
-          <Badge variant="brand" className="mb-4">ComercioPlus Method</Badge>
+          <Badge variant="brand" className="mb-4">
+            ComercioPlus Method
+          </Badge>
           <h1 className="mb-6 text-display-md text-white">Como funciona ComercioPlus</h1>
           <p className="mx-auto mb-10 max-w-3xl text-body-lg text-slate-200">
             Una plataforma para lanzar, operar y escalar comercio digital con una experiencia premium.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <Button variant="primary" size="lg">Crear tienda gratis</Button>
-            <Button variant="glass" size="lg">Solicitar demo</Button>
+            <Button variant="primary" size="lg">
+              Crear tienda gratis
+            </Button>
+            <Button variant="glass" size="lg">
+              Solicitar demo
+            </Button>
           </div>
         </div>
       </section>
@@ -110,14 +107,20 @@ export default function HowItWorks() {
             <div className="relative text-center">
               <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl" />
               <div className="relative z-10">
-                <Badge variant="info" className="mb-4">Production ready</Badge>
+                <Badge variant="info" className="mb-4">
+                  Production ready
+                </Badge>
                 <h2 className="mb-4 text-h1">Listo para empezar</h2>
                 <p className="mx-auto mb-8 max-w-2xl text-body-lg text-slate-600">
                   Activa tu tienda y comienza a vender con una experiencia moderna para tu equipo y clientes.
                 </p>
                 <div className="flex flex-col justify-center gap-4 sm:flex-row">
-                  <Button variant="primary" size="lg">Crear mi tienda</Button>
-                  <Button variant="outline" size="lg">Hablar con ventas</Button>
+                  <Button variant="primary" size="lg">
+                    Crear mi tienda
+                  </Button>
+                  <Button variant="outline" size="lg">
+                    Hablar con ventas
+                  </Button>
                 </div>
               </div>
             </div>

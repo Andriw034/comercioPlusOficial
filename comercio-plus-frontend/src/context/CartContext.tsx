@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+﻿import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 interface CartItem {
   id: string
@@ -11,9 +11,18 @@ interface CartItem {
   storeId: string
 }
 
+interface CartProductInput {
+  id: string | number
+  name: string
+  price: number
+  image: string
+  seller: string
+  storeId: string | number
+}
+
 interface CartContextType {
   items: CartItem[]
-  addToCart: (product: any) => void
+  addToCart: (product: CartProductInput) => void
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
@@ -21,56 +30,57 @@ interface CartContextType {
   totalPrice: number
 }
 
+const CART_STORAGE_KEY = 'cart'
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+const readStoredCart = (): CartItem[] => {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    console.error('Error loading cart:', error)
+    return []
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>(readStoredCart)
 
-  // Cargar carrito desde localStorage al iniciar
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart')
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error('Error loading cart:', error)
-      }
-    }
-  }, [])
-
-  // Guardar carrito en localStorage cuando cambie
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items))
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
   }, [items])
 
-  const addToCart = (product: any) => {
+  const addToCart = (product: CartProductInput) => {
+    const productId = String(product.id)
+
     setItems((currentItems) => {
-      // Verificar si el producto ya está en el carrito
-      const existingItem = currentItems.find((item) => item.productId === product.id)
+      const existingItem = currentItems.find((item) => item.productId === productId)
 
       if (existingItem) {
-        // Incrementar cantidad
         return currentItems.map((item) =>
-          item.productId === product.id
+          item.productId === productId
             ? { ...item, quantity: item.quantity + 1 }
-            : item
+            : item,
         )
-      } else {
-        // Agregar nuevo producto
-        return [
-          ...currentItems,
-          {
-            id: `${product.id}-${Date.now()}`,
-            productId: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: 1,
-            image: product.image,
-            seller: product.seller,
-            storeId: product.storeId,
-          },
-        ]
       }
+
+      return [
+        ...currentItems,
+        {
+          id: `${productId}-${Date.now()}`,
+          productId,
+          name: product.name,
+          price: Number(product.price || 0),
+          quantity: 1,
+          image: product.image,
+          seller: product.seller,
+          storeId: String(product.storeId),
+        },
+      ]
     })
   }
 
@@ -86,8 +96,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
-      )
+        item.productId === productId ? { ...item, quantity } : item,
+      ),
     )
   }
 

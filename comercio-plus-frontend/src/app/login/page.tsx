@@ -6,6 +6,8 @@ import Input from '@/components/ui/Input'
 import { Icon } from '@/components/Icon'
 import { hydrateSession, resolvePostAuthRoute } from '@/services/auth-session'
 
+const isSafeInternalRedirect = (value: string) => value.startsWith('/') && !value.startsWith('//')
+
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -30,9 +32,20 @@ export default function Login() {
 
       if (data?.token) {
         const user = await hydrateSession(data.token, form.remember)
+        const fallbackRoute = resolvePostAuthRoute(user)
+
+        if (user.role === 'merchant') {
+          navigate(fallbackRoute, { replace: true })
+          return
+        }
+
         const redirectParam = searchParams.get('redirect')
-        if (redirectParam) navigate(redirectParam)
-        else navigate(resolvePostAuthRoute(user))
+        if (redirectParam && isSafeInternalRedirect(redirectParam)) {
+          navigate(redirectParam, { replace: true })
+          return
+        }
+
+        navigate(fallbackRoute, { replace: true })
       } else {
         setError('No se recibio token de autenticacion.')
       }
@@ -115,7 +128,9 @@ export default function Login() {
             />
             Recordarme
           </label>
-          <span className="text-[13px] font-medium text-[#FF6B35]">¿Olvidaste tu contrasena?</span>
+          <Link to="/forgot-password" className="text-[13px] font-medium text-[#FF6B35] hover:underline">
+            ¿Olvidaste tu contrasena?
+          </Link>
         </div>
 
         {error && <div className="text-sm text-red-600">{error}</div>}

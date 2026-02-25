@@ -6,6 +6,8 @@ import API from '@/lib/api'
 import { extractList } from '@/lib/api-response'
 import { resolveMediaUrl } from '@/lib/format'
 import type { Category, Product, Store } from '@/types/api'
+import CoverImage from '@/ui/images/CoverImage'
+import LogoImage from '@/ui/images/LogoImage'
 
 export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -157,17 +159,11 @@ export default function Home() {
                     to="/stores"
                     className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:-translate-y-1 hover:shadow-lg"
                   >
-                    <div className="h-28 bg-slate-800">
-                      {cover ? (
-                        <img src={cover} alt="" className="h-full w-full object-cover opacity-80" />
-                      ) : (
-                        <div className="h-full w-full bg-gradient-to-r from-slate-800 to-slate-700" />
-                      )}
-                    </div>
+                    <CoverImage src={cover} ratio="free" className="h-28" />
                     <div className="-mt-6 p-4">
                       <div className="mb-3 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-white bg-white shadow">
                         {logo ? (
-                          <img src={logo} alt={store.name} className="h-full w-full object-cover" />
+                          <LogoImage src={logo} alt={store.name} className="h-full w-full rounded-none border-0 bg-white p-1" />
                         ) : (
                           <Icon name="store" size={18} className="text-comercioplus-600" />
                         )}

@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link, useSearchParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import API from '@/lib/api'
 import { extractList } from '@/lib/api-response'
 import { resolveMediaUrl } from '@/lib/format'
 import { Icon } from '@/components/Icon'
-import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
 import { useCart } from '@/context/CartContext'
+import CoverImage from '@/ui/images/CoverImage'
+import LogoImage from '@/ui/images/LogoImage'
+import {
+  getImageBrightness,
+  getStoredHeaderTheme,
+  getThemeClassesByBrightness,
+  storeHeaderTheme,
+  type ImageBrightness,
+} from '@/utils/imageTheme'
 import type { Product, Store } from '@/types/api'
 
 type StoreWithMeta = Store & {
@@ -25,14 +33,14 @@ const slugify = (value: string) =>
 
 export default function StoreProducts() {
   const { storeSlug = '' } = useParams()
-  const [searchParams] = useSearchParams()
-  const { addToCart, totalItems } = useCart()
+  const { addToCart } = useCart()
 
   const [store, setStore] = useState<StoreWithMeta | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
   const [sortBy, setSortBy] = useState('popular')
+  const [headerTheme, setHeaderTheme] = useState<ImageBrightness>('dark')
 
   useEffect(() => {
     const loadStoreData = async () => {
@@ -127,6 +135,36 @@ export default function StoreProducts() {
     })
   }
 
+  const logo = resolveMediaUrl(store?.logo_url || store?.logo_path || store?.logo)
+  const cover = resolveMediaUrl(store?.cover_url || store?.cover_path || store?.background_url || store?.cover)
+  const storeId = store?.id || null
+  const adaptiveTheme = getThemeClassesByBrightness(headerTheme)
+
+  useEffect(() => {
+    if (!storeId) return
+
+    const cached = getStoredHeaderTheme(storeId)
+    if (cached) {
+      setHeaderTheme(cached)
+      return
+    }
+    if (!cover) {
+      setHeaderTheme('dark')
+      return
+    }
+
+    let mounted = true
+    getImageBrightness(cover).then((theme) => {
+      if (!mounted) return
+      setHeaderTheme(theme)
+      storeHeaderTheme(storeId, theme)
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [cover, storeId])
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -152,41 +190,37 @@ export default function StoreProducts() {
     )
   }
 
-  const logo = resolveMediaUrl(store.logo_url || store.logo_path || store.logo)
-  const cover = resolveMediaUrl(store.cover_url || store.cover_path || store.background_url || store.cover)
-  const showRegisteredAlert = searchParams.get('registered') === '1'
-
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header
-        links={[
-          { label: 'Tiendas', href: '/stores' },
-          { label: store.name, href: `/stores/${storeSlug}/products`, active: true },
-        ]}
-        showAuth={false}
-        showBell
-        showCart
-        cartCount={totalItems}
-      />
-
       <div className="relative">
-        <div className="relative h-64 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-comercioplus-900">
-          {cover ? (
-            <img src={cover} alt="" className="h-full w-full object-cover opacity-40" />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-comercioplus-900" />
-          )}
-        </div>
+        <CoverImage
+          src={cover}
+          ratio="free"
+          className="h-64"
+          onBrightnessChange={(theme) => {
+            setHeaderTheme(theme)
+            storeHeaderTheme(store.id, theme)
+          }}
+        >
+          <div className="mx-auto flex h-full max-w-7xl items-end px-6 pb-6">
+            <div className={`rounded-2xl border px-4 py-3 backdrop-blur ${adaptiveTheme.chip}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${adaptiveTheme.textMuted}`}>
+                Catalogo
+              </p>
+              <p className={`text-xl font-black leading-tight ${adaptiveTheme.textPrimary}`}>{store.name}</p>
+            </div>
+          </div>
+        </CoverImage>
 
         <div className="mx-auto max-w-7xl px-6">
           <div className="relative -mt-16 rounded-2xl border-2 border-slate-200 bg-white p-8 shadow-premium-xl">
             <div className="flex flex-wrap items-start gap-6">
               <div className="relative flex-shrink-0">
                 {logo ? (
-                  <img
+                  <LogoImage
                     src={logo}
                     alt={store.name}
-                    className="h-32 w-32 rounded-2xl border-4 border-white object-cover shadow-lg"
+                    className="h-32 w-32 rounded-2xl border-4 border-white bg-white p-2 shadow-lg"
                   />
                 ) : (
                   <div className="flex h-32 w-32 items-center justify-center rounded-2xl border-4 border-white bg-gradient-to-br from-comercioplus-600 to-comercioplus-700 shadow-lg">
@@ -256,21 +290,6 @@ export default function StoreProducts() {
                   </div>
                 </div>
 
-                {showRegisteredAlert && (
-                  <div className="rounded-xl bg-green-50 p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-green-100">
-                        <Icon name="check" size={16} className="text-green-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-green-900">Te has registrado como cliente!</p>
-                        <p className="text-sm text-green-700">
-                          Ahora recibiras ofertas exclusivas y notificaciones de nuevos productos.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

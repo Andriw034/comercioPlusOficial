@@ -85,7 +85,10 @@ export function clearSession(): void {
 
 export function resolvePostAuthRoute(user: AuthUser): string {
   if (user.role === 'merchant') {
-    return user.has_store ? '/dashboard/products' : '/dashboard/store'
+    if (!user.has_store && !user.store_id) {
+      return '/dashboard/store'
+    }
+    return '/dashboard'
   }
 
   if (user.role === 'admin') {

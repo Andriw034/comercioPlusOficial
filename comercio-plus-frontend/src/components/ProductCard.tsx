@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+﻿import type { FC } from 'react'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import type { Product } from '@/types'
@@ -16,7 +16,16 @@ const gradients = [
   'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
 ]
 
+const gradientFromSeed = (seed: string) => {
+  let hash = 0
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  }
+  return gradients[hash % gradients.length]
+}
+
 const ProductCard: FC<ProductCardProps> = ({
+  id,
   name,
   price,
   image,
@@ -24,30 +33,22 @@ const ProductCard: FC<ProductCardProps> = ({
   onAddToCart,
   onClick,
 }) => {
-  const randomGradient = gradients[Math.floor(Math.random() * gradients.length)]
+  const fallbackGradient = gradientFromSeed(`${id}-${name}`)
 
   return (
     <Card hoverable padding="none" onClick={onClick} className="overflow-hidden">
       <div
         className="h-48"
         style={{
-          background: image ? `url(${image})` : randomGradient,
+          background: image ? `url(${image})` : fallbackGradient,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       />
       <div className="p-5">
-        <h3 className="text-lg font-semibold text-dark-900 mb-2 truncate">
-          {name}
-        </h3>
-        <p className="text-xl font-bold text-primary mb-3">
-          ${price.toLocaleString('es-CL')}
-        </p>
-        {stock !== undefined && (
-          <p className="text-body-sm text-dark-600 mb-4">
-            Stock: {stock} unidades
-          </p>
-        )}
+        <h3 className="mb-2 truncate text-lg font-semibold text-dark-900">{name}</h3>
+        <p className="mb-3 text-xl font-bold text-primary">${price.toLocaleString('es-CO')}</p>
+        {stock !== undefined && <p className="mb-4 text-body-sm text-dark-600">Stock: {stock} unidades</p>}
         {onAddToCart && (
           <Button
             variant="primary"

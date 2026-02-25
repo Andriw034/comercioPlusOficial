@@ -9,7 +9,17 @@ import API from '@/lib/api'
 import { getApiMeta, getApiPayload } from '@/lib/apiPayload'
 import { resolveMediaUrl } from '@/lib/format'
 import { uploadStoreCover, uploadStoreLogo } from '@/services/uploads'
+import CoverImage from '@/ui/images/CoverImage'
+import LogoImage from '@/ui/images/LogoImage'
+import { getGlobalIconVariant, setGlobalIconVariant, type IconVariant } from '@/ui/icons'
 import { generatePreview, validateImage } from '@/utils/imageUtils'
+import {
+  getImageBrightness,
+  getStoredHeaderTheme,
+  getThemeClassesByBrightness,
+  storeHeaderTheme,
+  type ImageBrightness,
+} from '@/utils/imageTheme'
 
 interface StoreData {
   id: number
@@ -217,6 +227,8 @@ export default function DashboardStore() {
   const [taxSaving, setTaxSaving] = useState(false)
   const [taxError, setTaxError] = useState('')
   const [toast, setToast] = useState<ToastState | null>(null)
+  const [headerTheme, setHeaderTheme] = useState<ImageBrightness>('dark')
+  const [iconVariant, setIconVariantState] = useState<IconVariant>(() => getGlobalIconVariant())
 
   const stats = {
     revenue: 24600000,
@@ -295,6 +307,10 @@ export default function DashboardStore() {
           setOriginalData(mapped)
           setStoreData(mapped)
           setStoreId(parseStoreId(data.id))
+          const initialTheme = (data?.header_theme === 'light' || data?.header_theme === 'dark')
+            ? data.header_theme
+            : getStoredHeaderTheme(data.id) || 'dark'
+          setHeaderTheme(initialTheme)
           localStorage.setItem('store', JSON.stringify(data))
         }
       } catch (error: any) {
@@ -305,6 +321,7 @@ export default function DashboardStore() {
           setStoreData(fallbackStore)
           setIsEditing(true)
           setStoreId(null)
+          setHeaderTheme('dark')
           localStorage.removeItem('store')
           return
         }
@@ -346,6 +363,34 @@ export default function DashboardStore() {
 
     return () => window.clearTimeout(timer)
   }, [toast])
+
+  useEffect(() => {
+    const targetStoreId = storeData.id || storeId
+    if (!storeData.cover) {
+      setHeaderTheme(getStoredHeaderTheme(targetStoreId) || 'dark')
+      return
+    }
+
+    const cachedTheme = getStoredHeaderTheme(targetStoreId)
+    if (cachedTheme) {
+      setHeaderTheme(cachedTheme)
+      return
+    }
+
+    let isMounted = true
+
+    getImageBrightness(storeData.cover).then((theme) => {
+      if (!isMounted) return
+      setHeaderTheme(theme)
+      storeHeaderTheme(targetStoreId, theme)
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [storeData.cover, storeData.id, storeId])
+
+  const adaptiveTheme = getThemeClassesByBrightness(headerTheme)
 
   const handleEdit = () => setIsEditing(true)
 
@@ -428,8 +473,9 @@ export default function DashboardStore() {
       setStoreNotFound(false)
       setFiles({ logo: null, cover: null })
       setIsEditing(false)
-      localStorage.setItem('store', JSON.stringify(responseData || merged))
-      window.dispatchEvent(new CustomEvent('store:updated', { detail: responseData || merged }))
+      const enrichedStore = { ...(responseData || merged), header_theme: headerTheme }
+      localStorage.setItem('store', JSON.stringify(enrichedStore))
+      window.dispatchEvent(new CustomEvent('store:updated', { detail: enrichedStore }))
       showToast('Datos de la tienda guardados correctamente.', 'success')
     } catch (error: any) {
       const firstFieldError = error?.response?.data?.errors
@@ -536,7 +582,7 @@ export default function DashboardStore() {
             className="absolute inset-0 scale-[1.02] bg-cover bg-center bg-no-repeat saturate-125"
             style={{ backgroundImage: `url(${storeData.cover})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/18 via-white/20 to-white/45" />
+          <div className={`absolute inset-0 bg-gradient-to-b ${adaptiveTheme.overlay}`} />
         </div>
       )}
 
@@ -607,11 +653,13 @@ export default function DashboardStore() {
                 <label className="mb-2 block text-body-sm font-semibold text-slate-900">Logo de la tienda</label>
                 <div className="relative">
                   <div className="flex h-32 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-slate-50">
-                    {storeData.logo ? (
-                      <img src={storeData.logo} alt="Logo" className="h-full w-full object-contain p-2" style={{ maxHeight: '112px' }} />
-                    ) : (
-                      <p className="text-body-sm text-slate-500">Sube tu logo</p>
-                    )}
+                    <LogoImage
+                      src={storeData.logo}
+                      alt="Logo"
+                      className="h-full w-full rounded-none border-0 bg-transparent p-2"
+                      imageClassName="max-h-[112px]"
+                      fallbackClassName="rounded-xl"
+                    />
                   </div>
                   {isEditing && (
                     <input
@@ -630,11 +678,15 @@ export default function DashboardStore() {
                 <label className="mb-2 block text-body-sm font-semibold text-slate-900">Portada de la tienda</label>
                 <div className="relative">
                   <div className="flex h-32 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-slate-50">
-                    {storeData.cover ? (
-                      <img src={storeData.cover} alt="Portada" className="h-full w-full object-cover" />
-                    ) : (
-                      <p className="text-body-sm text-slate-500">Sube tu portada</p>
-                    )}
+                    <CoverImage
+                      src={storeData.cover}
+                      ratio="free"
+                      className="h-full w-full rounded-none"
+                      onBrightnessChange={(theme) => {
+                        setHeaderTheme(theme)
+                        storeHeaderTheme(storeData.id || storeId, theme)
+                      }}
+                    />
                   </div>
                   {isEditing && (
                     <input
@@ -646,6 +698,9 @@ export default function DashboardStore() {
                   )}
                 </div>
                 <p className="mt-1 text-caption text-slate-500">Recomendado: 1920x400px, maximo 5MB.</p>
+                <p className="mt-1 text-caption text-slate-500">
+                  Contraste detectado: {headerTheme === 'dark' ? 'fondo oscuro' : 'fondo claro'}.
+                </p>
                 {errors.cover && <p className="mt-1 text-caption text-danger">{errors.cover}</p>}
               </div>
             </div>
@@ -743,6 +798,26 @@ export default function DashboardStore() {
                 <p>Productos activos: <strong>{stats.activeProducts}</strong></p>
                 <p>Total productos: <strong>{stats.totalProducts}</strong></p>
               </div>
+            </Card>
+
+            <Card variant="glass" padding="lg">
+              <h3 className="mb-4 text-h3">Iconografia</h3>
+              <p className="mb-3 text-caption text-slate-500">
+                Define estilo global de iconos para esta sesion.
+              </p>
+              <select
+                className="select-dark native-select w-full"
+                value={iconVariant}
+                onChange={(event) => {
+                  const next = event.target.value as IconVariant
+                  setIconVariantState(next)
+                  setGlobalIconVariant(next)
+                  showToast('Preferencia de iconos actualizada.', 'success')
+                }}
+              >
+                <option value="fa">Vector (fa)</option>
+                <option value="emoji">Emoji</option>
+              </select>
             </Card>
 
             <Card variant="glass" padding="lg" className="bg-white/90 backdrop-blur-sm">

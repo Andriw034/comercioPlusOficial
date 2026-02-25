@@ -9,8 +9,8 @@ export default function PublicLayout() {
 
   return (
     <AppShell
-      header={isHomeRoute ? <Navbar /> : undefined}
-      footer={isHomeRoute ? <Footer /> : undefined}
+      header={<Navbar />}
+      footer={<Footer />}
       containerClassName={isHomeRoute ? 'max-w-none' : ''}
       mainClassName={isHomeRoute ? '!px-0 !py-0' : ''}
     >
