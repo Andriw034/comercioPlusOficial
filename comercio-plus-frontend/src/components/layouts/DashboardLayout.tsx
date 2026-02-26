@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from '@/components/dashboard/Sidebar'
-import API from '@/lib/api'
+import DashboardTopbar from '@/components/dashboard/DashboardTopbar'
+import SidebarDrawer from '@/components/dashboard/SidebarDrawer'
+import API from '@/services/api'
 import { resolveMediaUrl } from '@/lib/format'
 
 interface Store {
@@ -32,11 +34,13 @@ function mapStore(data: any): Store {
 }
 
 export default function DashboardLayout() {
+  const location = useLocation()
   const cachedRaw = useMemo(() => localStorage.getItem(STORE_CACHE_KEY), [])
   const cachedParsed = useMemo(() => safeParseStore(cachedRaw), [cachedRaw])
 
   const [store, setStore] = useState<Store | null>(() => (cachedParsed ? mapStore(cachedParsed) : null))
   const [isLoading, setIsLoading] = useState(() => !cachedParsed)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -92,6 +96,10 @@ export default function DashboardLayout() {
     }
   }, [])
 
+  useEffect(() => {
+    setIsDrawerOpen(false)
+  }, [location.pathname, location.search])
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -105,9 +113,13 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f0f2f7] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <Sidebar store={store} />
+      <div className="hidden md:block">
+        <Sidebar store={store} />
+      </div>
+      <SidebarDrawer open={isDrawerOpen} store={store} onClose={() => setIsDrawerOpen(false)} />
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8">
+        <DashboardTopbar storeName={store?.name || 'Panel ComercioPlus'} onMenuClick={() => setIsDrawerOpen(true)} />
         <Outlet context={{ store }} />
       </main>
     </div>

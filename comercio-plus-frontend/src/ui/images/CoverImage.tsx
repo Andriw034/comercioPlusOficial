@@ -11,6 +11,7 @@ type CoverImageProps = {
   className?: string
   imageClassName?: string
   overlay?: boolean
+  overlayMode?: 'default' | 'header'
   brightness?: ImageBrightness
   onBrightnessChange?: (value: ImageBrightness) => void
   children?: ReactNode
@@ -28,6 +29,7 @@ export default function CoverImage({
   className = '',
   imageClassName = '',
   overlay = true,
+  overlayMode = 'default',
   brightness,
   onBrightnessChange,
   children,
@@ -58,6 +60,10 @@ export default function CoverImage({
 
   const ratioClass = ratio === 'free' ? '' : ratioClassMap[ratio]
   const themeClasses = getThemeClassesByBrightness(brightness || computedBrightness)
+  const overlayClassName =
+    overlayMode === 'header'
+      ? 'from-slate-950/45 via-slate-950/62 to-slate-950/82'
+      : themeClasses.overlay
 
   return (
     <div className={`relative overflow-hidden bg-slate-900 ${ratioClass} ${className}`.trim()}>
@@ -73,7 +79,7 @@ export default function CoverImage({
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-comercioplus-900" />
       )}
 
-      {overlay ? <div className={`absolute inset-0 bg-gradient-to-b ${themeClasses.overlay}`} /> : null}
+      {overlay ? <div className={`absolute inset-0 bg-gradient-to-b ${overlayClassName}`} /> : null}
       {children ? <div className="relative z-10 h-full">{children}</div> : null}
     </div>
   )

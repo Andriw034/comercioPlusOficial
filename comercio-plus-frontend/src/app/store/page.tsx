@@ -1,8 +1,9 @@
 ﻿import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import API from '@/lib/api'
+import API from '@/services/api'
 import type { Product, Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
+import { useCart } from '@/context/CartContext'
 import { formatPrice, resolveMediaUrl } from '@/lib/format'
 import CoverImage from '@/ui/images/CoverImage'
 import LogoImage from '@/ui/images/LogoImage'
@@ -21,11 +22,13 @@ type StoreMedia = Store & {
 
 export default function StoreDetail() {
   const { id } = useParams()
+  const { addToCart } = useCart()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [store, setStore] = useState<StoreMedia | null>(null)
   const [storeProducts, setStoreProducts] = useState<Product[]>([])
   const [headerTheme, setHeaderTheme] = useState<ImageBrightness>('dark')
+  const [addedNotice, setAddedNotice] = useState<{ productId: string; visible: boolean } | null>(null)
 
   useEffect(() => {
     const fetchStoreDetail = async () => {
@@ -121,6 +124,34 @@ export default function StoreDetail() {
     }
   }, [cover, storeId])
 
+  useEffect(() => {
+    if (!addedNotice?.visible) return
+
+    const timeoutId = window.setTimeout(() => {
+      setAddedNotice((current) => (current ? { ...current, visible: false } : null))
+    }, 1200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [addedNotice])
+
+  const handleAddToCart = (product: Product) => {
+    if (!store || product?.id == null) return
+
+    addToCart({
+      id: product.id,
+      name: product.name || 'Producto',
+      price: Number(product.price || 0),
+      image: resolveMediaUrl(product.image_url || product.image) || '',
+      seller: store.name || store.description || 'Tienda ComercioPlus',
+      storeId: store.id,
+    })
+
+    setAddedNotice({
+      productId: String(product.id),
+      visible: true,
+    })
+  }
+
   if (loading) return <p className="text-[15px] text-[#4B5563]">Cargando tienda...</p>
   if (error) return <p className="text-[15px] text-red-600">{error}</p>
   if (!store) return <p className="text-[15px] text-[#4B5563]">Tienda no encontrada.</p>
@@ -136,6 +167,8 @@ export default function StoreDetail() {
           src={cover}
           ratio="free"
           className="h-[280px]"
+          overlay
+          overlayMode="header"
           onBrightnessChange={(theme) => {
             setHeaderTheme(theme)
             if (store?.id) storeHeaderTheme(store.id, theme)
@@ -199,7 +232,16 @@ export default function StoreDetail() {
                   <div className="space-y-2 p-5">
                     <h3 className="text-[16px] font-semibold text-[#1A1A2E]">{product.name}</h3>
                     <p className="text-[20px] font-bold text-[#FF6B35]">${formatPrice(product.price)}</p>
-                    <button className={`${buttonVariants('primary')} w-full`}>Agregar al Carrito</button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(product)}
+                      className={`${buttonVariants('primary')} w-full`}
+                    >
+                      Agregar al Carrito
+                    </button>
+                    {addedNotice?.visible && addedNotice.productId === String(product.id) ? (
+                      <p className="text-xs font-semibold text-emerald-700">Agregado al carrito ✅</p>
+                    ) : null}
                   </div>
                 </article>
               )

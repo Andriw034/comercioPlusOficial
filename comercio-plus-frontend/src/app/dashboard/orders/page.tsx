@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
-import Badge from '@/components/ui/Badge'
+import StatusBadge from '@/components/ui/StatusBadge'
 import Button from '@/components/ui/button'
 
 type OrderStatus = 'pending' | 'processing' | 'paid' | 'approved' | 'completed' | 'cancelled'
@@ -190,7 +190,7 @@ function OrderDetail({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">Pedido {order.reference}</h2>
-              <Badge variant={cfg.variant}>{cfg.label}</Badge>
+              <StatusBadge status={order.status} />
             </div>
             <p className="text-[12px] text-slate-400 dark:text-white/30">{fmtDate(order.created_at)}</p>
           </div>
@@ -497,7 +497,6 @@ export default function DashboardOrdersPage() {
               </thead>
               <tbody>
                 {paginated.map((order) => {
-                  const config = STATUS_CONFIG[order.status]
                   return (
                     <tr
                       key={order.id}
@@ -517,7 +516,7 @@ export default function DashboardOrdersPage() {
                       </td>
                       <td className="px-3 py-3 text-[12px] text-slate-500 dark:text-white/50">{order.payment_method}</td>
                       <td className="px-3 py-3">
-                        <Badge variant={config.variant}>{config.label}</Badge>
+                        <StatusBadge status={order.status} />
                       </td>
                       <td className="px-3 py-3 text-[11px] text-slate-400 dark:text-white/30">{relative(order.created_at)}</td>
                       <td className="py-3 pl-3 pr-4">

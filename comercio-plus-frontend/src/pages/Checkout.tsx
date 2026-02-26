@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
 import { useCart } from '@/context/CartContext'
-import API from '@/lib/api'
+import API from '@/services/api'
 import { getStoredToken } from '@/services/auth-session'
 
 type PaymentMethod = 'PSE' | 'NEQUI' | 'BANCOLOMBIA' | 'CARD'
@@ -44,7 +44,7 @@ export default function Checkout() {
     }
 
     if (!token) {
-      navigate(`/login?redirect=${encodeURIComponent('/checkout')}`, { replace: true })
+      navigate(`/login?next=${encodeURIComponent('/checkout')}`, { replace: true })
     }
   }, [items.length, navigate, token])
 

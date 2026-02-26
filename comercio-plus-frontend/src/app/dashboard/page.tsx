@@ -5,6 +5,7 @@ import { clearSession } from '@/services/auth-session'
 import GlassCard from '@/components/ui/GlassCard'
 import Button, { buttonVariants } from '@/components/ui/button'
 import Badge from '@/components/ui/Badge'
+import StatusBadge from '@/components/ui/StatusBadge'
 import { formatDate, formatPrice } from '@/lib/format'
 import { ROUTES } from '@/lib/routes'
 import { getInventoryMovements, type InventoryMovementItem } from '@/services/inventoryReceive'
@@ -674,7 +675,7 @@ export default function Dashboard() {
                       <p className="text-[12px] text-slate-500 dark:text-white/60">{formatDate(order.date)}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge variant={badgeByStatus(order.status)}>{readableStatus(order.status)}</Badge>
+                      <StatusBadge status={order.status} />
                       <p className="text-[13px] font-semibold text-[#C2410C] dark:text-[#FDBA74]">${formatPrice(order.amount)}</p>
                       <Link to={ROUTES.orderPicking(order.id)} className={buttonVariants('outline', 'h-9 px-3 text-[12px]')}>
                         Alistar

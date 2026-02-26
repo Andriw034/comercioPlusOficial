@@ -5,6 +5,7 @@ import Button from '@/components/Button'
 import Card from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import Input from '@/components/Input'
+import StatusBadge from '@/components/ui/StatusBadge'
 import API from '@/lib/api'
 import { getApiMeta, getApiPayload } from '@/lib/apiPayload'
 import { resolveMediaUrl } from '@/lib/format'
@@ -785,9 +786,7 @@ export default function DashboardStore() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-body text-slate-700">Estado</span>
-                  <Badge variant={storeData.status === 'active' ? 'success' : 'danger'}>
-                    {storeData.status === 'active' ? 'Activa' : 'Inactiva'}
-                  </Badge>
+                  <StatusBadge status={storeData.status} label={storeData.status === 'active' ? 'Activa' : 'Inactiva'} />
                 </div>
               </div>
             </Card>

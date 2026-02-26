@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
-import Badge from '@/components/ui/Badge'
+import StatusBadge from '@/components/ui/StatusBadge'
 import Button from '@/components/ui/button'
 import useDebouncedValue from '@/hooks/useDebouncedValue'
 
@@ -168,10 +168,10 @@ function normalizeMovement(item: ApiMovementItem): Movement {
   }
 }
 
-function getStatus(current: number, min: number): { label: string; variant: 'danger' | 'warning' | 'success' } {
-  if (current <= 0) return { label: 'Agotado', variant: 'danger' }
-  if (current < min) return { label: 'Stock bajo', variant: 'warning' }
-  return { label: 'Normal', variant: 'success' }
+function getStatus(current: number, min: number): 'out' | 'low' | 'normal' {
+  if (current <= 0) return 'out'
+  if (current < min) return 'low'
+  return 'normal'
 }
 
 function fmtDate(iso: string | null) {
@@ -862,7 +862,7 @@ export default function DashboardInventoryPage() {
                       <td className="px-3 py-3 text-[13px] text-slate-500 dark:text-white/50">{item.min_stock} {item.unit}</td>
 
                       <td className="px-3 py-3">
-                        <Badge variant={status.variant}>{status.label}</Badge>
+                        <StatusBadge status={status} />
                       </td>
 
                       <td className="px-3 py-3 text-[13px]">

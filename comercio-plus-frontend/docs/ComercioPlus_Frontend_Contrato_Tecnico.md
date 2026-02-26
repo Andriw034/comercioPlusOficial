@@ -1981,59 +1981,99 @@ No existe ninguna subcarpeta
 | `src/app/store/page.tsx` | Modificado | Aplicacion del patron de contraste en portada de tienda. |
 | `src/lib/api.ts` | Confirmado (sin cambio) | Alias de compatibilidad al API canónico `@/services/api`. |
 
-## Anexo C) Flujo Oficial del Cliente (Guest-First)
+## Anexo C) Flujo Oficial del Cliente (Guest-First) — Contrato RFC
 
-### 1) Principio de experiencia (CONTRATO)
-ComercioPlus adopta un modelo **Guest-First Commerce**.
+### C.1 Objetivo
+Definir el flujo oficial del cliente en ComercioPlus bajo el modelo **Guest-First Commerce**, minimizando fricción sin comprometer el punto de pago.
 
-- El usuario **MAY** explorar tiendas públicas y productos sin autenticación.
+---
+
+### C.2 Términos normativos
+Las palabras clave **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, **MAY** se interpretan como en RFC 2119.
+
+---
+
+### C.3 Principio de experiencia (Guest-First)
+**C.3.1 Exploración pública**
+- El usuario **MAY** explorar tiendas públicas sin autenticación.
+- El usuario **MAY** explorar productos públicos sin autenticación.
+
+**Rationale:** Reduce fricción inicial y mejora conversión.
+
+**C.3.2 Carrito sin cuenta**
 - El usuario **MAY** agregar productos al carrito sin autenticación.
-- La autenticación **MUST NOT** exigirse hasta el momento del pago (Checkout).
+- El carrito **MUST** ser usable en modo invitado (guest) por defecto.
 
-Objetivo: reducir fricción y maximizar conversión sin romper seguridad del pago.
+**Rationale:** Permite intención de compra antes de pedir datos.
 
-### 2) Carrito para invitados (Storage contract)
-Implementación canónica: `src/context/CartContext.tsx`  
-Persistencia: `localStorage` usando `CART_STORAGE_KEY = 'cart'`.
+**C.3.3 Autenticación tardía (Checkout Gate)**
+- La autenticación **MUST NOT** exigirse antes del Checkout.
+- La autenticación **MUST** exigirse al iniciar Checkout si no existe token válido.
 
-Reglas obligatorias:
-- El carrito **MUST** funcionar con o sin token (guest por defecto).
+**Rationale:** Seguridad en pago sin bloquear exploración.
+
+---
+
+### C.4 Contrato de almacenamiento del carrito (Guest Storage Contract)
+**C.4.1 Implementación canónica**
+- Implementación canónica: `src/context/CartContext.tsx`
+- Persistencia **MUST** ser en `localStorage` con `CART_STORAGE_KEY = 'cart'`.
+
+**C.4.2 Reglas obligatorias**
 - El carrito **MUST** persistir entre recargas (localStorage).
 - El carrito **MUST NOT** depender del backend en esta fase (hasta creación de orden).
+- El carrito **MUST** funcionar con o sin token.
 
-Nota de autenticación (keys reales):
+**Rationale:** Robustez offline/guest + simplicidad en MVP.
+
+**C.4.3 Keys de autenticación (referencia)**
 - Token: `TOKEN_KEY = 'token'`
 - User: `USER_KEY = 'user'`
 (Definidos en `src/services/auth-session.ts` y `src/services/api.ts`)
 
-### 3) Gating obligatorio en Checkout (sin romper rutas)
+---
+
+### C.5 Gating obligatorio en Checkout (sin romper rutas)
 Ruta: `/checkout` (componente `src/pages/Checkout.tsx`)
 
-Comportamiento obligatorio:
-- Si `items.length === 0` → **redirect** a `/cart`.
-- Si no existe token (`getStoredToken()` retorna null) → **redirect** a:
+**C.5.1 Condición de carrito vacío**
+- Si `items.length === 0` → la app **MUST** redirigir a `/cart`.
+
+**C.5.2 Condición de invitado**
+- Si no existe token (`getStoredToken()` retorna `null`) → la app **MUST** redirigir a:
   `/login?next=/checkout`
 
-Post-login:
-- Si existe `next` válido interno → navegar a `next` (prioridad).
-- Si no existe → usar `resolvePostAuthRoute(user)`.
-Compatibilidad legacy:
-- `?redirect=` se soporta como fallback secundario (no prioritario).
+**C.5.3 Retorno post-login**
+Orden de prioridad:
+1) Si existe `next` válido interno → **MUST** navegar a `next`.
+2) Si no existe `next` → **MUST** usar `resolvePostAuthRoute(user)`.
 
-### 4) Registro solo si va a pagar (Flujo oficial)
-Flujo **MUST** ser:
+Compatibilidad legacy:
+- `?redirect=` **SHOULD** mantenerse como fallback secundario (no prioritario).
+
+**Rationale:** Checkout retoma flujo exacto; sin romper compatibilidad previa.
+
+---
+
+### C.6 Registro solo si va a pagar (Flujo oficial)
+**C.6.1 Camino permitido**
+El flujo **MUST** ser:
 Explorar → Agregar al carrito → Ir a Checkout → Login/Registro → Pago
 
-NO permitido (MUST NOT):
-- Forzar login para ver productos.
-- Forzar login para agregar al carrito.
-- Forzar login para ver tiendas públicas.
+**C.6.2 Prohibiciones**
+- La app **MUST NOT** forzar login para ver productos.
+- La app **MUST NOT** forzar login para agregar al carrito.
+- La app **MUST NOT** forzar login para ver tiendas públicas.
 
-### 5) StoreDetail → Conexión real al carrito (API de addToCart)
+**Rationale:** Evita abandono temprano por fricción.
+
+---
+
+### C.7 StoreDetail → Conexión real al carrito (addToCart Contract)
 Archivo: `src/app/store/page.tsx`
 
-Requisito obligatorio:
-- El botón “Agregar al Carrito” **MUST** llamar `addToCart(...)` con shape real:
+**C.7.1 Shape obligatorio**
+El botón “Agregar al Carrito” **MUST** invocar `addToCart(...)` con el siguiente shape:
 
 ```ts
 addToCart({
@@ -2043,25 +2083,528 @@ addToCart({
   image: resolveMediaUrl(product.image_url || product.image) || '',
   seller: store.name || 'Tienda ComercioPlus',
   storeId: store.id,
-})Además:
+})
+```
 
-Debe funcionar para invitados.
+**C.7.2 Reglas de robustez**
+- La acción **MUST** funcionar para invitados (sin token).
+- La acción **MUST** incluir fallbacks seguros para `image`, `seller`, `storeId` para evitar romper UI.
 
-Debe tener fallbacks seguros (image/seller/storeId) para no romper UI.
+**Rationale:** Evita crashes y mantiene consistencia de carrito.
 
-6) No rediseño, no cambios de ruta, no librerías
+---
+
+### C.8 Restricciones de implementación (No-Redesign / No-Libs)
 
 Este flujo se implementa sin:
 
-Cambiar estructura de rutas.
+- Cambiar estructura de rutas.
+- Cambiar wrappers de autenticación.
+- Crear nuevos clientes API.
+- Introducir nuevas librerías.
 
-Cambiar wrappers de autenticación.
+**Rationale:** Mantiene estabilidad del contrato actual.
 
-Crear nuevos clientes API.
+---
 
-Introducir nuevas librerías.
+### C.9 Alcance
 
-7) Alcance
+- Aplica al flujo público/cliente (guest-first).
+- No aplica al dashboard merchant (`/dashboard/*`).
 
-Este anexo aplica al flujo público/cliente (guest-first).
-No aplica al dashboard merchant (/dashboard/*).
+## Anexo D) Criterios de Aceptación (QA) — Flujo Guest-First
+
+### D.1 Objetivo
+Validar que el flujo público del cliente funcione bajo el modelo Guest-First sin romper autenticación, rutas ni contrato técnico.
+
+---
+
+### D.2 Exploración sin autenticación
+
+#### Caso D.2.1 — Ver tiendas públicas
+**Dado** que el usuario no tiene token en `localStorage`  
+**Cuando** accede a `/` o a una tienda pública  
+**Entonces** la tienda y sus productos deben renderizar correctamente  
+**Y** no debe haber redirección a `/login`
+
+---
+
+#### Caso D.2.2 — Ver detalle de producto
+**Dado** que el usuario no está autenticado  
+**Cuando** accede a `/products/:id`  
+**Entonces** el producto debe mostrarse normalmente  
+**Y** no debe forzarse autenticación
+
+---
+
+### D.3 Carrito en modo invitado
+
+#### Caso D.3.1 — Agregar producto al carrito
+**Dado** que el usuario no está autenticado  
+**Cuando** hace clic en “Agregar al Carrito” en `StoreDetail`  
+**Entonces** el producto debe agregarse al contexto (`CartContext`)  
+**Y** debe persistir en `localStorage` bajo `CART_STORAGE_KEY = 'cart'`
+
+---
+
+#### Caso D.3.2 — Persistencia tras recarga
+**Dado** que hay productos en el carrito  
+**Cuando** el usuario recarga la página  
+**Entonces** los productos deben mantenerse en el carrito
+
+---
+
+#### Caso D.3.3 — Incremento de cantidad
+**Dado** que un producto ya está en el carrito  
+**Cuando** el usuario vuelve a agregarlo  
+**Entonces** la cantidad debe incrementarse  
+**Y** no debe duplicarse como item separado
+
+---
+
+### D.4 Gating correcto en Checkout
+
+#### Caso D.4.1 — Checkout con carrito vacío
+**Dado** que `items.length === 0`  
+**Cuando** el usuario entra a `/checkout`  
+**Entonces** debe redirigir automáticamente a `/cart`
+
+---
+
+#### Caso D.4.2 — Checkout como invitado
+**Dado** que el carrito tiene productos  
+**Y** no existe token válido  
+**Cuando** el usuario accede a `/checkout`  
+**Entonces** debe redirigir a:
+
+
+/login?next=/checkout
+
+
+---
+
+#### Caso D.4.3 — Retorno post-login correcto
+**Dado** que el usuario fue redirigido desde `/checkout`  
+**Cuando** inicia sesión correctamente  
+**Entonces** debe volver automáticamente a `/checkout`  
+**Y NO** a `/dashboard` u otra ruta por defecto
+
+---
+
+#### Caso D.4.4 — Compatibilidad legacy
+**Dado** que existe `?redirect=`  
+**Cuando** no existe `next`  
+**Entonces** debe usar `redirect` como fallback  
+**Pero** nunca priorizarlo sobre `next`
+
+---
+
+### D.5 Creación de orden
+
+#### Caso D.5.1 — Usuario autenticado
+**Dado** que el usuario tiene token válido  
+**Y** el carrito tiene productos  
+**Cuando** presiona “Pagar ahora”  
+**Entonces** debe ejecutarse:
+
+- POST `/orders/create`
+- POST `/payments/wompi/create`
+- Redirección a `checkoutUrl`
+
+---
+
+### D.6 Prohibiciones (Reglas Críticas)
+
+La aplicación:
+
+- **MUST NOT** exigir login para explorar.
+- **MUST NOT** exigir login para agregar al carrito.
+- **MUST NOT** romper el carrito si el usuario inicia sesión después.
+- **MUST NOT** perder productos al autenticarse.
+
+---
+
+### D.7 No-regresión
+
+Después de implementar Guest-First:
+
+- El dashboard merchant (`/dashboard/*`) debe seguir protegido.
+- El interceptor `401` debe seguir limpiando sesión.
+- El alias `src/lib/api.ts` debe seguir apuntando a `@/services/api`.
+
+---
+
+### D.8 Estado esperado al finalizar QA
+
+Si todos los casos pasan:
+
+- El flujo es de baja fricción.
+- El modelo Guest-First está correctamente aplicado.
+- No existe deuda técnica adicional.
+- No hay regresión en autenticación ni rutas protegidas.
+
+## Anexo E) Métricas de Conversión — Modelo Guest-First
+
+### E.1 Objetivo
+
+Definir el sistema de medición del flujo público (Guest-First) para evaluar:
+
+- Fricción en el proceso de compra
+- Conversión por etapa
+- Impacto real del modelo Guest-First en ventas
+
+Este anexo NO introduce librerías nuevas.
+Solo define el contrato de medición.
+
+---
+
+### E.2 Embudo Oficial de Conversión (Funnel)
+
+El funnel oficial de ComercioPlus es:
+
+Visita tienda → Agrega al carrito → Inicia checkout → Pago exitoso
+
+Cada etapa debe ser medible.
+
+---
+
+### E.3 Eventos mínimos obligatorios
+
+Los siguientes eventos MUST ser registrables (frontend o backend):
+
+#### 1️⃣ store_view
+Se dispara cuando:
+- Un usuario entra a `/store/:id`
+
+Campos mínimos:
+- store_id
+- timestamp
+- user_id (nullable)
+- session_id (para invitados)
+
+---
+
+#### 2️⃣ add_to_cart
+Se dispara cuando:
+- Se ejecuta `addToCart()` correctamente
+
+Campos mínimos:
+- store_id
+- product_id
+- quantity
+- user_id (nullable)
+- session_id
+- timestamp
+
+---
+
+#### 3️⃣ checkout_started
+Se dispara cuando:
+- El usuario accede a `/checkout` con carrito válido
+
+Campos mínimos:
+- total_items
+- total_amount
+- user_id (nullable hasta login)
+- session_id
+- timestamp
+
+---
+
+#### 4️⃣ payment_success
+Se dispara cuando:
+- Wompi confirma pago aprobado
+
+Campos mínimos:
+- order_id
+- total_amount
+- store_id
+- user_id
+- timestamp
+
+---
+
+### E.4 Métricas derivadas (KPIs)
+
+A partir de los eventos se deben poder calcular:
+
+### E.4.1 Conversión tienda → carrito
+add_to_cart / store_view
+
+### E.4.2 Conversión carrito → checkout
+checkout_started / add_to_cart
+
+### E.4.3 Conversión checkout → pago
+payment_success / checkout_started
+
+### E.4.4 Conversión total
+payment_success / store_view
+
+---
+
+### E.5 Métricas estratégicas para comerciantes
+
+El sistema SHOULD permitir calcular:
+
+- Ticket promedio (total_amount promedio)
+- Productos más agregados al carrito
+- Productos más comprados
+- Tasa de abandono de checkout
+
+---
+
+### E.6 Tasa de abandono
+
+Abandono checkout se define como:
+
+checkout_started - payment_success
+
+Si:
+- 100 inician checkout
+- 65 pagan
+
+Abandono = 35%
+
+Esto permite detectar fricción en pago.
+
+---
+
+### E.7 Guest vs Usuario registrado
+
+El sistema SHOULD diferenciar:
+
+- Eventos con user_id
+- Eventos solo con session_id
+
+Esto permite medir:
+
+- Conversión de invitados
+- Conversión de usuarios registrados
+- Impacto real del modelo Guest-First
+
+---
+
+### E.8 Restricciones técnicas
+
+Este anexo:
+
+- NO obliga a usar Google Analytics.
+- NO obliga a usar herramientas externas.
+- NO rompe arquitectura actual.
+- NO introduce nuevas dependencias.
+
+La implementación puede hacerse:
+
+- Guardando eventos en base de datos (tabla analytics_events)
+- O mediante servicio externo en fase posterior.
+
+---
+
+### E.9 Estado esperado
+
+Si el tracking está correctamente implementado:
+
+- ComercioPlus podrá demostrar mejora de conversión.
+- Se podrán tomar decisiones basadas en datos.
+- Se podrá presentar métricas reales a comerciantes.
+- Se reduce intuición y aumenta análisis.
+
+---
+
+### E.10 Principio clave
+
+Lo que no se mide, no se puede mejorar.
+
+El modelo Guest-First debe ser validado con datos reales.
+
+## Anexo F) Arquitectura Técnica del Tracking (Guest-First)
+
+### F.1 Objetivo
+Implementar tracking interno (first-party) para medir el embudo Guest-First sin depender de herramientas externas.
+
+- Frontend dispara eventos (store_view, add_to_cart, checkout_started)
+- Backend recibe y guarda eventos
+- Backend registra eventos críticos del pago (payment_success) cuando confirma Wompi
+- Todo se puede consultar por tienda/fecha (dashboard merchant en fase posterior)
+
+---
+
+### F.2 Identidad del invitado (session_id)
+Como el usuario puede ser invitado, necesitamos un identificador estable.
+
+Contrato:
+- Storage key: `cp_session_id`
+- Fuente: localStorage
+- Generación: UUID (o fallback pseudo-uuid si no hay crypto)
+
+Regla:
+- Si hay `user_id` (autenticado), se guarda también.
+- Si no hay, el evento se guarda con `session_id`.
+
+---
+
+### F.3 Modelo de datos (tabla analytics_events)
+
+Tabla: `analytics_events`
+
+Campos recomendados (mínimo + extensible):
+
+- id (bigint)
+- event (varchar)  // "store_view" | "add_to_cart" | "checkout_started" | "payment_success"
+- store_id (bigint, nullable)
+- product_id (bigint, nullable)
+- order_id (bigint, nullable)
+- user_id (bigint, nullable)
+- session_id (varchar, nullable)
+- source (varchar, default "web") // "web" | "mobile" etc
+- metadata (json, nullable)       // payload extra: total_items, total_amount, etc
+- created_at (timestamp)
+- updated_at (timestamp)
+
+Índices recomendados:
+- index(event, created_at)
+- index(store_id, created_at)
+- index(user_id, created_at)
+- index(session_id, created_at)
+
+---
+
+### F.4 API Endpoints (Backend)
+
+#### F.4.1 POST /api/analytics/events
+Recibe y guarda evento (frontend).
+
+Body mínimo:
+{
+  "event": "add_to_cart",
+  "store_id": 12,
+  "product_id": 99,
+  "order_id": null,
+  "session_id": "....",
+  "metadata": { "quantity": 2, "price": 45000 }
+}
+
+Reglas:
+- Validar whitelist de eventos
+- No exigir auth (Guest-First)
+- Si hay token -> asociar user_id
+
+Respuesta:
+- 201 created
+
+---
+
+#### F.4.2 GET /api/analytics/stores/:storeId/summary?from=YYYY-MM-DD&to=YYYY-MM-DD
+Devuelve KPIs por tienda para dashboard (fase posterior).
+
+Ejemplo respuesta:
+{
+  "store_id": 12,
+  "range": { "from": "...", "to": "..." },
+  "events": {
+    "store_view": 1200,
+    "add_to_cart": 280,
+    "checkout_started": 140,
+    "payment_success": 96
+  },
+  "rates": {
+    "store_to_cart": 0.233,
+    "cart_to_checkout": 0.50,
+    "checkout_to_payment": 0.685,
+    "total_conversion": 0.08
+  }
+}
+
+Regla:
+- Este endpoint SHOULD requerir auth merchant dueño de tienda (no público).
+
+---
+
+### F.5 Captura de eventos de pago (payment_success)
+
+El evento payment_success NO debe depender del frontend.
+Debe registrarse en backend cuando:
+
+- Webhook de Wompi confirma transacción aprobada
+- Se marca la orden como pagada/approved
+
+Acción:
+- backend crea evento:
+  event="payment_success"
+  order_id, store_id, user_id, metadata.total_amount, metadata.wompi_tx_id
+
+---
+
+### F.6 Implementación Frontend (sin librerías)
+
+#### F.6.1 Servicio simple: src/services/analytics.ts
+Responsabilidades:
+- Obtener session_id (crear si no existe)
+- Enviar evento a /api/analytics/events con API canónico (@/services/api)
+- En caso de error: fallar silenciosamente (no romper UX)
+
+Eventos a disparar:
+- store_view: al montar StoreDetail
+- add_to_cart: al ejecutar addToCart() exitosamente
+- checkout_started: al entrar a /checkout con carrito válido
+
+---
+
+### F.7 Resistencia a spam / abuso
+Como POST es público, el backend MUST:
+
+- Rate limit básico por IP (si está disponible)
+- Validar tamaño de metadata (max bytes)
+- Validar enums de event
+- Rechazar valores inválidos (store_id no numérico, etc)
+- Opcional: firmar con header `X-Client: comercio-plus-web`
+
+---
+
+### F.8 Privacidad
+- No almacenar datos sensibles (tarjetas, direcciones completas, etc) en metadata.
+- Guardar solo:
+  totales, cantidades, IDs, timestamps.
+
+---
+
+### F.9 No romper contrato actual
+Este tracking:
+
+- No cambia rutas
+- No cambia auth
+- No cambia el carrito (CartContext)
+- No requiere Google Analytics ni SDKs
+- Solo agrega un endpoint + tabla + pequeños llamados en frontend
+
+---
+
+### F.10 Listo para fase de dashboard
+Una vez existan eventos:
+- Se muestran KPIs en /dashboard (merchant)
+- Se comparan periodos (hoy vs semana pasada)
+- Se detecta abandono real de checkout
+
+Si quieres, te doy el código completo (backend + frontend) con estos archivos EXACTOS:
+
+Backend (Laravel)
+
+database/migrations/xxxx_create_analytics_events_table.php
+
+app/Models/AnalyticsEvent.php
+
+app/Http/Controllers/Api/AnalyticsEventController.php
+
+routes/api.php (rutas)
+
+(opcional) AnalyticsSummaryController para summary
+
+Frontend (React)
+
+src/services/analytics.ts
+
+Cambios mínimos en:
+
+src/app/store/page.tsx (store_view + add_to_cart)
+
+src/pages/Checkout.tsx (checkout_started)

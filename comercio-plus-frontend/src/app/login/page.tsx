@@ -1,6 +1,6 @@
 ﻿import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import API from '@/lib/api'
+import API from '@/services/api'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import { Icon } from '@/components/Icon'
@@ -32,20 +32,20 @@ export default function Login() {
 
       if (data?.token) {
         const user = await hydrateSession(data.token, form.remember)
-        const fallbackRoute = resolvePostAuthRoute(user)
-
-        if (user.role === 'merchant') {
-          navigate(fallbackRoute, { replace: true })
+        const nextParam = searchParams.get('next')
+        if (nextParam && isSafeInternalRedirect(nextParam)) {
+          navigate(nextParam, { replace: true })
           return
         }
 
+        // Legacy support for existing auth wrappers that still send ?redirect=
         const redirectParam = searchParams.get('redirect')
         if (redirectParam && isSafeInternalRedirect(redirectParam)) {
           navigate(redirectParam, { replace: true })
           return
         }
 
-        navigate(fallbackRoute, { replace: true })
+        navigate(resolvePostAuthRoute(user), { replace: true })
       } else {
         setError('No se recibio token de autenticacion.')
       }
