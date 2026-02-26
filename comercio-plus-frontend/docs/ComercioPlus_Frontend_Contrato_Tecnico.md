@@ -1803,6 +1803,7 @@ No existe ninguna subcarpeta
 
 ```
 
+
 ### A.4 `src/components/ui/`
 ```txt
 Listado de rutas de carpetas para el volumen SO
@@ -1910,4 +1911,157 @@ No existe ninguna subcarpeta
 
 ```
 
+## Anexo B) Decisiones obligatorias (Anti-Deuda)
+1) API canónico: `@/services/api`
+- Cliente oficial: `src/services/api.ts`.
+- Evidencia técnica confirmada:
+  - Bearer token en interceptor request (`Authorization: Bearer ...`).
+  - Manejo global `401`: limpia sesion (`token/user` en `localStorage` y `sessionStorage`) y redirige a `/login`.
+  - Cache GET activa (`GET_CACHE_TTL_MS = 45_000`) con invalidacion en mutaciones.
+- Compatibilidad mantenida:
+  - `src/lib/api.ts` queda como alias de compatibilidad:
+    ```ts
+    export { default } from '@/services/api'
+    ```
+  - Estado: permitido para imports legacy, deprecado para codigo nuevo.
 
+2) UI canónica: `src/components/ui/*`
+- Base establecida:
+  - `src/components/ui/index.ts` agrega re-exports canónicos (`Button`, `Input`, `Select`, `Textarea`, `Badge`, `GlassCard`).
+  - `src/components/index.ts` agrega capa de compatibilidad para primitives legacy (`Button`, `Input`, `Card`, `Badge`).
+- Regla obligatoria:
+  - Componentes nuevos SOLO en `src/components/ui/*`.
+  - `src/components/*` se mantiene como legacy (sin borrado en esta fase).
+
+3) `/product/:id` alias de `/products/:id`
+- Vista canónica documentada: `/products/:id`.
+- Alias legacy preservado: `/product/:id`.
+- Ambas rutas renderizan el mismo componente real: `src/pages/ProductDetail.tsx` (sin cambio de paths).
+
+4) Checkout con `next=/checkout` y retorno post-login
+- Flujo definido:
+  - Usuario no autenticado en `/checkout` -> redirect a `/login?next=/checkout`.
+  - Tras login:
+    - si existe `next` valido interno, navegar a `next`;
+    - si no existe, resolver con `resolvePostAuthRoute(user)`.
+  - Compatibilidad legacy: `?redirect=` sigue soportado en login.
+- Implementacion aplicada:
+  - `src/pages/Checkout.tsx` usa `next`.
+  - `src/app/login/page.tsx` prioriza `next`, luego `redirect`, luego fallback por rol.
+
+5) Cover/Logo con overlay + primitives `CoverImage`/`LogoImage`
+- Patrón único de cabecera con portada:
+  - Overlay (scrim) obligatorio sobre cover para contraste de texto.
+  - Evitar texto directo sobre imagen sin scrim.
+  - Uso de primitives `CoverImage` y `LogoImage` en la vista de tienda.
+- Implementacion aplicada:
+  - `src/ui/images/CoverImage.tsx`: nuevo `overlayMode` con modo `header` para scrim reforzado.
+  - `src/app/store/page.tsx`: cabecera usa `CoverImage` con `overlay` + `overlayMode="header"`.
+
+6) Dashboard responsive: drawer `< md`, sidebar fija `>= md`
+- Base técnica previa al rediseño implementada:
+  - `src/components/dashboard/DashboardTopbar.tsx` (placeholder funcional mobile).
+  - `src/components/dashboard/SidebarDrawer.tsx` (estructura basica drawer mobile).
+  - Integracion en `src/components/layouts/DashboardLayout.tsx`:
+    - `>= md`: sidebar normal visible.
+    - `< md`: topbar con boton menu + drawer lateral.
+    - cierre automatico de drawer al cambiar de ruta.
+
+### Archivos modificados/creados en este anexo y motivo
+| Archivo | Tipo | Motivo |
+|---|---|---|
+| `src/components/ui/index.ts` | Creado | Re-export canónico de primitives UI (evita tercera capa). |
+| `src/components/index.ts` | Creado | Compatibilidad de primitives legacy sin ruptura. |
+| `src/pages/Checkout.tsx` | Modificado | Gating a login con `next=/checkout`. |
+| `src/app/login/page.tsx` | Modificado | Retorno post-login: `next` -> `redirect` legacy -> `resolvePostAuthRoute`. |
+| `src/components/dashboard/DashboardTopbar.tsx` | Creado | Placeholder topbar mobile para dashboard. |
+| `src/components/dashboard/SidebarDrawer.tsx` | Creado | Placeholder drawer mobile del sidebar. |
+| `src/components/layouts/DashboardLayout.tsx` | Modificado | Integracion responsive drawer/sidebar sin cambiar wrappers auth. |
+| `src/ui/images/CoverImage.tsx` | Modificado | Scrim estandarizado para cabeceras (`overlayMode="header"`). |
+| `src/app/store/page.tsx` | Modificado | Aplicacion del patron de contraste en portada de tienda. |
+| `src/lib/api.ts` | Confirmado (sin cambio) | Alias de compatibilidad al API canónico `@/services/api`. |
+
+## Anexo C) Flujo Oficial del Cliente (Guest-First)
+
+### 1) Principio de experiencia (CONTRATO)
+ComercioPlus adopta un modelo **Guest-First Commerce**.
+
+- El usuario **MAY** explorar tiendas públicas y productos sin autenticación.
+- El usuario **MAY** agregar productos al carrito sin autenticación.
+- La autenticación **MUST NOT** exigirse hasta el momento del pago (Checkout).
+
+Objetivo: reducir fricción y maximizar conversión sin romper seguridad del pago.
+
+### 2) Carrito para invitados (Storage contract)
+Implementación canónica: `src/context/CartContext.tsx`  
+Persistencia: `localStorage` usando `CART_STORAGE_KEY = 'cart'`.
+
+Reglas obligatorias:
+- El carrito **MUST** funcionar con o sin token (guest por defecto).
+- El carrito **MUST** persistir entre recargas (localStorage).
+- El carrito **MUST NOT** depender del backend en esta fase (hasta creación de orden).
+
+Nota de autenticación (keys reales):
+- Token: `TOKEN_KEY = 'token'`
+- User: `USER_KEY = 'user'`
+(Definidos en `src/services/auth-session.ts` y `src/services/api.ts`)
+
+### 3) Gating obligatorio en Checkout (sin romper rutas)
+Ruta: `/checkout` (componente `src/pages/Checkout.tsx`)
+
+Comportamiento obligatorio:
+- Si `items.length === 0` → **redirect** a `/cart`.
+- Si no existe token (`getStoredToken()` retorna null) → **redirect** a:
+  `/login?next=/checkout`
+
+Post-login:
+- Si existe `next` válido interno → navegar a `next` (prioridad).
+- Si no existe → usar `resolvePostAuthRoute(user)`.
+Compatibilidad legacy:
+- `?redirect=` se soporta como fallback secundario (no prioritario).
+
+### 4) Registro solo si va a pagar (Flujo oficial)
+Flujo **MUST** ser:
+Explorar → Agregar al carrito → Ir a Checkout → Login/Registro → Pago
+
+NO permitido (MUST NOT):
+- Forzar login para ver productos.
+- Forzar login para agregar al carrito.
+- Forzar login para ver tiendas públicas.
+
+### 5) StoreDetail → Conexión real al carrito (API de addToCart)
+Archivo: `src/app/store/page.tsx`
+
+Requisito obligatorio:
+- El botón “Agregar al Carrito” **MUST** llamar `addToCart(...)` con shape real:
+
+```ts
+addToCart({
+  id: product.id,
+  name: product.name,
+  price: product.price,
+  image: resolveMediaUrl(product.image_url || product.image) || '',
+  seller: store.name || 'Tienda ComercioPlus',
+  storeId: store.id,
+})Además:
+
+Debe funcionar para invitados.
+
+Debe tener fallbacks seguros (image/seller/storeId) para no romper UI.
+
+6) No rediseño, no cambios de ruta, no librerías
+
+Este flujo se implementa sin:
+
+Cambiar estructura de rutas.
+
+Cambiar wrappers de autenticación.
+
+Crear nuevos clientes API.
+
+Introducir nuevas librerías.
+
+7) Alcance
+
+Este anexo aplica al flujo público/cliente (guest-first).
+No aplica al dashboard merchant (/dashboard/*).
