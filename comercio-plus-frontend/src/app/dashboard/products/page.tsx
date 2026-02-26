@@ -1031,18 +1031,22 @@ export default function ManageProducts() {
 
       <GlassCard className="flex flex-col border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
         <div className="border-b border-[#E2E8F0] px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] sm:text-[32px]">Catalogo de repuestos</h2>
-              <p className="mt-1 text-[13px] text-[#64748B]">Filtra y revisa tu inventario en segundos.</p>
+              <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] sm:text-[32px]">Productos</h2>
+              <p className="mt-1 text-[13px] text-[#64748B]">Gestiona tu catalogo</p>
             </div>
-
-            <Input
-              value={filters.search}
-              onChange={(event) => setFilters({ search: event.target.value })}
-              className="h-11 w-full text-[13px] lg:w-[380px]"
-              placeholder="Buscar por nombre, categoria, codigo o ID"
-            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex h-9 items-center rounded-lg border border-[#D1D5DB] bg-white px-3 text-[12px] font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+              >
+                📥 Importar
+              </button>
+              <Button onClick={openCreate} className="h-9 rounded-lg px-3.5 text-[12px] font-semibold">
+                + Nuevo
+              </Button>
+            </div>
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1083,6 +1087,15 @@ export default function ManageProducts() {
         </div>
 
         <div className="px-4 py-3 sm:px-5">
+          <div className="mb-3 max-w-[380px]">
+            <input
+              value={filters.search}
+              onChange={(event) => setFilters({ search: event.target.value })}
+              className="h-10 w-full rounded-xl border border-[#D1D5DB] bg-white px-3 text-[13px] text-[#0F172A] outline-none transition focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/20"
+              placeholder="🔍 Buscar por nombre, categoria, codigo o ID"
+            />
+          </div>
+
           {loading && <p className="text-[13px] text-[#64748B]">Cargando productos...</p>}
           {error && <p className="mb-3 text-[13px] text-red-600">{error}</p>}
 
@@ -1092,91 +1105,99 @@ export default function ManageProducts() {
             </div>
           )}
 
-          <div className="space-y-2.5">
-            {filteredProducts.map((item) => {
-              const imageUrl = resolveMediaUrl(item.image_url || item.image)
-              const price = toNumber(item.price)
-              const stock = toNumber(item.stock)
-              const isActive = normalizeStatus(item.status) === 'active'
-              const primaryCode = getPrimaryProductCode(item)
+          {!loading && filteredProducts.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
+              <table className="w-full min-w-[920px]">
+                <thead>
+                  <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-[#64748B]">Producto</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-[#64748B]">SKU/Codigo</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-[#64748B]">Precio</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-[#64748B]">Stock</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-[#64748B]">Estado</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-[#64748B]">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((item) => {
+                    const imageUrl = resolveMediaUrl(item.image_url || item.image)
+                    const price = toNumber(item.price)
+                    const stock = toNumber(item.stock)
+                    const isActive = normalizeStatus(item.status) === 'active'
+                    const primaryCode = getPrimaryProductCode(item)
 
-              return (
-                <div
-                  key={item.id}
-                  className="group flex flex-wrap items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] px-3 py-2.5 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#CBD5E1]"
-                >
-                  <div className="h-12 w-12 overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
-                    {imageUrl ? (
-                      <img src={imageUrl} alt={item.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
-                        <Icon name="package" size={18} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-semibold text-[#0F172A]">{item.name}</p>
-                    <p className="truncate text-[12px] text-[#64748B]">
-                      {item.category?.name || 'Sin categoria'}
-                      {' - '}
-                      ID: {item.id}
-                    </p>
-                    {primaryCode && (
-                      <p className="truncate text-[11px] text-[#64748B]">
-                        {primaryCode.type.toUpperCase()}: {primaryCode.value}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:justify-end">
-                    <Badge
-                      variant={stock === 0 ? 'danger' : 'neutral'}
-                      className={stock === 0 ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-100 text-slate-700'}
-                    >
-                      Stock: {stock}
-                    </Badge>
-
-                    <Badge
-                      variant={isActive ? 'success' : 'warning'}
-                      className={isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}
-                    >
-                      {isActive ? 'Activo' : 'Borrador'}
-                    </Badge>
-
-                    <p className="min-w-[100px] text-right text-[16px] font-black tracking-[-0.02em] text-[#0F172A] sm:min-w-[110px] sm:text-[20px]">
-                      ${formatPrice(price)}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        className={buttonVariants(
-                          'secondary',
-                          'h-8 rounded-full bg-[#0F5FA8] px-4 text-[12px] font-semibold text-white shadow-none hover:bg-[#0B4D8A]',
-                        )}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => remove(item)}
-                        className={buttonVariants(
-                          'danger',
-                          'h-8 rounded-full bg-[#EF476F] px-4 text-[12px] font-semibold text-white shadow-none hover:bg-[#d83f65]',
-                        )}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-
-            <div ref={listEndRef} />
-          </div>
+                    return (
+                      <tr key={item.id} className="border-b border-[#EEF2F7] last:border-b-0 transition-colors hover:bg-[#FAFAFA]">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-10 w-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]">
+                              {imageUrl ? (
+                                <img src={imageUrl} alt={item.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
+                                  <Icon name="package" size={16} />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-[13px] font-semibold text-[#0F172A]">{item.name}</p>
+                              <p className="truncate text-[11px] text-[#64748B]">{item.category?.name || 'Sin categoria'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-mono text-[11px] text-[#64748B]">
+                            {primaryCode ? `${primaryCode.type.toUpperCase()}: ${primaryCode.value}` : `ID-${item.id}`}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-bold text-[#0F172A]">
+                          ${formatPrice(price)}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-semibold text-[#334155]">{stock}</td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={isActive ? 'success' : 'warning'}
+                            className={
+                              isActive
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-amber-200 bg-amber-50 text-amber-700'
+                            }
+                          >
+                            {isActive ? 'Activo' : 'Borrador'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(item)}
+                              className={buttonVariants(
+                                'secondary',
+                                'h-8 rounded-lg border border-sky-200 bg-sky-50 px-3 text-[11px] font-semibold text-sky-700 shadow-none hover:bg-sky-100',
+                              )}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => remove(item)}
+                              className={buttonVariants(
+                                'danger',
+                                'h-8 rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold text-rose-700 shadow-none hover:bg-rose-100',
+                              )}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              <div ref={listEndRef} />
+            </div>
+          )}
         </div>
       </GlassCard>
 

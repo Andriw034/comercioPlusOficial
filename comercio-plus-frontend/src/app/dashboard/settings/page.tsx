@@ -3,6 +3,7 @@ import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
+import Switch from '@/components/ui/Switch'
 
 // -- Types ---------------------------------------------------------------------
 
@@ -118,28 +119,6 @@ const DEFAULT_SETTINGS: Settings = {
   },
 }
 
-// -- Toggle --------------------------------------------------------------------
-
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
-        checked ? 'bg-orange-500' : 'bg-slate-300 dark:bg-white/20'
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-4' : 'translate-x-0.5'
-        }`}
-      />
-    </button>
-  )
-}
-
 // -- Section header ------------------------------------------------------------
 
 function SectionHeader({ title, description }: { title: string; description: string }) {
@@ -202,7 +181,7 @@ function TaxesTab({ taxes, onChange }: { taxes: TaxRule[]; onChange: (t: TaxRule
               </div>
               <p className="mt-0.5 text-[12px] text-slate-500 dark:text-white/40">{tax.applies_to}</p>
             </div>
-            <Toggle checked={tax.is_active} onChange={() => toggle(tax.id)} />
+            <Switch checked={tax.is_active} onCheckedChange={() => toggle(tax.id)} size="sm" aria-label={`Activar ${tax.name}`} />
           </div>
         ))}
       </div>
@@ -249,7 +228,7 @@ function PaymentsTab({ payments, onChange }: { payments: PaymentMethod[]; onChan
               </div>
               <p className="mt-0.5 text-[12px] text-slate-500 dark:text-white/40">{pm.description}</p>
             </div>
-            <Toggle checked={pm.is_active} onChange={() => toggle(pm.id)} />
+            <Switch checked={pm.is_active} onCheckedChange={() => toggle(pm.id)} size="sm" aria-label={`Activar ${pm.name}`} />
           </div>
         ))}
       </div>
@@ -312,7 +291,7 @@ function ShippingTab({ zones, onChange }: { zones: ShippingZone[]; onChange: (z:
                   )}
                   <p className="text-[10px] text-slate-400 dark:text-white/30">Toca para editar</p>
                 </div>
-                <Toggle checked={zone.is_active} onChange={() => toggle(zone.id)} />
+                <Switch checked={zone.is_active} onCheckedChange={() => toggle(zone.id)} size="sm" aria-label={`Activar ${zone.name}`} />
               </div>
             </div>
           </div>
@@ -352,10 +331,10 @@ function NotificationsTab({ notifications, onChange }: { notifications: Notifica
               <p className="text-[11px] text-slate-400 dark:text-white/30">{n.description}</p>
             </div>
             <div className="flex justify-center">
-              <Toggle checked={n.email} onChange={(v) => update(n.id, 'email', v)} />
+              <Switch checked={n.email} onCheckedChange={(v) => update(n.id, 'email', v)} size="sm" aria-label={`Notificacion por email para ${n.label}`} />
             </div>
             <div className="flex justify-center">
-              <Toggle checked={n.in_app} onChange={(v) => update(n.id, 'in_app', v)} />
+              <Switch checked={n.in_app} onCheckedChange={(v) => update(n.id, 'in_app', v)} size="sm" aria-label={`Notificacion en app para ${n.label}`} />
             </div>
           </div>
         ))}

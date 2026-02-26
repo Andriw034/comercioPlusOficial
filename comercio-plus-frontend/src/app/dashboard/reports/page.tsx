@@ -346,14 +346,13 @@ export default function DashboardReportsPage() {
     }))
   }, [salesRows])
 
-  const maxTopRevenue = Math.max(...topProducts.map((item) => item.revenue), 1)
-
   return (
-    <div className="space-y-6 pb-2">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
           <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Reportes</h1>
+          <p className="text-[12px] text-slate-500 dark:text-white/40">Analisis de tu negocio</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -436,16 +435,15 @@ export default function DashboardReportsPage() {
 
       {loading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 5 }).map((_, index) => (
+          {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-white/5" />
           ))}
         </div>
       ) : summary ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <KPICard label="Ventas brutas" value={fmtCurrency(summary.grossSales)} delta={revenueDelta} large />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KPICard label="Ventas totales" value={fmtCurrency(summary.grossSales)} delta={revenueDelta} />
           <KPICard label="Pedidos" value={String(summary.ordersCount)} delta={orderDelta} />
-          <KPICard label="Ticket promedio" value={fmtCompactCurrency(summary.avgTicket)} sub="por pedido" />
-          <KPICard label="Impuestos" value={fmtCompactCurrency(summary.taxTotal)} sub="IVA acumulado" />
+          <KPICard label="Ticket prom." value={fmtCompactCurrency(summary.avgTicket)} sub="por pedido" />
           <KPICard label="Clientes unicos" value={String(summary.uniqueCustomers)} />
         </div>
       ) : null}
@@ -466,95 +464,33 @@ export default function DashboardReportsPage() {
       ) : null}
 
       {!loading && hasReportData ? (
-        <>
-          <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-            <GlassCard className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">Evolucion de ventas</h2>
-                  <p className="text-[12px] text-slate-500 dark:text-white/40">
-                    {chartData.length} puntos entre {currentRange.from} y {currentRange.to}
-                  </p>
-                </div>
-                <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-white/5">
-                  {(['revenue', 'orders'] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setActiveChart(mode)}
-                      className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                        activeChart === mode
-                          ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white'
-                          : 'text-slate-400 hover:text-slate-600 dark:text-white/30 dark:hover:text-white/60'
-                      }`}
-                    >
-                      {mode === 'revenue' ? 'Ingresos' : 'Pedidos'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <MiniBarChart data={chartData} mode={activeChart} />
-            </GlassCard>
-
-            <GlassCard className="space-y-3">
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">Top productos</h2>
-              {topProducts.length > 0 ? (
-                <div className="space-y-2.5">
-                  {topProducts.slice(0, 6).map((item) => (
-                    <div key={item.productId}>
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="line-clamp-2 text-[12px] font-medium text-slate-700 dark:text-white/70">{item.name}</span>
-                        <span className="text-[12px] font-bold text-slate-900 dark:text-white">{fmtCompactCurrency(item.revenue)}</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-orange-500 transition-all"
-                          style={{ width: `${Math.max(6, (item.revenue / maxTopRevenue) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[13px] text-slate-400 dark:text-white/30">Sin ventas registradas en el rango seleccionado.</p>
-              )}
-            </GlassCard>
+        <GlassCard className="space-y-4 border border-slate-200 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">Ventas esta semana</h2>
+              <p className="text-[12px] text-slate-500 dark:text-white/40">
+                {chartData.length} puntos entre {currentRange.from} y {currentRange.to}
+              </p>
+            </div>
+            <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-white/5">
+              {(['revenue', 'orders'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setActiveChart(mode)}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                    activeChart === mode
+                      ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white'
+                      : 'text-slate-400 hover:text-slate-600 dark:text-white/30 dark:hover:text-white/60'
+                  }`}
+                >
+                  {mode === 'revenue' ? 'Ingresos' : 'Pedidos'}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <GlassCard className="overflow-hidden p-0">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">Detalle de ventas por periodo</h2>
-              <span className="text-[12px] text-slate-400 dark:text-white/30">Serie diaria</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-white/5">
-                    {['Periodo', 'Ventas brutas', 'Ventas netas', 'Impuestos', 'Pedidos'].map((column) => (
-                      <th
-                        key={column}
-                        className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-white/30"
-                      >
-                        {column}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {salesRows.map((row, index) => (
-                    <tr key={`${row.period}-${index}`} className="border-b border-slate-100 dark:border-white/5">
-                      <td className="px-4 py-3 text-[13px] font-semibold text-slate-800 dark:text-white/80">{row.period}</td>
-                      <td className="px-4 py-3 text-[13px] text-slate-700 dark:text-white/70">{fmtCurrency(row.grossSales)}</td>
-                      <td className="px-4 py-3 text-[13px] text-slate-700 dark:text-white/70">{fmtCurrency(row.netSales)}</td>
-                      <td className="px-4 py-3 text-[13px] text-slate-700 dark:text-white/70">{fmtCurrency(row.taxTotal)}</td>
-                      <td className="px-4 py-3 text-[13px] font-semibold text-slate-800 dark:text-white/80">{row.ordersCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </GlassCard>
-        </>
+          <MiniBarChart data={chartData} mode={activeChart} />
+        </GlassCard>
       ) : null}
     </div>
   )

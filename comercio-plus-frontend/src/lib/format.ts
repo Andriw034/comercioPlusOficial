@@ -18,12 +18,15 @@ export const formatDate = (value: string | Date | null | undefined) => {
 
 export const resolveMediaUrl = (value?: string | null) => {
   if (!value) return ''
+  const isDev = import.meta.env.DEV
+
   if (/^https?:\/\//i.test(value)) {
     try {
       const parsed = new URL(value)
       const isLocalHost = ['127.0.0.1', 'localhost'].includes(parsed.hostname)
-      if (isLocalHost && API_ORIGIN) {
-        return `${API_ORIGIN}${parsed.pathname}${parsed.search}`
+      if (isLocalHost) {
+        if (isDev) return `${parsed.pathname}${parsed.search}`
+        if (API_ORIGIN) return `${API_ORIGIN}${parsed.pathname}${parsed.search}`
       }
     } catch {
       return value
@@ -31,6 +34,11 @@ export const resolveMediaUrl = (value?: string | null) => {
     return value
   }
   if (value.startsWith('//')) return `https:${value}`
-  if (value.startsWith('/')) return API_ORIGIN ? `${API_ORIGIN}${value}` : value
+  if (value.startsWith('/')) {
+    if (isDev) return value
+    return API_ORIGIN ? `${API_ORIGIN}${value}` : value
+  }
+
+  if (isDev) return `/${value}`
   return API_ORIGIN ? `${API_ORIGIN}/${value}` : `/${value}`
 }

@@ -94,16 +94,22 @@ API.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status
     const requestUrl = String(error.config?.url || '')
+    const hasStoredToken = Boolean(readToken())
+    const pathname = String(window.location?.pathname || '')
     const isAuthFlowRequest =
       requestUrl.includes('/login') ||
       requestUrl.includes('/register') ||
       requestUrl.includes('/me')
+    const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/checkout')
 
-    if (status === 401 && !isAuthFlowRequest) {
+    // Guest-first: clear session on 401, but only force /login when user is currently in a protected route.
+    if (status === 401 && !isAuthFlowRequest && hasStoredToken) {
       clearStoredSession()
       clearGetCache()
       delete API.defaults.headers.common.Authorization
-      window.location.href = '/login'
+      if (isProtectedRoute) {
+        window.location.href = '/login'
+      }
     }
 
     return Promise.reject(error)

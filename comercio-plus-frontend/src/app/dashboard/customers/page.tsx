@@ -1,24 +1,30 @@
 ﻿import { useEffect, useState } from 'react'
 import API from '@/lib/api'
 import { formatDate } from '@/lib/format'
-import type { CustomerRow, MerchantCustomersStats, PaginatedResponse } from '@/types/api'
+import type { CustomerRow, PaginatedResponse } from '@/types/api'
 
 type ApiResponse = {
   status: string
   data: PaginatedResponse<CustomerRow>
-  stats: MerchantCustomersStats
+}
+
+const fmtCurrency = (value: number) =>
+  new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(value)
+
+const initialsFromName = (name: string) => {
+  const clean = name.trim()
+  if (!clean) return 'C'
+  return clean.charAt(0).toUpperCase()
 }
 
 export default function DashboardCustomers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [rows, setRows] = useState<CustomerRow[]>([])
-  const [stats, setStats] = useState<MerchantCustomersStats>({
-    total_customers: 0,
-    new_this_month: 0,
-    with_orders: 0,
-    total_revenue: 0,
-  })
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -27,14 +33,6 @@ export default function DashboardCustomers() {
         setError('')
         const { data } = await API.get<ApiResponse>('/merchant/customers')
         setRows(data?.data?.data || [])
-        setStats(
-          data?.stats || {
-            total_customers: 0,
-            new_this_month: 0,
-            with_orders: 0,
-            total_revenue: 0,
-          },
-        )
       } catch (err: any) {
         setError(err?.response?.data?.message || 'Error al cargar clientes')
       } finally {
@@ -42,7 +40,7 @@ export default function DashboardCustomers() {
       }
     }
 
-    fetchCustomers()
+    void fetchCustomers()
   }, [])
 
   const escapeCsv = (value: string | number | null | undefined) => {
@@ -81,84 +79,111 @@ export default function DashboardCustomers() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-[32px]">Mis Clientes</h1>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
+          <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Clientes</h1>
+          <p className="text-[12px] text-slate-500 dark:text-white/40">Base de compradores</p>
+        </div>
+
         <button
           type="button"
           onClick={exportCsv}
           disabled={!rows.length}
-          className="inline-flex items-center justify-center rounded-[8px] border-2 border-[#D1D5DB] px-6 py-3 text-[15px] font-medium text-[#1F2937] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
         >
-          Exportar Datos
+          <span aria-hidden>📊</span>
+          Exportar
         </button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <p className="text-[36px] font-bold text-[#1A1A2E]">{stats.total_customers}</p>
-          <p className="text-[13px] uppercase tracking-[0.5px] text-[#4B5563]">Total Clientes</p>
+      {loading && (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center text-[13px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/40">
+          Cargando clientes...
         </div>
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <p className="text-[36px] font-bold text-[#1A1A2E]">{stats.new_this_month}</p>
-          <p className="text-[13px] uppercase tracking-[0.5px] text-[#4B5563]">Nuevos (30 dias)</p>
-        </div>
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <p className="text-[36px] font-bold text-[#1A1A2E]">{stats.with_orders}</p>
-          <p className="text-[13px] uppercase tracking-[0.5px] text-[#4B5563]">Con Pedidos</p>
-        </div>
-        <div className="rounded-xl bg-[linear-gradient(135deg,#FF6B35_0%,#E65A2B_100%)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <p className="text-[36px] font-bold text-white">${Number(stats.total_revenue || 0).toLocaleString('es-CO')}</p>
-          <p className="text-[13px] uppercase tracking-[0.5px] text-white/90">Ingresos Totales</p>
-        </div>
-      </div>
+      )}
 
-      {loading && <p className="text-[15px] text-[#4B5563]">Cargando clientes...</p>}
-      {!loading && error && <p className="text-[15px] text-red-600">{error}</p>}
+      {!loading && error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+          {error}
+        </div>
+      )}
 
       {!loading && !error && (
-        <div className="overflow-x-auto rounded-xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
           {rows.length === 0 ? (
-            <div className="p-6 text-[14px] text-[#4B5563]">Aun no tienes clientes registrados.</div>
+            <div className="px-4 py-12 text-center text-[13px] text-slate-500 dark:text-white/40">
+              Aun no tienes clientes registrados.
+            </div>
           ) : (
-            <table className="w-full min-w-[980px] text-left">
-              <thead className="bg-[#F9FAFB]">
-                <tr className="text-[13px] uppercase tracking-[0.5px] text-[#4B5563]">
-                  <th className="px-6 py-4 font-semibold">Cliente</th>
-                  <th className="px-6 py-4 font-semibold">Email</th>
-                  <th className="px-6 py-4 font-semibold">Pedidos</th>
-                  <th className="px-6 py-4 font-semibold">Total Gastado</th>
-                  <th className="px-6 py-4 font-semibold">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((item) => {
-                  const isActive = Number(item.total_orders || 0) > 0
-                  return (
-                    <tr key={item.id} className="border-t border-[#E5E7EB] text-[14px]">
-                      <td className="px-6 py-5 font-semibold text-[#1F2937]">{item.user?.name || 'Cliente'}</td>
-                      <td className="px-6 py-5 text-[#4B5563]">{item.user?.email || '-'}</td>
-                      <td className="px-6 py-5 text-[#1F2937]">{item.total_orders}</td>
-                      <td className="px-6 py-5 font-semibold text-[#1F2937]">
-                        ${Number(item.total_spent || 0).toLocaleString('es-CO')}
-                      </td>
-                      <td className="px-6 py-5">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-[12px] font-medium ${
-                            isActive
-                              ? 'bg-[rgba(6,214,160,0.1)] text-[#06D6A0]'
-                              : 'bg-[rgba(255,166,43,0.1)] text-[#FFA62B]'
-                          }`}
-                          title={`Primera visita: ${formatDate(item.first_visited_at)}`}
-                        >
-                          {isActive ? 'Activo' : 'Nuevo'}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px]">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-white/5 dark:bg-white/5">
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">
+                      Cliente
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">
+                      Pedidos
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">
+                      Total gastado
+                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">
+                      Estado
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {rows.map((item) => {
+                    const name = item.user?.name || 'Cliente'
+                    const email = item.user?.email || '-'
+                    const totalOrders = Number(item.total_orders || 0)
+                    const totalSpent = Number(item.total_spent || 0)
+                    const isActive = totalOrders > 0
+
+                    return (
+                      <tr key={item.id} className="border-b border-slate-100 last:border-b-0 dark:border-white/5">
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-[11px] font-bold text-white">
+                              {initialsFromName(name)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">{name}</p>
+                              <p className="truncate text-[11px] text-slate-400 dark:text-white/30">{email}</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5 text-[13px] font-semibold text-slate-800 dark:text-white/80">
+                          {totalOrders}
+                        </td>
+
+                        <td className="px-4 py-3.5 text-[13px] font-semibold text-slate-900 dark:text-white">
+                          {fmtCurrency(totalSpent)}
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                              isActive
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-white/20 dark:bg-white/10 dark:text-white/60'
+                            }`}
+                            title={`Primera visita: ${formatDate(item.first_visited_at)}`}
+                          >
+                            {isActive ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

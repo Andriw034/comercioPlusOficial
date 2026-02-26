@@ -387,20 +387,68 @@ export default function DashboardOrdersPage() {
       .reduce((sum, order) => sum + order.total, 0)
   }, [orders])
 
+  const escapeCsv = (value: string | number | null | undefined) => {
+    const raw = String(value ?? '')
+    const escaped = raw.replace(/"/g, '""')
+    return `"${escaped}"`
+  }
+
+  const exportCsv = () => {
+    if (!orders.length) return
+
+    const headers = ['Pedido', 'Cliente', 'Email', 'Estado', 'Metodo de pago', 'Total', 'Fecha']
+    const records = orders.map((order) => [
+      order.reference,
+      order.customer_name,
+      order.customer_email,
+      STATUS_CONFIG[order.status].label,
+      order.payment_method,
+      order.total,
+      fmtDate(order.created_at),
+    ])
+
+    const csvContent = [
+      headers.map((header) => escapeCsv(header)).join(','),
+      ...records.map((record) => record.map((cell) => escapeCsv(cell)).join(',')),
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const timestamp = new Date().toISOString().slice(0, 10)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `pedidos-${timestamp}.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
           <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Pedidos</h1>
+          <p className="text-[12px] text-slate-500 dark:text-white/40">Seguimiento de ventas</p>
         </div>
 
-        {todayTotal > 0 && (
-          <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-2 dark:border-green-500/20 dark:bg-green-500/10">
-            <p className="text-[11px] text-green-600 dark:text-green-400">Ventas hoy</p>
-            <p className="text-[18px] font-black text-green-700 dark:text-green-300">{fmt(todayTotal)}</p>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {todayTotal > 0 && (
+            <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-2 dark:border-green-500/20 dark:bg-green-500/10">
+              <p className="text-[11px] text-green-600 dark:text-green-400">Ventas hoy</p>
+              <p className="text-[18px] font-black text-green-700 dark:text-green-300">{fmt(todayTotal)}</p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={!orders.length}
+            className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-[12px] font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+          >
+            📊 Exportar
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -565,4 +613,3 @@ export default function DashboardOrdersPage() {
     </div>
   )
 }
-

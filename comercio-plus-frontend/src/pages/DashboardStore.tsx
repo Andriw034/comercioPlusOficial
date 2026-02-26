@@ -6,6 +6,8 @@ import Card from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import Input from '@/components/Input'
 import StatusBadge from '@/components/ui/StatusBadge'
+import Switch from '@/components/ui/Switch'
+import StoreHeaderPreview from '@/components/ui/StoreHeaderPreview'
 import API from '@/lib/api'
 import { getApiMeta, getApiPayload } from '@/lib/apiPayload'
 import { resolveMediaUrl } from '@/lib/format'
@@ -775,6 +777,20 @@ export default function DashboardStore() {
           </Card>
 
           <div className="space-y-6">
+            <Card variant="glass" padding="md" className="bg-white/90 backdrop-blur-sm">
+              <h3 className="mb-4 text-h3">Vista previa de tienda</h3>
+              <StoreHeaderPreview
+                name={storeData.name}
+                category={storeData.address}
+                logoUrl={storeData.logo}
+                coverUrl={storeData.cover}
+                badgeLabel="Asi se ve tu cabecera"
+              />
+              <p className="mt-3 text-caption text-slate-500">
+                El preview se actualiza en tiempo real al cambiar nombre, logo o portada.
+              </p>
+            </Card>
+
             <Card variant="premium" padding="lg">
               <h3 className="mb-4 text-h3">Estado de la tienda</h3>
               <div className="space-y-3">
@@ -837,16 +853,11 @@ export default function DashboardStore() {
                     <p className="text-body-sm font-semibold text-slate-900">Activar IVA</p>
                     <p className="text-caption text-slate-500">Aplica impuesto a las ventas de la tienda.</p>
                   </div>
-                  <span className="relative inline-flex h-6 w-11 items-center">
-                    <input
-                      type="checkbox"
-                      className="peer sr-only"
-                      checked={taxForm.enable_tax}
-                      onChange={(event) => setTaxForm((prev) => ({ ...prev, enable_tax: event.target.checked }))}
-                    />
-                    <span className="absolute inset-0 rounded-full bg-slate-300 transition peer-checked:bg-brand-500" />
-                    <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition peer-checked:translate-x-5" />
-                  </span>
+                  <Switch
+                    checked={taxForm.enable_tax}
+                    onCheckedChange={(next) => setTaxForm((prev) => ({ ...prev, enable_tax: next }))}
+                    aria-label="Activar IVA"
+                  />
                 </label>
 
                 <Input
@@ -870,16 +881,11 @@ export default function DashboardStore() {
                     <p className="text-body-sm font-semibold text-slate-900">Mis precios incluyen IVA</p>
                     <p className="text-caption text-slate-500">Si esta activo, el precio publicado ya es final.</p>
                   </div>
-                  <span className="relative inline-flex h-6 w-11 items-center">
-                    <input
-                      type="checkbox"
-                      className="peer sr-only"
-                      checked={taxForm.prices_include_tax}
-                      onChange={(event) => setTaxForm((prev) => ({ ...prev, prices_include_tax: event.target.checked }))}
-                    />
-                    <span className="absolute inset-0 rounded-full bg-slate-300 transition peer-checked:bg-brand-500" />
-                    <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition peer-checked:translate-x-5" />
-                  </span>
+                  <Switch
+                    checked={taxForm.prices_include_tax}
+                    onCheckedChange={(next) => setTaxForm((prev) => ({ ...prev, prices_include_tax: next }))}
+                    aria-label="Precios con IVA incluido"
+                  />
                 </label>
 
                 <Input
