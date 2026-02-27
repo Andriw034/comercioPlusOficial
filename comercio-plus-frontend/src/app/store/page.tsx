@@ -1,9 +1,11 @@
 ﻿import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import API from '@/services/api'
+import { getStoredToken, getStoredUserRaw } from '@/services/auth-session'
 import type { Product, Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
 import { useCart } from '@/context/CartContext'
+import { extractList } from '@/lib/api-response'
 import { formatPrice, resolveMediaUrl } from '@/lib/format'
 import CoverImage from '@/ui/images/CoverImage'
 import LogoImage from '@/ui/images/LogoImage'
@@ -36,14 +38,23 @@ export default function StoreDetail() {
         setLoading(true)
         setError('')
 
-        const storeResponse = await API.get(`/public-stores/${id}`)
+        const storeResponse = await API.get(`/public-stores/${id}`, {
+          params: { _t: Date.now() },
+        })
         const storeData: StoreMedia = storeResponse.data
         setStore(storeData)
 
         const productsResponse = await API.get('/products', {
-          params: { store_id: storeData.id, per_page: 40 },
+          params: { store_id: storeData.id, per_page: 40, status: 'active', _t: Date.now() },
         })
-        setStoreProducts(productsResponse.data.data || [])
+        const freshProducts = extractList<Product>(productsResponse.data)
+        setStoreProducts(
+          freshProducts.filter((product) => {
+            const status = String(product.status || '').toLowerCase()
+            const hasValidStatus = status === '' || status === 'active' || status === '1' || status === 'true'
+            return hasValidStatus && Number(product.stock || 0) > 0
+          }),
+        )
       } catch (err: any) {
         setError(err.response?.data?.message || 'Error al cargar la tienda')
       } finally {
@@ -71,12 +82,12 @@ export default function StoreDetail() {
   useEffect(() => {
     const registerVisit = async () => {
       if (!store?.id) return
-      const token = localStorage.getItem('token')
+      const token = getStoredToken()
       if (!token) return
 
       let role = ''
       try {
-        const userRaw = localStorage.getItem('user')
+        const userRaw = getStoredUserRaw()
         role = userRaw ? JSON.parse(userRaw)?.role : ''
       } catch {
         role = ''

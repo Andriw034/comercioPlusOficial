@@ -5,6 +5,7 @@ import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import { Icon } from '@/components/Icon'
 import { hydrateSession, resolvePostAuthRoute } from '@/services/auth-session'
+import { API_CONFIG_OK } from '@/lib/runtime'
 
 const isSafeInternalRedirect = (value: string) => value.startsWith('/') && !value.startsWith('//')
 
@@ -18,8 +19,14 @@ export default function Login() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    setLoading(true)
     setError('')
+
+    if (!API_CONFIG_OK) {
+      setError('La app no esta configurada (VITE_API_BASE_URL). Contacta soporte.')
+      return
+    }
+
+    setLoading(true)
 
     try {
       const email = form.email.trim().toLowerCase()
@@ -31,7 +38,7 @@ export default function Login() {
       })
 
       if (data?.token) {
-        const user = await hydrateSession(data.token, form.remember)
+        const user = await hydrateSession(data.token, form.remember, data?.user)
         const nextParam = searchParams.get('next')
         if (nextParam && isSafeInternalRedirect(nextParam)) {
           navigate(nextParam, { replace: true })
@@ -58,6 +65,12 @@ export default function Login() {
         : (typeof firstErrorValue === 'string' ? firstErrorValue : '')
       const backendMessage = err?.response?.data?.message as string | undefined
       const normalizedBackendMessage = (backendMessage || '').toLowerCase()
+      const isConfigError = err?.code === 'AUTH_API_CONFIG_MISSING' || err?.isApiConfigError
+
+      if (isConfigError) {
+        setError('La app no esta configurada (VITE_API_BASE_URL). Contacta soporte.')
+        return
+      }
 
       if (
         status === 503 ||

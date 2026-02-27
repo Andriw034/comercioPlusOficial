@@ -1,0 +1,7 @@
+Documentacion migrada.
+
+Los .md historicos de esta carpeta fueron movidos a:
+../../docs/_archive/repo-md/
+
+Fuente oficial unica:
+../../docs/UNIVERSAL_COMERCIOPLUS.md

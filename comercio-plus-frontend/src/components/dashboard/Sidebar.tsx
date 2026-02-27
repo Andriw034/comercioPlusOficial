@@ -1,11 +1,12 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Icon, type IconName } from '@/components/Icon'
+import type { IconName } from '@/components/Icon'
 import { resolveMediaUrl } from '@/lib/format'
 import API from '@/lib/api'
 import { clearSession } from '@/services/auth-session'
 import LogoImage from '@/ui/images/LogoImage'
 import { getImageBrightness, getThemeClassesByBrightness, type ImageBrightness } from '@/utils/imageTheme'
+import EmojiIcon from '@/components/ui/EmojiIcon'
 
 type NavItem = {
   href: string
@@ -184,7 +185,7 @@ export default function Sidebar({ store = null }: SidebarProps) {
                 imageClassName="h-full w-full"
               />
             ) : (
-              <Icon name="store" size={18} className="text-orange-200" />
+              <EmojiIcon name="store" size={18} />
             )}
           </div>
           <div>
@@ -218,7 +219,7 @@ export default function Sidebar({ store = null }: SidebarProps) {
                   style={{ width: 'calc(100% - 16px)' }}
                 >
                   <span className={`flex h-[22px] w-[22px] items-center justify-center rounded-md ${item.iconBg}`}>
-                    <Icon name={item.icon} size={14} className={active ? 'text-white' : 'text-slate-100'} />
+                    <EmojiIcon name={item.icon} size={14} />
                   </span>
                   <span className="flex-1">{item.label}</span>
                   {active ? <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange-300" /> : null}
@@ -237,7 +238,7 @@ export default function Sidebar({ store = null }: SidebarProps) {
           style={{ width: 'calc(100% - 16px)' }}
         >
           <span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-rose-500/20">
-            <Icon name="logout" size={14} className="text-rose-100" />
+            <EmojiIcon name="logout" size={14} />
           </span>
           <span className="flex-1">Cerrar sesion</span>
         </button>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import API from '@/lib/api'
 import { extractList } from '@/lib/api-response'
@@ -31,9 +31,16 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+function sanitizeWhatsApp(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('57') && digits.length >= 12) return digits
+  if (digits.startsWith('3') && digits.length === 10) return `57${digits}`
+  return digits
+}
+
 export default function StoreProducts() {
   const { storeSlug = '' } = useParams()
-  const { addToCart } = useCart()
+  const { addToCart, items } = useCart()
 
   const [store, setStore] = useState<StoreWithMeta | null>(null)
   const [products, setProducts] = useState<Product[]>([])
@@ -41,12 +48,15 @@ export default function StoreProducts() {
   const [isFollowing, setIsFollowing] = useState(false)
   const [sortBy, setSortBy] = useState('popular')
   const [headerTheme, setHeaderTheme] = useState<ImageBrightness>('dark')
+  const [addedNoticeProductId, setAddedNoticeProductId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadStoreData = async () => {
       setIsLoading(true)
       try {
-        const storesResponse = await API.get('/public-stores')
+        const storesResponse = await API.get('/public-stores', {
+          params: { _t: Date.now() },
+        })
         const allStores = extractList<StoreWithMeta>(storesResponse.data)
 
         const foundStore = allStores.find((item) => {
@@ -63,9 +73,10 @@ export default function StoreProducts() {
         setStore(foundStore)
 
         const productsResponse = await API.get('/products', {
-          params: { store_id: foundStore.id, per_page: 48, status: 'active' },
+          params: { store_id: foundStore.id, per_page: 48, status: 'active', _t: Date.now() },
         })
-        setProducts(extractList<Product>(productsResponse.data))
+        const freshProducts = extractList<Product>(productsResponse.data)
+        setProducts(freshProducts.filter((product) => Number(product.stock || 0) > 0))
       } catch (error) {
         console.error('Error loading store:', error)
         setStore(null)
@@ -77,6 +88,12 @@ export default function StoreProducts() {
 
     loadStoreData()
   }, [storeSlug])
+
+  useEffect(() => {
+    if (!addedNoticeProductId) return
+    const timer = window.setTimeout(() => setAddedNoticeProductId(null), 1200)
+    return () => window.clearTimeout(timer)
+  }, [addedNoticeProductId])
 
   useEffect(() => {
     if (!store) {
@@ -124,7 +141,35 @@ export default function StoreProducts() {
     }
   }, [products, sortBy])
 
+  const storePublicUrl = useMemo(() => {
+    if (typeof window === 'undefined') return ''
+    const resolvedSlug = store?.slug || storeSlug
+    return `${window.location.origin}/stores/${resolvedSlug}/products`
+  }, [store?.slug, storeSlug])
+
+  const buildWhatsAppMessage = useCallback(() => {
+    if (items.length === 0) {
+      return encodeURIComponent(storePublicUrl || 'Hola, vi tu tienda en ComercioPlus y me gustaria conocer tus productos.')
+    }
+
+    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const lines = items
+      .map((item) => `- ${item.name} x${item.quantity} = $${(item.price * item.quantity).toLocaleString('es-CO')}`)
+      .join('\n')
+
+    const message = `Hola, me interesa hacer un pedido:\n\n${lines}\n\nTotal: $${total.toLocaleString('es-CO')}`
+    return encodeURIComponent(message)
+  }, [items, storePublicUrl])
+
+  const sanitizedWhatsApp = useMemo(() => sanitizeWhatsApp(String(store?.whatsapp || '')), [store?.whatsapp])
+  const whatsappUrl = useMemo(() => {
+    if (!sanitizedWhatsApp) return ''
+    return `https://wa.me/${sanitizedWhatsApp}?text=${buildWhatsAppMessage()}`
+  }, [buildWhatsAppMessage, sanitizedWhatsApp])
+
   const handleAddToCart = (product: Product) => {
+    if (!product?.id) return
+
     addToCart({
       id: String(product.id),
       name: product.name,
@@ -133,6 +178,16 @@ export default function StoreProducts() {
       seller: store?.name || 'ComercioPlus',
       storeId: String(store?.id || ''),
     })
+
+    setAddedNoticeProductId(String(product.id))
+  }
+
+  const handleWhatsAppClick = () => {
+    try {
+      sessionStorage.setItem('checkout_channel', 'whatsapp')
+    } catch {
+      // noop
+    }
   }
 
   const logo = resolveMediaUrl(store?.logo_url || store?.logo_path || store?.logo)
@@ -283,10 +338,18 @@ export default function StoreProducts() {
                       )}
                     </button>
 
-                    <button className="rounded-xl border-2 border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 transition-all hover:bg-slate-50">
-                      <Icon name="message" size={20} className="mr-2 inline" />
-                      Contactar
-                    </button>
+                    {sanitizedWhatsApp && (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={handleWhatsAppClick}
+                        className="rounded-xl border-2 border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 transition-all hover:bg-slate-50"
+                      >
+                        <Icon name="message" size={20} className="mr-2 inline" />
+                        {items.length > 0 ? 'Pedir por WhatsApp' : 'Ver catalogo en WhatsApp'}
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -318,16 +381,20 @@ export default function StoreProducts() {
         {sortedProducts.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {sortedProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={String(product.id)}
-                name={product.name}
-                category={product.category?.name || 'General'}
-                price={Number(product.price || 0)}
-                image={resolveMediaUrl(product.image_url || product.image) || '/placeholder-product.png'}
-                stock={Number(product.stock || 0)}
-                onAddToCart={() => handleAddToCart(product)}
-              />
+              <div key={product.id}>
+                <ProductCard
+                  id={String(product.id)}
+                  name={product.name}
+                  category={product.category?.name || 'General'}
+                  price={Number(product.price || 0)}
+                  image={resolveMediaUrl(product.image_url || product.image) || '/placeholder-product.png'}
+                  stock={Number(product.stock || 0)}
+                  onAddToCart={() => handleAddToCart(product)}
+                />
+                {addedNoticeProductId === String(product.id) ? (
+                  <p className="mt-2 text-center text-xs font-semibold text-emerald-700">Agregado al carrito ✅</p>
+                ) : null}
+              </div>
             ))}
           </div>
         ) : (

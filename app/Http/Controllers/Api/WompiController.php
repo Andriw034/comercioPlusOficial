@@ -43,6 +43,7 @@ class WompiController extends Controller
             'customer.address' => 'nullable|string',
             'customer.city' => 'nullable|string',
             'paymentMethod' => 'required|in:PSE,NEQUI,BANCOLOMBIA,CARD',
+            'channel' => 'nullable|in:web,whatsapp,local',
         ]);
 
         try {
@@ -74,6 +75,7 @@ class WompiController extends Controller
                 'items' => $items,
                 'payment_method' => $validated['paymentMethod'],
                 'status' => 'pending',
+                'channel' => (string) ($validated['channel'] ?? 'web'),
                 'currency' => 'COP',
             ], (int) $user->id);
 

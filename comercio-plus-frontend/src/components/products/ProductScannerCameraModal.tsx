@@ -33,7 +33,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
     return typeof window !== 'undefined' && 'BarcodeDetector' in window
   }, [])
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (detectTimerRef.current) {
       window.clearInterval(detectTimerRef.current)
       detectTimerRef.current = null
@@ -46,7 +46,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
 
     detectorRef.current = null
     detectingRef.current = false
-  }
+  }, [])
 
   const buildCameraErrorMessage = (error: unknown): string => {
     const fallback = 'No pude abrir la camara. Verifica permisos y vuelve a intentar.'
@@ -68,7 +68,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
     return fallback
   }
 
-  const applyDetectedCode = (value: string) => {
+  const applyDetectedCode = useCallback((value: string) => {
     const normalized = value.trim()
     if (!normalized) return
 
@@ -81,9 +81,9 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
 
     onDetected(normalized)
     onClose()
-  }
+  }, [onClose, onDetected])
 
-  const startDetectionLoop = () => {
+  const startDetectionLoop = useCallback(() => {
     if (!videoRef.current || !detectorRef.current || detectTimerRef.current) return
 
     detectTimerRef.current = window.setInterval(async () => {
@@ -105,7 +105,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
         detectingRef.current = false
       }
     }, DETECTION_INTERVAL_MS)
-  }
+  }, [applyDetectedCode])
 
   const openCamera = useCallback(async () => {
     if (!navigator?.mediaDevices?.getUserMedia) {
@@ -157,7 +157,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
       setCameraState('error')
       setCameraMessage(buildCameraErrorMessage(error))
     }
-  }, [canUseBarcodeDetector])
+  }, [canUseBarcodeDetector, startDetectionLoop])
 
   const handleRetryCamera = () => {
     stopCamera()
@@ -187,7 +187,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
       document.body.style.overflow = ''
       previous?.focus()
     }
-  }, [onClose, open, openCamera, retryNonce])
+  }, [open, openCamera, retryNonce, stopCamera])
 
   if (!open) return null
 

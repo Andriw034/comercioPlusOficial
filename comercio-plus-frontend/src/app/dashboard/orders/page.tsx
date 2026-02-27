@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
@@ -307,7 +307,7 @@ export default function DashboardOrdersPage() {
 
   const PER_PAGE = 20
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setLoadError('')
 
@@ -321,11 +321,11 @@ export default function DashboardOrdersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     void load()
-  }, [statusFilter])
+  }, [load])
 
   useEffect(() => {
     setPage(1)

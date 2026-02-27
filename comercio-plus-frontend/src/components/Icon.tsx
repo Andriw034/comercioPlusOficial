@@ -1,5 +1,6 @@
 ﻿import * as LucideIcons from 'lucide-react'
-import { emojiIconMap, resolveIconVariant, type IconVariant } from '@/ui/icon-config'
+import { resolveIconVariant, type IconVariant } from '@/ui/icon-config'
+import EmojiIcon, { hasEmojiIcon } from '@/components/ui/EmojiIcon'
 
 const iconMap = {
   home: LucideIcons.Home,
@@ -110,24 +111,8 @@ export function Icon({ name, size = 20, className = '', strokeWidth, variant }: 
   const iconVariant = resolveIconVariant(variant)
   const normalizedSize = Math.round(size)
 
-  if (iconVariant === 'emoji') {
-    const emoji = emojiIconMap[name as keyof typeof emojiIconMap]
-    if (emoji) {
-      return (
-        <span
-          className={`inline-flex shrink-0 items-center justify-center align-middle ${className}`.trim()}
-          style={{
-            width: normalizedSize,
-            height: normalizedSize,
-            fontSize: Math.max(12, Math.round(normalizedSize * 0.82)),
-            lineHeight: 1,
-          }}
-          aria-hidden="true"
-        >
-          {emoji}
-        </span>
-      )
-    }
+  if (iconVariant === 'emoji' && hasEmojiIcon(name)) {
+    return <EmojiIcon name={name} size={normalizedSize} className={className} />
   }
 
   const computedStrokeWidth =

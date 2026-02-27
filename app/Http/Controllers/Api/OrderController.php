@@ -59,7 +59,9 @@ class OrderController extends Controller
             'date' => 'nullable|date',
             'payment_method' => 'required|string|max:255',
             'status' => 'nullable|in:pending,processing,paid,approved,cancelled,completed',
+            'channel' => 'nullable|in:web,whatsapp,local',
         ]);
+        $validated['channel'] = (string) ($validated['channel'] ?? 'web');
 
         $order = $this->orderBillingService->createOrder($validated, (int) $request->user()->id);
 

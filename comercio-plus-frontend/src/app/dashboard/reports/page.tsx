@@ -317,7 +317,7 @@ export default function DashboardReportsPage() {
   }
 
   const summary = data?.summary
-  const salesRows = data?.sales || []
+  const salesRows = useMemo(() => data?.sales || [], [data?.sales])
   const topProducts = data?.topProducts || []
 
   const hasReportData = Boolean(summary && (summary.ordersCount > 0 || salesRows.length > 0 || topProducts.length > 0))

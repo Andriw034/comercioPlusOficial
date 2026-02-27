@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import API from '@/lib/api'
 import Button, { buttonVariants } from '@/components/ui/button'
@@ -205,11 +205,11 @@ export default function ManageProducts() {
     navigate('/dashboard/products')
   }
 
-  const scrollToForm = () => {
+  const scrollToForm = useCallback(() => {
     window.setTimeout(() => {
       formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 60)
-  }
+  }, [])
 
   const openCreate = () => {
     clearForm()
@@ -219,7 +219,7 @@ export default function ManageProducts() {
     scrollToForm()
   }
 
-  const applyProductToForm = (item: Product) => {
+  const applyProductToForm = useCallback((item: Product) => {
     const primaryCode = getPrimaryProductCode(item)
     setForm({
       id: item.id,
@@ -239,18 +239,18 @@ export default function ManageProducts() {
     setScanCodeInput('')
     setScanConsecutiveFailures(0)
     setScanFeedback(null)
-  }
+  }, [])
 
-  const openEdit = (item: Product, withNavigate = true) => {
+  const openEdit = useCallback((item: Product, withNavigate = true) => {
     applyProductToForm(item)
     setShowForm(true)
     if (withNavigate) {
       navigate(`/dashboard/products/${item.id}/edit`)
     }
     scrollToForm()
-  }
+  }, [applyProductToForm, navigate, scrollToForm])
 
-  const ensureMotorcycleCategories = async (initialCategories: Category[]) => {
+  const ensureMotorcycleCategories = useCallback(async (initialCategories: Category[]) => {
     if (!storeId || categorySeedRef.current) return initialCategories
 
     const existingByName = new Set(initialCategories.map((item) => normalizeCategoryLabel(item.name || '')))
@@ -277,9 +277,9 @@ export default function ManageProducts() {
     } finally {
       categorySeedRef.current = false
     }
-  }
+  }, [storeId])
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setCategoriesLoading(true)
     setCategoriesError('')
 
@@ -303,7 +303,7 @@ export default function ManageProducts() {
     } finally {
       setCategoriesLoading(false)
     }
-  }
+  }, [ensureMotorcycleCategories])
 
   const fetchStore = async () => {
     try {
@@ -327,7 +327,7 @@ export default function ManageProducts() {
     }
   }
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!storeId) {
       setProducts([])
       return
@@ -337,14 +337,29 @@ export default function ManageProducts() {
     setError('')
 
     try {
-      const { data } = await API.get('/products', {
-        params: {
-          store_id: storeId,
-          per_page: 50,
-        },
-      })
+      const fetchedProducts: Product[] = []
+      const requestTimestamp = Date.now()
+      const perPage = 100
+      let page = 1
+      let lastPage = 1
 
-      const fetchedProducts = extractList<Product>(data)
+      do {
+        const { data } = await API.get('/products', {
+          params: {
+            store_id: storeId,
+            per_page: perPage,
+            page,
+            _t: requestTimestamp,
+          },
+        })
+
+        fetchedProducts.push(...extractList<Product>(data))
+
+        const nextLastPage = Number(data?.last_page || data?.meta?.last_page || 1)
+        lastPage = Number.isFinite(nextLastPage) && nextLastPage > 0 ? nextLastPage : 1
+        page += 1
+      } while (page <= lastPage && page <= 30)
+
       const sortedProducts = [...fetchedProducts].sort((a, b) => toNumber(a.id) - toNumber(b.id))
       setProducts(sortedProducts)
     } catch (err: any) {
@@ -353,7 +368,7 @@ export default function ManageProducts() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [storeId])
 
   const onImage = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null
@@ -635,9 +650,9 @@ export default function ManageProducts() {
 
   useEffect(() => {
     if (!storeId) return
-    fetchCategories()
-    fetchProducts()
-  }, [storeId])
+    void fetchCategories()
+    void fetchProducts()
+  }, [fetchCategories, fetchProducts, storeId])
 
   useEffect(() => {
     if (!toast) return
@@ -689,7 +704,7 @@ export default function ManageProducts() {
     if (location.pathname === '/dashboard/products') {
       setShowForm(false)
     }
-  }, [location.pathname, params.id, products])
+  }, [location.pathname, openEdit, params.id, products, scrollToForm])
 
   useEffect(() => {
     if (!showForm || entryMethod !== 'keyboard') return
@@ -1037,12 +1052,6 @@ export default function ManageProducts() {
               <p className="mt-1 text-[13px] text-[#64748B]">Gestiona tu catalogo</p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="inline-flex h-9 items-center rounded-lg border border-[#D1D5DB] bg-white px-3 text-[12px] font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
-              >
-                📥 Importar
-              </button>
               <Button onClick={openCreate} className="h-9 rounded-lg px-3.5 text-[12px] font-semibold">
                 + Nuevo
               </Button>
@@ -1216,3 +1225,4 @@ export default function ManageProducts() {
     </div>
   )
 }
+

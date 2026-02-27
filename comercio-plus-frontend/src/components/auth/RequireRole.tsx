@@ -9,6 +9,14 @@ type Props = {
   children: ReactNode
 }
 
+const normalizeRole = (value: unknown): Role | null => {
+  const role = String(value || '').trim().toLowerCase()
+  if (role === 'comerciante') return 'merchant'
+  if (role === 'cliente') return 'client'
+  if (role === 'merchant' || role === 'client') return role
+  return null
+}
+
 export default function RequireRole({ role, children }: Props) {
   const location = useLocation()
   const userData = getStoredUserRaw()
@@ -20,7 +28,7 @@ export default function RequireRole({ role, children }: Props) {
 
   let userRole: Role | undefined
   try {
-    userRole = JSON.parse(userData)?.role
+    userRole = normalizeRole(JSON.parse(userData)?.role) || undefined
   } catch {
     userRole = undefined
   }

@@ -33,7 +33,7 @@ export default function Register() {
       }
       const { data } = await API.post('/register', payload)
       if (data?.token) {
-        const user = await hydrateSession(data.token)
+        const user = await hydrateSession(data.token, true, data?.user)
         navigate(resolvePostAuthRoute(user))
       } else {
         setError('No se recibio token de autenticacion.')

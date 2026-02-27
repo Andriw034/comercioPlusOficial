@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
+import EmojiIcon from '@/components/ui/EmojiIcon'
 import { clearSession, getStoredToken, getStoredUserRaw } from '@/services/auth-session'
 import API from '@/lib/api'
 
@@ -151,7 +152,7 @@ export default function Navbar() {
               flexShrink: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '9px', background: '#FF6A00' }}><Icon name="store" size={18} className="text-white" /></div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '9px', background: '#FF6A00' }}><EmojiIcon name="store" size={18} /></div>
             <div style={{ lineHeight: 1.2 }}>
               <div style={{ fontWeight: 700, fontSize: '16px', color: '#111827', letterSpacing: '-0.2px' }}>ComercioPlus</div>
               <div style={{ fontSize: '10.5px', color: '#9ca3af', fontWeight: 400 }}>Tu tienda en linea</div>

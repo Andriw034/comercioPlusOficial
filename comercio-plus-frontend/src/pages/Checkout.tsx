@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
 import { useCart } from '@/context/CartContext'
 import API from '@/services/api'
 import { getStoredToken } from '@/services/auth-session'
 
 type PaymentMethod = 'PSE' | 'NEQUI' | 'BANCOLOMBIA' | 'CARD'
+type OrderChannel = 'web' | 'whatsapp' | 'local'
 
 interface CheckoutForm {
   email: string
@@ -21,8 +22,12 @@ type CheckoutNotice = {
   message: string
 }
 
+const isOrderChannel = (value: string | null): value is OrderChannel =>
+  value === 'web' || value === 'whatsapp' || value === 'local'
+
 export default function Checkout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { items, totalPrice } = useCart()
   const token = getStoredToken()
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
@@ -36,6 +41,28 @@ export default function Checkout() {
     city: '',
     notes: '',
   })
+  const channel = useMemo<OrderChannel>(() => {
+    const fromQuery = new URLSearchParams(location.search).get('channel')
+    if (isOrderChannel(fromQuery)) return fromQuery
+
+    if (typeof window !== 'undefined') {
+      const fromStorage = sessionStorage.getItem('checkout_channel')
+      if (isOrderChannel(fromStorage)) return fromStorage
+    }
+
+    return 'web'
+  }, [location.search])
+
+  useEffect(() => {
+    const fromQuery = new URLSearchParams(location.search).get('channel')
+    if (!isOrderChannel(fromQuery)) return
+
+    try {
+      sessionStorage.setItem('checkout_channel', fromQuery)
+    } catch {
+      // noop
+    }
+  }, [location.search])
 
   useEffect(() => {
     if (items.length === 0) {
@@ -44,9 +71,9 @@ export default function Checkout() {
     }
 
     if (!token) {
-      navigate(`/login?next=${encodeURIComponent('/checkout')}`, { replace: true })
+      navigate(`/login?next=${encodeURIComponent(`/checkout${location.search}`)}`, { replace: true })
     }
-  }, [items.length, navigate, token])
+  }, [items.length, location.search, navigate, token])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({
@@ -81,6 +108,7 @@ export default function Checkout() {
         customer: formData,
         totalAmount: totalPrice,
         paymentMethod: selectedMethod,
+        channel,
       })
 
       const orderId = Number(orderResponse?.data?.orderId || 0)
@@ -282,6 +310,14 @@ export default function Checkout() {
                   </>
                 )}
               </button>
+
+              <Link
+                to="/cart"
+                className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white py-3 font-semibold text-slate-700 transition-all hover:bg-slate-50"
+              >
+                <Icon name="arrow-left" size={18} />
+                Volver al carrito
+              </Link>
 
               <div className="rounded-xl bg-green-50 p-4">
                 <div className="flex items-start gap-3">

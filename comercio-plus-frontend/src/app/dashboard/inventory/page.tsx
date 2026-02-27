@@ -606,8 +606,9 @@ export default function DashboardInventoryPage() {
 
   const totals = useMemo(() => {
     const totalProducts = stats?.total_products || items.length
-    const lowProducts = stats?.low_stock_products ?? lowStock.length
-    const outProducts = stats?.out_of_stock_products ?? outOfStock.length
+    const outProducts = Math.max(0, stats?.out_of_stock_products ?? outOfStock.length)
+    const lowProductsRaw = Math.max(0, stats?.low_stock_products ?? lowStock.length)
+    const lowProducts = Math.min(Math.max(0, totalProducts - outProducts), lowProductsRaw)
     const normalProducts = Math.max(0, totalProducts - lowProducts - outProducts)
     const inventoryValue = stats?.inventory_value ?? items.reduce((acc, item) => acc + item.price * item.current_stock, 0)
 
@@ -902,6 +903,5 @@ export default function DashboardInventoryPage() {
     </div>
   )
 }
-
 
 

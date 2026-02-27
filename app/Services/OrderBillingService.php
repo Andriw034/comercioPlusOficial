@@ -116,6 +116,7 @@ class OrderBillingService
                 'date' => $date,
                 'payment_method' => (string) ($payload['payment_method'] ?? 'CARD'),
                 'status' => $status,
+                'channel' => (string) ($payload['channel'] ?? 'web'),
                 'currency' => (string) ($payload['currency'] ?? 'COP'),
                 'invoice_date' => now(),
             ]);

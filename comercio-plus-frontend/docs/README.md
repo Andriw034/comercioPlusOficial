@@ -1,28 +1,14 @@
-﻿<!-- DOC_STATUS:START -->
-> Estado documental: **ACTIVO**
-> Fecha de verificacion: **2026-02-25**
-> Fuente canonica frontend: `ComercioPlus_Frontend_Contrato_Tecnico.md`.
-<!-- DOC_STATUS:END -->
-
 # Documentacion Frontend ComercioPlus
 
-## 1) Documentos vigentes (usar primero)
-- `ComercioPlus_Frontend_Contrato_Tecnico.md`
-- `ComercioPlus_Frontend_Auditoria_Estructural.md`
-- `INTEGRADO_ANALISIS_PLAN_QA.md`
-- `INTEGRADO_TESTING_QA.md`
-- `INTEGRADO_PICKING.md`
-- `INTEGRADO_DEPLOY_MEDIA.md`
-- `INTEGRADO_WOMPI_ECOMMERCE.md`
-- `DOCS_SIMILITUD_E_INTEGRACION.md`
+Estado: ACTIVO (indice de referencia)
 
-## 2) Historial documental
-- Carpeta: `repo-md/`
-- Uso: referencia historica y trazabilidad.
-- Nota: puede incluir stack/rutas antiguas y no debe usarse como contrato tecnico actual.
+Fuente oficial unica del proyecto:
 
-## 3) Regla de mantenimiento
-1. Cambios estructurales de frontend: actualizar primero `ComercioPlus_Frontend_Contrato_Tecnico.md`.
-2. Cambios de diagnostico ejecutivo: actualizar `ComercioPlus_Frontend_Auditoria_Estructural.md`.
-3. Cambios tematicos: actualizar `INTEGRADO_*.md` correspondiente.
-4. `repo-md/` solo se actualiza para archivo historico o migracion documental.
+- `../../docs/UNIVERSAL_COMERCIOPLUS.md`
+- `../../docs/DOC_GOVERNANCE.md`
+
+Estado de `repo-md/`:
+
+- `repo-md/` se considera historico.
+- No es fuente oficial para decisiones tecnicas actuales.
+- Su migracion a `docs/_archive/repo-md/` ya fue completada.

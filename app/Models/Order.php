@@ -31,6 +31,7 @@ class Order extends Model
         'total_amount',
         'payment_method',
         'status',
+        'channel',
         'fulfillment_status',
         'payment_reference',
         'wompi_transaction_id',

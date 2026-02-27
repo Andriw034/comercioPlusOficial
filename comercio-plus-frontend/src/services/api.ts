@@ -1,8 +1,8 @@
 import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import { API_BASE_URL } from '@/lib/runtime'
+import { API_BASE_URL, API_CONFIG_ERROR_MESSAGE, API_CONFIG_OK } from '@/lib/runtime'
 
-if (!API_BASE_URL) {
-  console.error('[api] Missing API base URL. Requests will fallback to /api.')
+if (import.meta.env.PROD && !API_CONFIG_OK) {
+  console.error(`[api][AUTH] ${API_CONFIG_ERROR_MESSAGE}`)
 }
 
 const TOKEN_KEY = 'token'
@@ -56,7 +56,7 @@ const buildGetCacheKey = (url: string, config?: AxiosRequestConfig): string => {
 }
 
 const API = axios.create({
-  baseURL: API_BASE_URL || '/api',
+  baseURL: API_BASE_URL || (import.meta.env.DEV ? '/api' : ''),
   timeout: 30000,
   headers: {
     Accept: 'application/json',
@@ -70,6 +70,16 @@ if (import.meta.env.DEV) {
 
 API.interceptors.request.use(
   (config) => {
+    if (import.meta.env.PROD && !API_CONFIG_OK) {
+      const configError = new Error(API_CONFIG_ERROR_MESSAGE) as Error & {
+        code?: string
+        isApiConfigError?: boolean
+      }
+      configError.code = 'AUTH_API_CONFIG_MISSING'
+      configError.isApiConfigError = true
+      return Promise.reject(configError)
+    }
+
     config.withCredentials = false
     const method = (config.method || 'get').toLowerCase()
 
@@ -84,6 +94,10 @@ API.interceptors.request.use(
       clearGetCache()
     }
 
+    if (import.meta.env.DEV && ['login', 'register', 'me', 'logout'].some((segment) => String(config.url || '').includes(segment))) {
+      console.debug(`[AUTH] request ${method.toUpperCase()} ${String(config.baseURL || '')}${String(config.url || '')}`)
+    }
+
     return config
   },
   (error) => Promise.reject(error),
@@ -96,6 +110,7 @@ API.interceptors.response.use(
     const requestUrl = String(error.config?.url || '')
     const hasStoredToken = Boolean(readToken())
     const pathname = String(window.location?.pathname || '')
+    const isLoginRoute = pathname.startsWith('/login')
     const isAuthFlowRequest =
       requestUrl.includes('/login') ||
       requestUrl.includes('/register') ||
@@ -107,9 +122,13 @@ API.interceptors.response.use(
       clearStoredSession()
       clearGetCache()
       delete API.defaults.headers.common.Authorization
-      if (isProtectedRoute) {
+      if (isProtectedRoute && !isLoginRoute) {
         window.location.href = '/login'
       }
+    }
+
+    if (import.meta.env.DEV && isAuthFlowRequest) {
+      console.debug(`[AUTH] response error ${status || 'n/a'} on ${requestUrl}`)
     }
 
     return Promise.reject(error)

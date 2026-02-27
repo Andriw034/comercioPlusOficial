@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
-import { clearSession } from '@/services/auth-session'
+import { clearSession, getStoredUserRaw } from '@/services/auth-session'
 import GlassCard from '@/components/ui/GlassCard'
 import Button, { buttonVariants } from '@/components/ui/button'
 import Badge from '@/components/ui/Badge'
@@ -148,7 +148,7 @@ export default function Dashboard() {
 
   const user = useMemo(() => {
     try {
-      const userData = localStorage.getItem('user')
+      const userData = getStoredUserRaw()
       return userData ? JSON.parse(userData) : null
     } catch {
       return null

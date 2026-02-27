@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import Badge from '@/components/Badge'
 import Button from '@/components/Button'
@@ -26,6 +26,7 @@ import {
 
 interface StoreData {
   id: number
+  slug: string
   name: string
   description: string
   email: string
@@ -70,6 +71,7 @@ interface ToastState {
 
 const fallbackStore: StoreData = {
   id: 0,
+  slug: '',
   name: 'Accesorios Biker Colombia',
   description: 'Accesorios, cascos y repuestos para motos en toda Colombia.',
   email: 'ventas@bikercolombia.com',
@@ -246,7 +248,7 @@ export default function DashboardStore() {
     setToast({ id: Date.now(), message, variant })
   }
 
-  const resolveStoreId = (): number | null => {
+  const resolveStoreId = useCallback((): number | null => {
     const fromOutlet = parseStoreId(outlet?.store?.id)
     if (fromOutlet) return fromOutlet
 
@@ -260,7 +262,7 @@ export default function DashboardStore() {
     }
 
     return null
-  }
+  }, [outlet?.store?.id])
 
   const loadTaxSettings = async (resolvedStoreId: number) => {
     setTaxLoading(true)
@@ -297,6 +299,7 @@ export default function DashboardStore() {
         if (data) {
           const mapped: StoreData = {
             id: data.id || 0,
+            slug: data.slug || '',
             name: data.name || '',
             description: data.description || '',
             email: data.support_email || '',
@@ -341,7 +344,7 @@ export default function DashboardStore() {
     }
 
     loadStore()
-  }, [])
+  }, [resolveStoreId])
 
   useEffect(() => {
     if (!storeId) {
@@ -394,6 +397,13 @@ export default function DashboardStore() {
   }, [storeData.cover, storeData.id, storeId])
 
   const adaptiveTheme = getThemeClassesByBrightness(headerTheme)
+  const storeUrl =
+    storeData.slug && typeof window !== 'undefined'
+      ? `${window.location.origin}/stores/${storeData.slug}/products`
+      : ''
+  const qrImageUrl = storeUrl
+    ? `https://chart.googleapis.com/chart?cht=qr&chs=256x256&chl=${encodeURIComponent(storeUrl)}&chco=1A1F2E&chf=bg,s,FDFAF7`
+    : ''
 
   const handleEdit = () => setIsEditing(true)
 
@@ -465,6 +475,7 @@ export default function DashboardStore() {
       const merged: StoreData = {
         ...storeData,
         id: responseData.id || storeData.id,
+        slug: responseData.slug || storeData.slug || '',
         status: storeData.isVisible ? 'active' : 'inactive',
         logo: resolveMediaUrl(responseData.logo_url || responseData.logo_path || responseData.logo) || logoUrl || storeData.logo,
         cover: resolveMediaUrl(responseData.cover_url || responseData.cover_path || responseData.background_url || responseData.cover) || coverUrl || storeData.cover,
@@ -554,6 +565,23 @@ export default function DashboardStore() {
 
     setStoreData((prev) => ({ ...prev, [field]: '' }))
     return true
+  }
+
+  const downloadQR = async () => {
+    if (!qrImageUrl || !storeData.slug) return
+
+    try {
+      const response = await fetch(qrImageUrl)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.download = `qr-${storeData.slug}.png`
+      link.href = url
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.open(qrImageUrl, '_blank', 'noopener,noreferrer')
+    }
   }
 
   return (
@@ -789,6 +817,31 @@ export default function DashboardStore() {
               <p className="mt-3 text-caption text-slate-500">
                 El preview se actualiza en tiempo real al cambiar nombre, logo o portada.
               </p>
+            </Card>
+
+            <Card variant="glass" padding="md" className="bg-white/90 backdrop-blur-sm">
+              <h3 className="mb-4 text-h3">QR de tu tienda</h3>
+              {storeData.slug ? (
+                <>
+                  <div className="mb-3 flex justify-center rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <img
+                      src={qrImageUrl}
+                      alt={`QR tienda ${storeData.name}`}
+                      width={256}
+                      height={256}
+                      className="h-56 w-56 max-w-full rounded-lg bg-[#FDFAF7]"
+                    />
+                  </div>
+                  <p className="mb-3 break-all text-caption text-slate-500">{storeUrl}</p>
+                  <Button variant="primary" onClick={downloadQR} fullWidth>
+                    Descargar QR
+                  </Button>
+                </>
+              ) : (
+                <p className="text-caption text-slate-500">
+                  Guarda o crea tu tienda para generar el QR publico.
+                </p>
+              )}
             </Card>
 
             <Card variant="premium" padding="lg">

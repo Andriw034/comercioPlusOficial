@@ -26,7 +26,7 @@ export default function Home() {
       setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length)
     }, 8000)
     return () => clearInterval(interval)
-  }, [])
+  }, [backgroundImages.length])
 
   useEffect(() => {
     const loadStores = async () => {
@@ -236,4 +236,3 @@ export default function Home() {
     </div>
   )
 }
-

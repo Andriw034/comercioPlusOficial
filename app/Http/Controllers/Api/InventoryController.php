@@ -35,8 +35,11 @@ class InventoryController extends Controller
 
         $allProducts = Product::query()->where('store_id', $store->id)->get(['id', 'stock', 'reorder_point', 'price']);
         $lowStockCount = $allProducts->filter(function ($product) use ($threshold) {
+            $stock = (int) $product->stock;
             $limit = $threshold ?? (int) $product->reorder_point;
-            return (int) $product->stock <= $limit;
+
+            // Bajo stock no incluye agotados para evitar doble conteo en los KPIs.
+            return $stock > 0 && $stock <= $limit;
         })->count();
 
         $outOfStockCount = $allProducts->filter(fn ($product) => (int) $product->stock <= 0)->count();

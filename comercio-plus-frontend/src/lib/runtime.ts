@@ -33,14 +33,12 @@ const fallbackApiBaseUrl = (() => {
     return '/api'
   }
 
-  if (typeof window !== 'undefined') {
-    return normalizeApiBaseUrl(`${window.location.origin}/api`)
-  }
-
   return ''
 })()
 
 export const API_BASE_URL = fallbackApiBaseUrl
+export const API_CONFIG_OK = import.meta.env.DEV || rawApiBaseUrl.length > 0
+export const API_CONFIG_ERROR_MESSAGE = 'Falta configurar VITE_API_BASE_URL en produccion.'
 
 const inferredOrigin = API_BASE_URL.startsWith('http')
   ? stripTrailingSlash(API_BASE_URL.replace(/\/api\/?$/, ''))
@@ -48,8 +46,8 @@ const inferredOrigin = API_BASE_URL.startsWith('http')
 
 export const API_ORIGIN = inferredOrigin
 
-if (!import.meta.env.DEV && !rawApiBaseUrl && typeof window !== 'undefined') {
-  console.warn('[runtime] Missing VITE_API_BASE_URL in production. Using fallback /api on current origin.')
+if (import.meta.env.PROD && !rawApiBaseUrl && typeof window !== 'undefined') {
+  console.error(`[runtime][AUTH] ${API_CONFIG_ERROR_MESSAGE}`)
 }
 
 if (import.meta.env.DEV && !rawApiBaseUrl && typeof window !== 'undefined') {
