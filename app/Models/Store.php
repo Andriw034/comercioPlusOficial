@@ -27,7 +27,8 @@ class Store extends Model
         'facebook',
         'instagram',
         'address',
-        'is_visible'
+        'is_visible',
+        'is_verified',
     ];
 
     public function user()

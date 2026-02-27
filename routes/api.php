@@ -4,15 +4,18 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CartProductController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductAlertController;
 use App\Http\Controllers\Api\PublicCategoryController;
 use App\Http\Controllers\Api\PublicProductController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\StoreVerificationController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxSettingController;
 use App\Http\Controllers\Api\UploadController;
@@ -92,6 +95,7 @@ Route::get('/public/stores/{store}', [StoreController::class, 'show']);
 // Public catalog used by frontend.
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
+Route::get('/products/{product}/alerts/mine', [ProductAlertController::class, 'mine']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 
@@ -156,6 +160,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/merchant/orders/{order}/picking/reset', [OrderPickingController::class, 'reset']);
     Route::get('/merchant/picking/events', [OrderPickingController::class, 'events']);
     Route::get('/merchant/customers', [CustomerController::class, 'myCustomers']);
+    Route::get('/merchant/credit', [CreditController::class, 'index']);
+    Route::post('/merchant/credit', [CreditController::class, 'store']);
+    Route::get('/merchant/credit/{creditAccount}', [CreditController::class, 'show']);
+    Route::post('/merchant/credit/{creditAccount}/charge', [CreditController::class, 'charge']);
+    Route::post('/merchant/credit/{creditAccount}/payment', [CreditController::class, 'payment']);
+    Route::get('/merchant/store/verification', [StoreVerificationController::class, 'show']);
+    Route::post('/merchant/store/verification', [StoreVerificationController::class, 'submit']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);
     Route::get('/reports/summary', [ReportController::class, 'summary']);
     Route::get('/reports/sales', [ReportController::class, 'sales']);
@@ -187,6 +198,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+    Route::post('/products/{product}/alerts', [ProductAlertController::class, 'store']);
+    Route::delete('/products/{product}/alerts', [ProductAlertController::class, 'destroy']);
 
     // API resources used by current tests.
     Route::apiResource('users', UserController::class);

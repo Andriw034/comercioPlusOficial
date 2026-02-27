@@ -9,6 +9,7 @@ export interface Store {
   name: string
   slug?: string
   description?: string
+  is_verified?: boolean
   whatsapp?: string
   support_email?: string
   facebook?: string
@@ -88,4 +89,41 @@ export interface MerchantCustomersStats {
   new_this_month: number
   with_orders: number
   total_revenue: number
+}
+
+export interface CreditAccountRow {
+  id: number
+  store_id: number
+  customer_id: number
+  balance: number | string
+  credit_limit: number | string
+  status: 'active' | 'suspended'
+  customer: {
+    id: number
+    user: {
+      id: number
+      name: string
+      email: string
+      phone?: string | null
+    }
+  }
+}
+
+export interface CreditTransactionRow {
+  id: number
+  credit_account_id: number
+  type: 'charge' | 'payment' | 'adjustment'
+  amount: number | string
+  balance_after: number | string
+  note?: string | null
+  created_at: string
+}
+
+export interface StoreVerification {
+  id: number
+  store_id: number
+  status: 'pending' | 'approved' | 'rejected'
+  document_url?: string | null
+  notes?: string | null
+  reviewed_at?: string | null
 }

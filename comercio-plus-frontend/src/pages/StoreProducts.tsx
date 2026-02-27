@@ -20,7 +20,7 @@ import type { Product, Store } from '@/types/api'
 type StoreWithMeta = Store & {
   products_count?: number
   followers_count?: number
-  verified?: boolean
+  is_verified?: boolean
 }
 
 const slugify = (value: string) =>
@@ -282,7 +282,7 @@ export default function StoreProducts() {
                     <Icon name="store" size={56} className="text-white" />
                   </div>
                 )}
-                {(store.verified ?? store.is_visible ?? true) && (
+                {store.is_verified && (
                   <div className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 shadow-lg">
                     <Icon name="check" size={20} className="text-white" />
                   </div>
@@ -292,7 +292,14 @@ export default function StoreProducts() {
               <div className="flex-1">
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h1 className="mb-2 text-3xl font-bold text-slate-900">{store.name}</h1>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h1 className="text-3xl font-bold text-slate-900">{store.name}</h1>
+                      {store.is_verified && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                          ✓ Verificada
+                        </span>
+                      )}
+                    </div>
                     <p className="mb-4 text-slate-600">
                       {store.description || 'Tienda especializada en productos de alta calidad'}
                     </p>

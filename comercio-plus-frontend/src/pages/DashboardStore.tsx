@@ -12,6 +12,7 @@ import API from '@/lib/api'
 import { getApiMeta, getApiPayload } from '@/lib/apiPayload'
 import { resolveMediaUrl } from '@/lib/format'
 import { uploadStoreCover, uploadStoreLogo } from '@/services/uploads'
+import type { StoreVerification } from '@/types/api'
 import CoverImage from '@/ui/images/CoverImage'
 import LogoImage from '@/ui/images/LogoImage'
 import { getGlobalIconVariant, setGlobalIconVariant, type IconVariant } from '@/ui/icons'
@@ -234,6 +235,12 @@ export default function DashboardStore() {
   const [toast, setToast] = useState<ToastState | null>(null)
   const [headerTheme, setHeaderTheme] = useState<ImageBrightness>('dark')
   const [iconVariant, setIconVariantState] = useState<IconVariant>(() => getGlobalIconVariant())
+  const [verif, setVerif] = useState<StoreVerification | null>(null)
+  const [verifLoading, setVerifLoading] = useState(false)
+  const [verifUploading, setVerifUploading] = useState(false)
+  const [verifFile, setVerifFile] = useState<File | null>(null)
+  const [verifError, setVerifError] = useState('')
+  const [storeVerified, setStoreVerified] = useState(false)
 
   const stats = {
     revenue: 24600000,
@@ -283,6 +290,26 @@ export default function DashboardStore() {
       setTaxLoading(false)
     }
   }
+
+  const loadVerification = useCallback(async (force = false) => {
+    setVerifLoading(true)
+    setVerifError('')
+
+    try {
+      const params = force ? { _t: Date.now() } : undefined
+      const response = await API.get('/merchant/store/verification', { params })
+      const responseData = response?.data || {}
+      const payload = getApiPayload<any>(response, null)
+      setVerif(payload as StoreVerification | null)
+      setStoreVerified(Boolean(responseData?.store_is_verified || payload?.status === 'approved'))
+    } catch (error: any) {
+      setVerif(null)
+      setStoreVerified(false)
+      setVerifError(error?.response?.data?.message || error?.message || 'No se pudo cargar la verificacion de la tienda.')
+    } finally {
+      setVerifLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     const loadStore = async () => {
@@ -355,6 +382,17 @@ export default function DashboardStore() {
 
     loadTaxSettings(storeId)
   }, [storeId])
+
+  useEffect(() => {
+    if (!storeId) {
+      setVerif(null)
+      setStoreVerified(false)
+      setVerifError('')
+      return
+    }
+
+    void loadVerification()
+  }, [loadVerification, storeId])
 
   useEffect(() => {
     setTaxPreview(calculateTaxPreview(taxForm))
@@ -581,6 +619,55 @@ export default function DashboardStore() {
       URL.revokeObjectURL(url)
     } catch {
       window.open(qrImageUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const verificationStatus: 'pending' | 'approved' | 'rejected' | 'none' = storeVerified
+    ? 'approved'
+    : verif?.status || 'none'
+
+  const verificationLabel =
+    verificationStatus === 'approved'
+      ? 'Verificada ✓'
+      : verificationStatus === 'pending'
+        ? 'En revision'
+        : verificationStatus === 'rejected'
+          ? 'Rechazada'
+          : 'Sin verificar'
+
+  const verificationBadgeClass =
+    verificationStatus === 'approved'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+      : verificationStatus === 'pending'
+        ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+        : verificationStatus === 'rejected'
+          ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+          : 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-white/70'
+
+  const submitVerification = async () => {
+    if (!verifFile) {
+      setVerifError('Selecciona un documento antes de enviarlo.')
+      return
+    }
+
+    setVerifUploading(true)
+    setVerifError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('document', verifFile)
+      await API.post('/merchant/store/verification', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setVerifFile(null)
+      await loadVerification(true)
+      showToast('Solicitud de verificacion enviada.', 'success')
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'No se pudo enviar la solicitud de verificacion.'
+      setVerifError(message)
+      showToast(message, 'error')
+    } finally {
+      setVerifUploading(false)
     }
   }
 
@@ -841,6 +928,61 @@ export default function DashboardStore() {
                 <p className="text-caption text-slate-500">
                   Guarda o crea tu tienda para generar el QR publico.
                 </p>
+              )}
+            </Card>
+
+            <Card variant="glass" padding="md" className="bg-white/90 backdrop-blur-sm">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h3 className="text-h3">Verificacion de tienda</h3>
+                {verifLoading && <span className="text-caption text-slate-500">Cargando...</span>}
+              </div>
+
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${verificationBadgeClass}`}>
+                {verificationLabel}
+              </span>
+
+              {verif?.document_url && (
+                <p className="mt-3 text-caption text-slate-500">
+                  Documento actual:{' '}
+                  <a
+                    href={verif.document_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-slate-700 underline hover:text-slate-900 dark:text-white/80"
+                  >
+                    Ver soporte
+                  </a>
+                </p>
+              )}
+
+              {verifError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                  {verifError}
+                </div>
+              )}
+
+              {verificationStatus !== 'approved' && (
+                <div className="mt-4 space-y-3">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null
+                      setVerifFile(file)
+                      setVerifError('')
+                    }}
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-[12px] file:font-semibold file:text-slate-700 dark:border-white/20 dark:bg-white/5 dark:text-white/80 dark:file:bg-white/10 dark:file:text-white/80"
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={() => void submitVerification()}
+                    disabled={verifUploading || !verifFile}
+                    loading={verifUploading}
+                    fullWidth
+                  >
+                    Enviar documento
+                  </Button>
+                </div>
               )}
             </Card>
 

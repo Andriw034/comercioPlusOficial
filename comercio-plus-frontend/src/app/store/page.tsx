@@ -4,6 +4,7 @@ import API from '@/services/api'
 import { getStoredToken, getStoredUserRaw } from '@/services/auth-session'
 import type { Product, Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
+import PriceAlertButton from '@/components/PriceAlertButton'
 import { useCart } from '@/context/CartContext'
 import { extractList } from '@/lib/api-response'
 import { formatPrice, resolveMediaUrl } from '@/lib/format'
@@ -20,6 +21,13 @@ import {
 type StoreMedia = Store & {
   logo?: string
   cover?: string
+}
+
+function sanitizeWhatsApp(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('57') && digits.length >= 12) return digits
+  if (digits.startsWith('3') && digits.length === 10) return `57${digits}`
+  return digits
 }
 
 export default function StoreDetail() {
@@ -107,6 +115,10 @@ export default function StoreDetail() {
   const logo = resolveMediaUrl(store?.logo_url || store?.logo_path || store?.logo)
   const cover = resolveMediaUrl(store?.cover_url || store?.cover_path || store?.background_url || store?.cover)
   const storeId = store?.id || null
+  const sanitizedWhatsApp = sanitizeWhatsApp(String(store?.whatsapp || ''))
+  const whatsappUrl = sanitizedWhatsApp
+    ? `https://wa.me/${sanitizedWhatsApp}?text=${encodeURIComponent('Hola, vi tu tienda en ComercioPlus y me gustaria conocer tus productos.')}`
+    : ''
   const adaptiveTheme = getThemeClassesByBrightness(headerTheme)
 
   useEffect(() => {
@@ -201,9 +213,34 @@ export default function StoreDetail() {
               <LogoImage src={logo} alt={store.name} className="h-full w-full rounded-none border-0 bg-white p-2" />
             </div>
             <div className="pb-4">
-              <p className="mt-1 max-w-3xl text-[16px] text-[#4B5563]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-[28px] font-bold text-[#1A1A2E]">{store.name}</h1>
+                {store.is_verified && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                    ✓ Verificada
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 max-w-3xl text-[16px] text-[#4B5563] dark:text-white/50">
                 {store.description || 'Tienda verificada en ComercioPlus'}
               </p>
+              <div className="mt-3 space-y-1">
+                {store.whatsapp && <p className="text-[13px] text-slate-600 dark:text-white/50">WhatsApp: {store.whatsapp}</p>}
+                {store.support_email && <p className="text-[13px] text-slate-600 dark:text-white/50">Email: {store.support_email}</p>}
+                {store.address && <p className="text-[13px] text-slate-600 dark:text-white/50">Direccion: {store.address}</p>}
+                {store.instagram && <p className="text-[13px] text-slate-600 dark:text-white/50">Instagram: {store.instagram}</p>}
+                {store.facebook && <p className="text-[13px] text-slate-600 dark:text-white/50">Facebook: {store.facebook}</p>}
+              </div>
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  WhatsApp
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -243,6 +280,7 @@ export default function StoreDetail() {
                   <div className="space-y-2 p-5">
                     <h3 className="text-[16px] font-semibold text-[#1A1A2E]">{product.name}</h3>
                     <p className="text-[20px] font-bold text-[#FF6B35]">${formatPrice(product.price)}</p>
+                    <PriceAlertButton productId={Number(product.id)} currentPrice={Number(product.price || 0)} />
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}

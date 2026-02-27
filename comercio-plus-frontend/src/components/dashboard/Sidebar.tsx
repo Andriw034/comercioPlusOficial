@@ -43,6 +43,7 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard/products', icon: 'package', iconBg: 'bg-orange-500/20', label: 'Productos' },
       { href: '/dashboard/orders', icon: 'file-text', iconBg: 'bg-emerald-500/20', label: 'Pedidos' },
       { href: '/dashboard/customers', icon: 'users', iconBg: 'bg-violet-500/20', label: 'Clientes' },
+      { href: '/dashboard/credit', icon: 'credit-card', iconBg: 'bg-amber-500/20', label: 'Fiado' },
     ],
   },
   {

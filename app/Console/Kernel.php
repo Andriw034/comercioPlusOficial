@@ -12,7 +12,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('alerts:check-prices')->dailyAt('08:00');
     }
 
     /**
@@ -28,5 +28,6 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\ClearUsers::class,
         \App\Console\Commands\UpdatePasswords::class,
+        \App\Console\Commands\CheckPriceAlertsCommand::class,
     ];
 }
