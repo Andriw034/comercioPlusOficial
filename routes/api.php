@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WompiController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\Merchant\InventoryReceiveController;
+use App\Http\Controllers\Api\Merchant\MerchantStoreController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
 use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
 use Illuminate\Support\Facades\Route;
@@ -165,6 +166,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/merchant/credit/{creditAccount}', [CreditController::class, 'show']);
     Route::post('/merchant/credit/{creditAccount}/charge', [CreditController::class, 'charge']);
     Route::post('/merchant/credit/{creditAccount}/payment', [CreditController::class, 'payment']);
+    Route::get('/merchant/store', [MerchantStoreController::class, 'show']);
+    Route::put('/merchant/store', [MerchantStoreController::class, 'update']);
     Route::get('/merchant/store/verification', [StoreVerificationController::class, 'show']);
     Route::post('/merchant/store/verification', [StoreVerificationController::class, 'submit']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);

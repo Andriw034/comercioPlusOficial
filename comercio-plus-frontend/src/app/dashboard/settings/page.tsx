@@ -1,9 +1,8 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import API from '@/lib/api'
-import GlassCard from '@/components/ui/GlassCard'
-import Button from '@/components/ui/button'
 import Input from '@/components/ui/Input'
 import Switch from '@/components/ui/Switch'
+import { ErpBadge, ErpBtn, ErpFilterSelect, ErpKpiCard, ErpPageHeader, ErpSearchBar } from '@/components/erp'
 
 // -- Types ---------------------------------------------------------------------
 
@@ -119,32 +118,60 @@ const DEFAULT_SETTINGS: Settings = {
   },
 }
 
-// -- Section header ------------------------------------------------------------
+// -- Helpers -------------------------------------------------------------------
 
-function SectionHeader({ title, description }: { title: string; description: string }) {
+function fmtCurrency(value: number): string {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(Math.max(0, value))
+}
+
+function SectionHeader({ title, description, right }: { title: string; description: string; right?: ReactNode }) {
   return (
-    <div className="mb-5">
-      <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">{title}</h3>
-      <p className="text-[13px] text-slate-500 dark:text-white/50">{description}</p>
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <p className="text-[13px] text-slate-500 dark:text-white/50">{description}</p>
+      </div>
+      {right ?? null}
     </div>
   )
 }
 
 // -- SaveBar -------------------------------------------------------------------
 
-function SaveBar({ onSave, saving, message, error }: {
+function SaveBar({
+  onSave,
+  saving,
+  message,
+  error,
+}: {
   onSave: () => void
   saving: boolean
   message: string
   error: string
 }) {
   return (
-    <div className="sticky bottom-0 z-10 flex items-center gap-3 border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-900/95 -mx-6 -mb-6 mt-6 px-6">
-      <Button onClick={onSave} loading={saving}>
+    <div className="sticky bottom-0 z-10 mt-6 flex flex-wrap items-center gap-3 border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-900/95">
+      <ErpBtn onClick={onSave} variant="primary" size="md" disabled={saving}>
         {saving ? 'Guardando...' : 'Guardar cambios'}
-      </Button>
-      {message && <span className="text-[12px] text-green-600 dark:text-green-400">{message}</span>}
-      {error && <span className="text-[12px] text-red-600 dark:text-red-400">{error}</span>}
+      </ErpBtn>
+
+      {message ? (
+        <div className="inline-flex items-center gap-2">
+          <ErpBadge status="approved" label="Guardado" />
+          <span className="text-[12px] text-green-700 dark:text-green-300">{message}</span>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="inline-flex items-center gap-2">
+          <ErpBadge status="rejected" label="Error" />
+          <span className="text-[12px] text-red-700 dark:text-red-300">{error}</span>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -152,14 +179,17 @@ function SaveBar({ onSave, saving, message, error }: {
 // -- TaxesTab ------------------------------------------------------------------
 
 function TaxesTab({ taxes, onChange }: { taxes: TaxRule[]; onChange: (t: TaxRule[]) => void }) {
-  const toggle = (id: string) => onChange(taxes.map((t) => t.id === id ? { ...t, is_active: !t.is_active } : t))
+  const toggle = (id: string) => onChange(taxes.map((t) => (t.id === id ? { ...t, is_active: !t.is_active } : t)))
+  const activeCount = taxes.filter((tax) => tax.is_active).length
 
   return (
     <div>
       <SectionHeader
         title="Reglas de impuestos"
         description="Configura los impuestos que aplican a tus productos. Los productos heredan la regla por defecto de su categoria."
+        right={<ErpBadge status="active" label={`${activeCount} activas`} />}
       />
+
       <div className="space-y-3">
         {taxes.map((tax) => (
           <div
@@ -170,16 +200,12 @@ function TaxesTab({ taxes, onChange }: { taxes: TaxRule[]; onChange: (t: TaxRule
                 : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5'
             }`}
           >
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{tax.name}</p>
-                <span className={`rounded-full px-2 py-0.5 font-mono text-[12px] font-bold ${
-                  tax.is_active ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300' : 'bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/30'
-                }`}>
-                  {tax.rate}%
-                </span>
+                <ErpBadge status={tax.is_active ? 'active' : 'inactive'} label={`${tax.rate}%`} />
               </div>
-              <p className="mt-0.5 text-[12px] text-slate-500 dark:text-white/40">{tax.applies_to}</p>
+              <p className="mt-1 text-[12px] text-slate-500 dark:text-white/40">{tax.applies_to}</p>
             </div>
             <Switch checked={tax.is_active} onCheckedChange={() => toggle(tax.id)} size="sm" aria-label={`Activar ${tax.name}`} />
           </div>
@@ -198,14 +224,17 @@ function TaxesTab({ taxes, onChange }: { taxes: TaxRule[]; onChange: (t: TaxRule
 // -- PaymentsTab ---------------------------------------------------------------
 
 function PaymentsTab({ payments, onChange }: { payments: PaymentMethod[]; onChange: (p: PaymentMethod[]) => void }) {
-  const toggle = (id: string) => onChange(payments.map((p) => p.id === id ? { ...p, is_active: !p.is_active } : p))
+  const toggle = (id: string) => onChange(payments.map((p) => (p.id === id ? { ...p, is_active: !p.is_active } : p)))
+  const activeCount = payments.filter((payment) => payment.is_active).length
 
   return (
     <div>
       <SectionHeader
         title="Metodos de pago"
         description="Activa los canales de cobro disponibles para tus clientes. Algunos requieren configuracion adicional en la plataforma de pagos."
+        right={<ErpBadge status="active" label={`${activeCount} activos`} />}
       />
+
       <div className="space-y-3">
         {payments.map((pm) => (
           <div
@@ -216,17 +245,13 @@ function PaymentsTab({ payments, onChange }: { payments: PaymentMethod[]; onChan
                 : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5'
             }`}
           >
-            <span className="text-2xl flex-shrink-0">{pm.icon}</span>
-            <div className="flex-1 min-w-0">
+            <span className="flex-shrink-0 text-2xl">{pm.icon}</span>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{pm.name}</p>
-                {pm.requires_config && (
-                  <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300">
-                    Requiere config.
-                  </span>
-                )}
+                {pm.requires_config ? <ErpBadge status="pending" label="Requiere config." /> : null}
               </div>
-              <p className="mt-0.5 text-[12px] text-slate-500 dark:text-white/40">{pm.description}</p>
+              <p className="mt-1 text-[12px] text-slate-500 dark:text-white/40">{pm.description}</p>
             </div>
             <Switch checked={pm.is_active} onCheckedChange={() => toggle(pm.id)} size="sm" aria-label={`Activar ${pm.name}`} />
           </div>
@@ -241,17 +266,16 @@ function PaymentsTab({ payments, onChange }: { payments: PaymentMethod[]; onChan
 function ShippingTab({ zones, onChange }: { zones: ShippingZone[]; onChange: (z: ShippingZone[]) => void }) {
   const [editing, setEditing] = useState<string | null>(null)
 
-  const toggle = (id: string) => onChange(zones.map((z) => z.id === id ? { ...z, is_active: !z.is_active } : z))
-  const updatePrice = (id: string, price: number) => onChange(zones.map((z) => z.id === id ? { ...z, price } : z))
-
-  const fmt = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
+  const toggle = (id: string) => onChange(zones.map((z) => (z.id === id ? { ...z, is_active: !z.is_active } : z)))
+  const updatePrice = (id: string, price: number) => onChange(zones.map((z) => (z.id === id ? { ...z, price } : z)))
 
   return (
     <div>
       <SectionHeader
         title="Zonas de envio"
-        description="Define el costo y tiempos de entrega por zona geografica. El envio gratuito se aplica automaticamente si esta activo y se cumple la condicion."
+        description="Define el costo y tiempos de entrega por zona geografica. El envio gratuito se aplica automaticamente si esta activo."
       />
+
       <div className="space-y-3">
         {zones.map((zone) => (
           <div
@@ -262,14 +286,18 @@ function ShippingTab({ zones, onChange }: { zones: ShippingZone[]; onChange: (z:
                 : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{zone.name}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{zone.name}</p>
+                  <ErpBadge status={zone.is_active ? 'active' : 'inactive'} label={zone.is_active ? 'Activa' : 'Inactiva'} />
+                </div>
                 <p className="text-[12px] text-slate-500 dark:text-white/40">{zone.description}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400 dark:text-white/30">
-                  ~ {zone.days_min}-{zone.days_max} dias habiles
+                <p className="mt-1 text-[11px] text-slate-400 dark:text-white/30">
+                  Tiempo estimado: {zone.days_min}-{zone.days_max} dias habiles
                 </p>
               </div>
+
               <div className="flex items-center gap-3">
                 <div className="text-right">
                   {editing === zone.id ? (
@@ -277,16 +305,17 @@ function ShippingTab({ zones, onChange }: { zones: ShippingZone[]; onChange: (z:
                       type="number"
                       autoFocus
                       value={zone.price}
-                      onChange={(e) => updatePrice(zone.id, Number(e.target.value))}
+                      onChange={(event) => updatePrice(zone.id, Number(event.target.value))}
                       onBlur={() => setEditing(null)}
-                      className="w-24 rounded-lg border border-orange-400 px-2 py-1 text-right text-[13px] font-bold outline-none ring-2 ring-orange-400/20 dark:bg-white/10 dark:text-white"
+                      className="w-28 rounded-lg border border-orange-400 px-2 py-1 text-right text-[13px] font-bold outline-none ring-2 ring-orange-400/20 dark:bg-white/10 dark:text-white"
                     />
                   ) : (
                     <button
+                      type="button"
                       onClick={() => setEditing(zone.id)}
                       className="rounded-lg px-2 py-1 text-right text-[15px] font-bold text-slate-900 transition-colors hover:bg-slate-200 dark:text-white dark:hover:bg-white/10"
                     >
-                      {zone.price === 0 ? 'Gratis' : fmt(zone.price)}
+                      {zone.price === 0 ? 'Gratis' : fmtCurrency(zone.price)}
                     </button>
                   )}
                   <p className="text-[10px] text-slate-400 dark:text-white/30">Toca para editar</p>
@@ -303,9 +332,15 @@ function ShippingTab({ zones, onChange }: { zones: ShippingZone[]; onChange: (z:
 
 // -- NotificationsTab ----------------------------------------------------------
 
-function NotificationsTab({ notifications, onChange }: { notifications: NotificationSetting[]; onChange: (n: NotificationSetting[]) => void }) {
+function NotificationsTab({
+  notifications,
+  onChange,
+}: {
+  notifications: NotificationSetting[]
+  onChange: (n: NotificationSetting[]) => void
+}) {
   const update = (id: string, key: 'email' | 'in_app', value: boolean) =>
-    onChange(notifications.map((n) => n.id === id ? { ...n, [key]: value } : n))
+    onChange(notifications.map((n) => (n.id === id ? { ...n, [key]: value } : n)))
 
   return (
     <div>
@@ -313,28 +348,40 @@ function NotificationsTab({ notifications, onChange }: { notifications: Notifica
         title="Preferencias de notificaciones"
         description="Elige como y cuando quieres recibir alertas sobre la actividad de tu tienda."
       />
+
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
-        <div className="grid grid-cols-[1fr_80px_80px] border-b border-slate-100 bg-slate-50 px-5 py-2.5 dark:border-white/5 dark:bg-white/5">
+        <div className="grid grid-cols-[1fr_92px_92px] border-b border-slate-100 bg-slate-50 px-5 py-2.5 dark:border-white/5 dark:bg-white/5">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-white/30">Evento</span>
           <span className="text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-white/30">Email</span>
           <span className="text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-white/30">App</span>
         </div>
-        {notifications.map((n, i) => (
+        {notifications.map((notification, index) => (
           <div
-            key={n.id}
-            className={`grid grid-cols-[1fr_80px_80px] items-center px-5 py-3.5 ${
-              i < notifications.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''
+            key={notification.id}
+            className={`grid grid-cols-[1fr_92px_92px] items-center px-5 py-3.5 ${
+              index < notifications.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''
             }`}
           >
             <div>
-              <p className="text-[13px] font-semibold text-slate-800 dark:text-white">{n.label}</p>
-              <p className="text-[11px] text-slate-400 dark:text-white/30">{n.description}</p>
+              <p className="text-[13px] font-semibold text-slate-800 dark:text-white">{notification.label}</p>
+              <p className="text-[11px] text-slate-400 dark:text-white/30">{notification.description}</p>
+            </div>
+
+            <div className="flex justify-center">
+              <Switch
+                checked={notification.email}
+                onCheckedChange={(value) => update(notification.id, 'email', value)}
+                size="sm"
+                aria-label={`Notificacion por email para ${notification.label}`}
+              />
             </div>
             <div className="flex justify-center">
-              <Switch checked={n.email} onCheckedChange={(v) => update(n.id, 'email', v)} size="sm" aria-label={`Notificacion por email para ${n.label}`} />
-            </div>
-            <div className="flex justify-center">
-              <Switch checked={n.in_app} onCheckedChange={(v) => update(n.id, 'in_app', v)} size="sm" aria-label={`Notificacion en app para ${n.label}`} />
+              <Switch
+                checked={notification.in_app}
+                onCheckedChange={(value) => update(notification.id, 'in_app', value)}
+                size="sm"
+                aria-label={`Notificacion en app para ${notification.label}`}
+              />
             </div>
           </div>
         ))}
@@ -352,78 +399,82 @@ function FiscalTab({ fiscal, onChange }: { fiscal: FiscalData; onChange: (f: Fis
     <div>
       <SectionHeader
         title="Datos fiscales y facturacion"
-        description="Esta informacion se usa en las facturas electronicas y documentos tributarios. Debe coincidir exactamente con los datos registrados en la DIAN."
+        description="Esta informacion se usa en las facturas electronicas y documentos tributarios. Debe coincidir con los datos de la DIAN."
       />
+
       <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
           <Input
             label="Razon social"
             value={fiscal.company_name}
-            onChange={(e) => set('company_name', e.target.value)}
+            onChange={(event) => set('company_name', event.target.value)}
             placeholder="Mi Empresa S.A.S."
           />
           <Input
             label="NIT"
             value={fiscal.nit}
-            onChange={(e) => set('nit', e.target.value)}
+            onChange={(event) => set('nit', event.target.value)}
             placeholder="900.123.456-7"
           />
         </div>
+
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-white/70">
-              Regimen tributario
-            </label>
-            <select
+            <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-white/70">Regimen tributario</label>
+            <ErpFilterSelect
               value={fiscal.tax_regime}
-              onChange={(e) => set('tax_regime', e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none transition-colors focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
-            >
-              <option>Responsable de IVA</option>
-              <option>No responsable de IVA</option>
-              <option>Gran contribuyente</option>
-              <option>Autorretenedor</option>
-            </select>
+              onChange={(value: string) => set('tax_regime', value)}
+              options={[
+                { value: 'Responsable de IVA', label: 'Responsable de IVA' },
+                { value: 'No responsable de IVA', label: 'No responsable de IVA' },
+                { value: 'Gran contribuyente', label: 'Gran contribuyente' },
+                { value: 'Autorretenedor', label: 'Autorretenedor' },
+              ]}
+              placeholder="Selecciona regimen"
+            />
           </div>
           <Input
             label="Ciudad"
             value={fiscal.city}
-            onChange={(e) => set('city', e.target.value)}
+            onChange={(event) => set('city', event.target.value)}
             placeholder="Bogota D.C."
           />
         </div>
+
         <Input
           label="Direccion fiscal"
           value={fiscal.address}
-          onChange={(e) => set('address', e.target.value)}
+          onChange={(event) => set('address', event.target.value)}
           placeholder="Calle 123 #45-67, Bogota"
         />
+
         <div className="grid gap-4 md:grid-cols-2">
           <Input
             label="Email de facturacion"
             type="email"
             value={fiscal.billing_email}
-            onChange={(e) => set('billing_email', e.target.value)}
+            onChange={(event) => set('billing_email', event.target.value)}
             placeholder="facturacion@empresa.com"
           />
           <Input
             label="Telefono"
             value={fiscal.phone}
-            onChange={(e) => set('phone', e.target.value)}
+            onChange={(event) => set('phone', event.target.value)}
             placeholder="+57 300 123 4567"
           />
         </div>
+
         <Input
           label="Nombre del responsable"
           value={fiscal.responsible_name}
-          onChange={(e) => set('responsible_name', e.target.value)}
+          onChange={(event) => set('responsible_name', event.target.value)}
           placeholder="Nombre completo del representante legal"
         />
       </div>
 
       <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-500/20 dark:bg-amber-500/10">
         <p className="text-[12px] text-amber-700 dark:text-amber-300">
-          ℹ️ Para habilitar la <strong>factura electronica</strong> integrada con la DIAN, el equipo de ComercioPlus debe configurar tu habilitador. Escribenos a soporte@comercioplus.co.
+          Para habilitar la <strong>factura electronica</strong> integrada con la DIAN, el equipo de ComercioPlus debe configurar tu habilitador. Escribenos a soporte@comercioplus.co.
         </p>
       </div>
     </div>
@@ -434,48 +485,56 @@ function FiscalTab({ fiscal, onChange }: { fiscal: FiscalData; onChange: (f: Fis
 
 function GlobalSection({ settings, onChange }: { settings: Settings; onChange: (s: Partial<Settings>) => void }) {
   return (
-    <GlassCard className="space-y-4">
-      <div>
-        <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">Parametros globales</h3>
-        <p className="text-[12px] text-slate-500 dark:text-white/40">Configuracion general de la tienda</p>
-      </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">
+      <SectionHeader
+        title="Parametros globales"
+        description="Configuracion general de la tienda"
+        right={<ErpBadge status="active" label="General" />}
+      />
+
       <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          {
-            label: 'Moneda',
-            key: 'currency' as keyof Settings,
-            options: ['COP', 'USD', 'EUR'],
-          },
-          {
-            label: 'Idioma',
-            key: 'language' as keyof Settings,
-            options: ['es', 'en'],
-            labels: ['Espanol', 'English'],
-          },
-          {
-            label: 'Zona horaria',
-            key: 'timezone' as keyof Settings,
-            options: ['America/Bogota', 'America/New_York', 'UTC'],
-            labels: ['Bogota (UTC-5)', 'New York (UTC-4/5)', 'UTC'],
-          },
-        ].map((field) => (
-          <div key={field.key}>
-            <label className="mb-1.5 block text-[12px] font-medium text-slate-600 dark:text-white/60">{field.label}</label>
-            <select
-              value={String(settings[field.key])}
-              onChange={(e) => onChange({ [field.key]: e.target.value })}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 outline-none transition-colors focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
-            >
-              {field.options.map((opt, i) => (
-                <option key={opt} value={opt}>
-                  {field.labels ? field.labels[i] : opt}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium text-slate-600 dark:text-white/60">Moneda</label>
+          <ErpFilterSelect
+            value={settings.currency}
+            onChange={(value: string) => onChange({ currency: value })}
+            options={[
+              { value: 'COP', label: 'COP' },
+              { value: 'USD', label: 'USD' },
+              { value: 'EUR', label: 'EUR' },
+            ]}
+            placeholder="Moneda"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium text-slate-600 dark:text-white/60">Idioma</label>
+          <ErpFilterSelect
+            value={settings.language}
+            onChange={(value: string) => onChange({ language: value })}
+            options={[
+              { value: 'es', label: 'Espanol' },
+              { value: 'en', label: 'English' },
+            ]}
+            placeholder="Idioma"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium text-slate-600 dark:text-white/60">Zona horaria</label>
+          <ErpFilterSelect
+            value={settings.timezone}
+            onChange={(value: string) => onChange({ timezone: value })}
+            options={[
+              { value: 'America/Bogota', label: 'Bogota (UTC-5)' },
+              { value: 'America/New_York', label: 'New York (UTC-4/5)' },
+              { value: 'UTC', label: 'UTC' },
+            ]}
+            placeholder="Zona horaria"
+          />
+        </div>
       </div>
-    </GlassCard>
+    </div>
   )
 }
 
@@ -483,6 +542,7 @@ function GlobalSection({ settings, onChange }: { settings: Settings; onChange: (
 
 export default function DashboardSettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('taxes')
+  const [tabQuery, setTabQuery] = useState('')
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -540,45 +600,109 @@ export default function DashboardSettingsPage() {
 
   const updateGlobal = (partial: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...partial }))
 
+  const visibleTabs = useMemo(() => {
+    const query = tabQuery.trim().toLowerCase()
+    if (!query) return TABS
+    return TABS.filter((tab) => tab.label.toLowerCase().includes(query))
+  }, [tabQuery])
+
+  const activeTaxes = settings.taxes.filter((tax) => tax.is_active).length
+  const activePayments = settings.payments.filter((payment) => payment.is_active).length
+  const activeShipping = settings.shipping.filter((zone) => zone.is_active).length
+  const emailNotifications = settings.notifications.filter((notification) => notification.email).length
+
   return (
     <div className="space-y-6 pb-6">
-      {/* Header */}
-      <div>
-        <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
-        <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Configuracion</h1>
+      <ErpPageHeader
+        breadcrumb="Dashboard"
+        title="Configuracion"
+        subtitle="Parametros operativos y fiscales de tu tienda"
+        actions={
+          <ErpBtn onClick={save} variant="primary" size="md" disabled={saving}>
+            {saving ? 'Guardando...' : 'Guardar cambios'}
+          </ErpBtn>
+        }
+      />
+
+      {loadError ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+          <ErpBadge status="pending" label="Advertencia" />
+          <span>{loadError}</span>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <ErpKpiCard
+          label="Impuestos activos"
+          value={activeTaxes}
+          hint="Reglas habilitadas"
+          icon="file-text"
+          iconBg="rgba(255,161,79,0.12)"
+          iconColor="#FFA14F"
+        />
+        <ErpKpiCard
+          label="Pagos activos"
+          value={activePayments}
+          hint="Canales de cobro"
+          icon="credit-card"
+          iconBg="rgba(16,185,129,0.12)"
+          iconColor="#10B981"
+        />
+        <ErpKpiCard
+          label="Envios activos"
+          value={activeShipping}
+          hint="Zonas habilitadas"
+          icon="truck"
+          iconBg="rgba(59,130,246,0.12)"
+          iconColor="#3B82F6"
+        />
+        <ErpKpiCard
+          label="Alertas por email"
+          value={emailNotifications}
+          hint="Eventos con correo"
+          icon="mail"
+          iconBg="rgba(139,92,246,0.12)"
+          iconColor="#8B5CF6"
+        />
       </div>
 
-      {loadError && (
-        <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-          <span>⚠️</span><span>{loadError}</span>
-        </div>
-      )}
-
-      {/* Global params */}
       <GlobalSection settings={settings} onChange={updateGlobal} />
 
-      {/* Tabs */}
-      <div>
-        {/* Tab bar */}
-        <div className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all ${
-                activeTab === tab.id
-                  ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-white/40 dark:hover:text-white/70'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
+      <div className="space-y-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-[220px] flex-1">
+              <ErpSearchBar
+                value={tabQuery}
+                onChange={(value: string) => setTabQuery(value)}
+                placeholder="Buscar seccion..."
+              />
+            </div>
+            <ErpFilterSelect
+              value={activeTab}
+              onChange={(value: string) => setActiveTab(value as TabId)}
+              options={TABS.map((tab) => ({ value: tab.id, label: tab.label }))}
+              placeholder="Seccion"
+            />
+          </div>
+
+          <div className="mt-3 flex gap-1 overflow-x-auto rounded-xl bg-slate-50 p-1.5 dark:bg-white/5">
+            {(visibleTabs.length > 0 ? visibleTabs : TABS).map((tab) => (
+              <ErpBtn
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                variant={activeTab === tab.id ? 'primary' : 'ghost'}
+                size="sm"
+                className={`flex-shrink-0 ${activeTab === tab.id ? '' : '!text-slate-600 dark:!text-white/70'}`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </ErpBtn>
+            ))}
+          </div>
         </div>
 
-        {/* Tab content */}
-        <GlassCard className="relative mt-3 pb-20">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
@@ -586,29 +710,30 @@ export default function DashboardSettingsPage() {
             </div>
           ) : (
             <>
-              {activeTab === 'taxes' && (
-                <TaxesTab taxes={settings.taxes} onChange={(taxes) => setSettings((p) => ({ ...p, taxes }))} />
-              )}
-              {activeTab === 'payments' && (
-                <PaymentsTab payments={settings.payments} onChange={(payments) => setSettings((p) => ({ ...p, payments }))} />
-              )}
-              {activeTab === 'shipping' && (
-                <ShippingTab zones={settings.shipping} onChange={(shipping) => setSettings((p) => ({ ...p, shipping }))} />
-              )}
-              {activeTab === 'notifications' && (
-                <NotificationsTab notifications={settings.notifications} onChange={(notifications) => setSettings((p) => ({ ...p, notifications }))} />
-              )}
-              {activeTab === 'fiscal' && (
-                <FiscalTab fiscal={settings.fiscal} onChange={(fiscal) => setSettings((p) => ({ ...p, fiscal }))} />
-              )}
+              {activeTab === 'taxes' ? (
+                <TaxesTab taxes={settings.taxes} onChange={(taxes) => setSettings((prev) => ({ ...prev, taxes }))} />
+              ) : null}
+              {activeTab === 'payments' ? (
+                <PaymentsTab payments={settings.payments} onChange={(payments) => setSettings((prev) => ({ ...prev, payments }))} />
+              ) : null}
+              {activeTab === 'shipping' ? (
+                <ShippingTab zones={settings.shipping} onChange={(shipping) => setSettings((prev) => ({ ...prev, shipping }))} />
+              ) : null}
+              {activeTab === 'notifications' ? (
+                <NotificationsTab
+                  notifications={settings.notifications}
+                  onChange={(notifications) => setSettings((prev) => ({ ...prev, notifications }))}
+                />
+              ) : null}
+              {activeTab === 'fiscal' ? (
+                <FiscalTab fiscal={settings.fiscal} onChange={(fiscal) => setSettings((prev) => ({ ...prev, fiscal }))} />
+              ) : null}
             </>
           )}
+        </div>
 
-          <SaveBar onSave={save} saving={saving} message={message} error={error} />
-        </GlassCard>
+        <SaveBar onSave={save} saving={saving} message={message} error={error} />
       </div>
     </div>
   )
 }
-
-

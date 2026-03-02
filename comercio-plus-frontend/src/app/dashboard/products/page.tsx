@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+﻿import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import API from '@/lib/api'
 import Button, { buttonVariants } from '@/components/ui/button'
@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Textarea from '@/components/ui/Textarea'
 import GlassCard from '@/components/ui/GlassCard'
-import Badge from '@/components/ui/Badge'
+import { ErpBadge, ErpBtn, ErpFilterSelect, ErpKpiCard, ErpPageHeader, ErpSearchBar } from '@/components/erp'
 import { Icon } from '@/components/Icon'
 import type { Category, Product, Store } from '@/types/api'
 import { resolveMediaUrl, formatPrice } from '@/lib/format'
@@ -52,6 +52,9 @@ interface ScannerFeedbackState {
   type: 'ok' | 'error' | 'info'
   message: string
 }
+
+const isProductTab = (value: string): value is ProductTab =>
+  value === 'all' || value === 'active' || value === 'out_of_stock'
 
 const normalizeCategoryLabel = (value: string) =>
   value
@@ -169,6 +172,8 @@ export default function ManageProducts() {
   const [scanConsecutiveFailures, setScanConsecutiveFailures] = useState(0)
   const [scanFeedback, setScanFeedback] = useState<ScannerFeedbackState | null>(null)
   const [cameraModalOpen, setCameraModalOpen] = useState(false)
+  const [deleteCandidate, setDeleteCandidate] = useState<Product | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const categorySeedRef = useRef(false)
 
@@ -625,9 +630,6 @@ export default function ManageProducts() {
   }
 
   const remove = async (item: Product) => {
-    const confirmDelete = window.confirm(`Eliminar "${item.name}"?`)
-    if (!confirmDelete) return
-
     try {
       await API.delete(`/products/${item.id}`)
       await fetchProducts()
@@ -641,6 +643,26 @@ export default function ManageProducts() {
       console.error('delete', err)
       const message = err.response?.data?.message || 'No se pudo eliminar.'
       showToast(message, 'error')
+    }
+  }
+
+  const askRemove = (item: Product) => {
+    setDeleteCandidate(item)
+  }
+
+  const cancelRemove = () => {
+    setDeleteCandidate(null)
+  }
+
+  const confirmRemove = async () => {
+    if (!deleteCandidate || deleting) return
+
+    setDeleting(true)
+    try {
+      await remove(deleteCandidate)
+    } finally {
+      setDeleting(false)
+      setDeleteCandidate(null)
     }
   }
 
@@ -747,7 +769,7 @@ export default function ManageProducts() {
   const totalProducts = products.length
   const activeProducts = products.filter((item) => normalizeStatus(item.status) === 'active').length
   const outOfStockProducts = products.filter((item) => toNumber(item.stock) === 0).length
-  const catalogValue = products.reduce((sum, item) => sum + toNumber(item.price) * toNumber(item.stock), 0)
+  const catalogValue = products.reduce((sum, item) => sum + toNumber(item.price), 0)
   const keyboardScanState: ScanState =
     scanFeedback?.type === 'error'
       ? 'error'
@@ -757,6 +779,11 @@ export default function ManageProducts() {
           ? 'ready'
           : 'idle'
   const keyboardStatusMessage = scanFeedback?.message || (scanConsecutiveFailures > 0 ? `Intentos fallidos: ${scanConsecutiveFailures}/3` : undefined)
+  const tabFilterOptions: Array<{ value: string; label: string }> = [
+    { value: 'all', label: `Todos (${totalProducts})` },
+    { value: 'active', label: `Activos (${activeProducts})` },
+    { value: 'out_of_stock', label: `Sin stock (${outOfStockProducts})` },
+  ]
 
   return (
     <div className="flex min-h-[calc(100vh-2.5rem)] flex-col gap-4 text-[#0F172A]">
@@ -781,38 +808,60 @@ export default function ManageProducts() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[12px] font-medium text-[#64748B]">Productos de mi tienda</p>
-          <h1 className="font-display text-[42px] leading-[1.05] tracking-[-0.03em]">Mis Productos</h1>
-        </div>
-
-        <Button onClick={openCreate} className="h-11 rounded-xl px-6 text-[14px] font-semibold">
-          <Icon name="plus" size={16} />
-          Nuevo producto
-        </Button>
-      </div>
+      <ErpPageHeader
+        breadcrumb="Dashboard / Productos"
+        title="Catalogo ERP"
+        subtitle="Gestiona repuestos y accesorios de tu tienda."
+        actions={
+          <>
+            <ErpBtn
+              variant="secondary"
+              size="md"
+              icon={<Icon name="refresh" size={14} />}
+              onClick={() => void fetchProducts()}
+            >
+              Recargar
+            </ErpBtn>
+            <ErpBtn variant="primary" size="md" icon={<Icon name="plus" size={14} />} onClick={openCreate}>
+              Nuevo producto
+            </ErpBtn>
+          </>
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <GlassCard className="h-[108px] border-transparent !bg-[linear-gradient(135deg,#FF6B35_0%,#E65A2B_100%)] p-4 !text-white sm:p-4">
-          <p className="truncate text-[32px] font-black leading-none sm:text-[40px]">{totalProducts}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/90">Total productos</p>
-        </GlassCard>
-
-        <GlassCard className="h-[108px] border-[#E2E8F0] p-4 sm:p-4">
-          <p className="truncate text-[32px] font-black leading-none sm:text-[40px]">{activeProducts}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">Activos</p>
-        </GlassCard>
-
-        <GlassCard className="h-[108px] border-[#E2E8F0] p-4 sm:p-4">
-          <p className="truncate text-[32px] font-black leading-none sm:text-[40px]">{outOfStockProducts}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">Sin stock</p>
-        </GlassCard>
-
-        <GlassCard className="h-[108px] border-[#E2E8F0] p-4 sm:p-4">
-          <p className="truncate text-[26px] font-black leading-none tracking-[-0.02em] sm:text-[34px]">${formatPrice(catalogValue)}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">Valor catalogo</p>
-        </GlassCard>
+        <ErpKpiCard
+          label="Total productos"
+          value={totalProducts}
+          hint="Catalogo registrado"
+          icon="package"
+          iconBg="rgba(255,161,79,0.15)"
+          iconColor="#FFA14F"
+        />
+        <ErpKpiCard
+          label="Activos"
+          value={activeProducts}
+          hint="Disponibles para venta"
+          icon="check-circle"
+          iconBg="rgba(16,185,129,0.14)"
+          iconColor="#10B981"
+        />
+        <ErpKpiCard
+          label="Sin stock"
+          value={outOfStockProducts}
+          hint="Requieren reposicion"
+          icon="alert"
+          iconBg="rgba(239,68,68,0.14)"
+          iconColor="#EF4444"
+        />
+        <ErpKpiCard
+          label="Valor catalogo"
+          value={`$${formatPrice(catalogValue)}`}
+          hint="Suma de precios actuales"
+          icon="dollar"
+          iconBg="rgba(59,130,246,0.14)"
+          iconColor="#3B82F6"
+        />
       </div>
 
       <div ref={formSectionRef}>
@@ -1048,62 +1097,57 @@ export default function ManageProducts() {
         <div className="border-b border-[#E2E8F0] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] sm:text-[32px]">Productos</h2>
-              <p className="mt-1 text-[13px] text-[#64748B]">Gestiona tu catalogo</p>
+              <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] sm:text-[32px]">Inventario de productos</h2>
+              <p className="mt-1 text-[13px] text-[#64748B]">Filtra, edita y elimina productos de tu catalogo.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={openCreate} className="h-9 rounded-lg px-3.5 text-[12px] font-semibold">
-                + Nuevo
-              </Button>
-            </div>
+            <ErpBtn variant="primary" size="sm" icon={<Icon name="plus" size={14} />} onClick={openCreate}>
+              Nuevo
+            </ErpBtn>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('all')}
-              className={`rounded-lg border px-4 py-2 text-[12px] font-semibold transition ${
-                activeTab === 'all'
-                  ? 'border-[#0F172A] bg-[#0F172A] text-white'
-                  : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
-              }`}
-            >
-              Todos ({totalProducts})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('active')}
-              className={`rounded-lg border px-4 py-2 text-[12px] font-semibold transition ${
-                activeTab === 'active'
-                  ? 'border-[#0F172A] bg-[#0F172A] text-white'
-                  : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
-              }`}
-            >
-              Activos ({activeProducts})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('out_of_stock')}
-              className={`rounded-lg border px-4 py-2 text-[12px] font-semibold transition ${
-                activeTab === 'out_of_stock'
-                  ? 'border-[#0F172A] bg-[#0F172A] text-white'
-                  : 'border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]'
-              }`}
-            >
-              Sin stock ({outOfStockProducts})
-            </button>
+          <div className="mt-4 grid gap-2 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
+            <ErpSearchBar
+              value={filters.search}
+              onChange={(value: string) => setFilters({ search: value })}
+              placeholder="Buscar por nombre, categoria, codigo o ID"
+            />
+            <ErpFilterSelect
+              value={activeTab}
+              onChange={(value: string) => {
+                if (isProductTab(value)) setActiveTab(value)
+              }}
+              options={tabFilterOptions}
+              placeholder="Filtro de estado"
+            />
+            <div className="flex items-center justify-start gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">
+              <ErpBadge status="active" label={`${activeProducts} activos`} />
+              <ErpBadge status="critical" label={`${outOfStockProducts} sin stock`} />
+            </div>
           </div>
         </div>
 
         <div className="px-4 py-3 sm:px-5">
-          <div className="mb-3 max-w-[380px]">
-            <input
-              value={filters.search}
-              onChange={(event) => setFilters({ search: event.target.value })}
-              className="h-10 w-full rounded-xl border border-[#D1D5DB] bg-white px-3 text-[13px] text-[#0F172A] outline-none transition focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/20"
-              placeholder="🔍 Buscar por nombre, categoria, codigo o ID"
-            />
-          </div>
+          {deleteCandidate && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
+              <p className="text-[12px] font-semibold text-rose-700">
+                Confirma la eliminacion de <span className="font-black">"{deleteCandidate.name}"</span>.
+              </p>
+              <div className="flex items-center gap-2">
+                <ErpBtn variant="ghost" size="sm" onClick={cancelRemove}>
+                  Cancelar
+                </ErpBtn>
+                <ErpBtn
+                  variant="danger"
+                  size="sm"
+                  icon={<Icon name="trash" size={13} />}
+                  onClick={() => void confirmRemove()}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Eliminando...' : 'Eliminar'}
+                </ErpBtn>
+              </div>
+            </div>
+          )}
 
           {loading && <p className="text-[13px] text-[#64748B]">Cargando productos...</p>}
           {error && <p className="mb-3 text-[13px] text-red-600">{error}</p>}
@@ -1134,6 +1178,7 @@ export default function ManageProducts() {
                     const stock = toNumber(item.stock)
                     const isActive = normalizeStatus(item.status) === 'active'
                     const primaryCode = getPrimaryProductCode(item)
+                    const stockStatus: 'critical' | 'low' | 'ok' = stock <= 0 ? 'critical' : stock <= 5 ? 'low' : 'ok'
 
                     return (
                       <tr key={item.id} className="border-b border-[#EEF2F7] last:border-b-0 transition-colors hover:bg-[#FAFAFA]">
@@ -1162,41 +1207,31 @@ export default function ManageProducts() {
                         <td className="px-4 py-3 text-[13px] font-bold text-[#0F172A]">
                           ${formatPrice(price)}
                         </td>
-                        <td className="px-4 py-3 text-[13px] font-semibold text-[#334155]">{stock}</td>
                         <td className="px-4 py-3">
-                          <Badge
-                            variant={isActive ? 'success' : 'warning'}
-                            className={
-                              isActive
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                : 'border-amber-200 bg-amber-50 text-amber-700'
-                            }
-                          >
-                            {isActive ? 'Activo' : 'Borrador'}
-                          </Badge>
+                          <ErpBadge status={stockStatus} label={`${stock} unidades`} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <ErpBadge status={isActive ? 'active' : 'draft'} />
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
+                            <ErpBtn
+                              variant="secondary"
+                              size="sm"
                               onClick={() => openEdit(item)}
-                              className={buttonVariants(
-                                'secondary',
-                                'h-8 rounded-lg border border-sky-200 bg-sky-50 px-3 text-[11px] font-semibold text-sky-700 shadow-none hover:bg-sky-100',
-                              )}
+                              icon={<Icon name="edit" size={13} />}
+                              className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
                             >
-                              ✏️
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => remove(item)}
-                              className={buttonVariants(
-                                'danger',
-                                'h-8 rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold text-rose-700 shadow-none hover:bg-rose-100',
-                              )}
+                              Editar
+                            </ErpBtn>
+                            <ErpBtn
+                              variant="danger"
+                              size="sm"
+                              onClick={() => askRemove(item)}
+                              icon={<Icon name="trash" size={13} />}
                             >
-                              🗑️
-                            </button>
+                              Eliminar
+                            </ErpBtn>
                           </div>
                         </td>
                       </tr>
@@ -1225,4 +1260,3 @@ export default function ManageProducts() {
     </div>
   )
 }
-

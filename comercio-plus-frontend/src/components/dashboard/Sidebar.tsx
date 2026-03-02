@@ -40,6 +40,7 @@ const navGroups: NavGroup[] = [
     label: 'PRINCIPAL',
     items: [
       { href: '/dashboard', icon: 'chart', iconBg: 'bg-sky-500/20', label: 'Dashboard' },
+      { href: '/dashboard/store', icon: 'store', iconBg: 'bg-indigo-500/20', label: '🏪 Mi Tienda' },
       { href: '/dashboard/products', icon: 'package', iconBg: 'bg-orange-500/20', label: 'Productos' },
       { href: '/dashboard/orders', icon: 'file-text', iconBg: 'bg-emerald-500/20', label: 'Pedidos' },
       { href: '/dashboard/customers', icon: 'users', iconBg: 'bg-violet-500/20', label: 'Clientes' },
@@ -52,7 +53,7 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard/categories', icon: 'tag', iconBg: 'bg-amber-500/20', label: 'Categorias' },
       { href: '/dashboard/inventory', icon: 'package', iconBg: 'bg-cyan-500/20', label: 'Inventario' },
       { href: '/dashboard/inventory/receive', icon: 'camera', iconBg: 'bg-orange-500/20', label: 'Ingreso escaner' },
-      { href: '/dashboard/reports', icon: 'trending', iconBg: 'bg-lime-500/20', label: 'Reportes' },
+      { href: '/dashboard/reports', icon: 'trending', iconBg: 'bg-lime-500/20', label: '🤖 IA Comercial' },
       { href: '/dashboard/settings', icon: 'settings', iconBg: 'bg-slate-500/30', label: 'Configuracion' },
     ],
   },

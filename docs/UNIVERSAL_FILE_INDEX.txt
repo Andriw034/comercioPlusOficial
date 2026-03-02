@@ -1,10 +1,11 @@
-﻿Generated: 2026-02-27 10:33:30
-Total files: 655
+Generated: 2026-02-27 15:17:16
+Total files: 671
 
 .env.example
 .env.local.example
 .env.railway.example
 .env.testing.example
+app/Console/Commands/CheckPriceAlertsCommand.php
 app/Console/Commands/CheckReorderCommand.php
 app/Console/Commands/ClearUsers.php
 app/Console/Commands/GenerateSalesReportCommand.php
@@ -23,6 +24,7 @@ app/Http/Controllers/Api/CartProductController.php
 app/Http/Controllers/Api/CategoryController.php
 app/Http/Controllers/Api/ChannelController.php
 app/Http/Controllers/Api/ClaimController.php
+app/Http/Controllers/Api/CreditController.php
 app/Http/Controllers/Api/CustomerController.php
 app/Http/Controllers/Api/DemoImageController.php
 app/Http/Controllers/Api/ExternalProductController.php
@@ -36,6 +38,7 @@ app/Http/Controllers/Api/NotificacionController.php
 app/Http/Controllers/Api/OrderController.php
 app/Http/Controllers/Api/OrderMessageController.php
 app/Http/Controllers/Api/OrderProductController.php
+app/Http/Controllers/Api/ProductAlertController.php
 app/Http/Controllers/Api/ProductController.php
 app/Http/Controllers/Api/ProfileController.php
 app/Http/Controllers/Api/PruebaController.php
@@ -50,6 +53,7 @@ app/Http/Controllers/Api/SaleController.php
 app/Http/Controllers/Api/SettingController.php
 app/Http/Controllers/Api/StatsController.php
 app/Http/Controllers/Api/StoreController.php
+app/Http/Controllers/Api/StoreVerificationController.php
 app/Http/Controllers/Api/SubscriptionController.php
 app/Http/Controllers/Api/TaxSettingController.php
 app/Http/Controllers/Api/TutorialController.php
@@ -154,6 +158,8 @@ app/Models/CartProduct.php
 app/Models/Category.php
 app/Models/Channel.php
 app/Models/Claim.php
+app/Models/CreditAccount.php
+app/Models/CreditTransaction.php
 app/Models/Customer.php
 app/Models/InventoryMovement.php
 app/Models/Location.php
@@ -164,6 +170,7 @@ app/Models/OrderPickingEvent.php
 app/Models/OrderPickingSession.php
 app/Models/OrderProduct.php
 app/Models/Product.php
+app/Models/ProductAlert.php
 app/Models/ProductCode.php
 app/Models/Profile.php
 app/Models/PublicStore.php
@@ -176,6 +183,7 @@ app/Models/SalesReport.php
 app/Models/Setting.php
 app/Models/Store.php
 app/Models/StoreTaxSetting.php
+app/Models/StoreVerification.php
 app/Models/Tutorial.php
 app/Models/User.php
 app/Models/UserSubscription.php
@@ -216,6 +224,7 @@ comercio-plus-frontend/README.md
 comercio-plus-frontend/src/app/App.tsx
 comercio-plus-frontend/src/app/category/page.tsx
 comercio-plus-frontend/src/app/dashboard/categories/page.tsx
+comercio-plus-frontend/src/app/dashboard/credit/page.tsx
 comercio-plus-frontend/src/app/dashboard/customers/page.tsx
 comercio-plus-frontend/src/app/dashboard/inventory/page.tsx
 comercio-plus-frontend/src/app/dashboard/inventory/receive/page.tsx
@@ -255,6 +264,7 @@ comercio-plus-frontend/src/components/layouts/AuthLayout.tsx
 comercio-plus-frontend/src/components/layouts/DashboardLayout.tsx
 comercio-plus-frontend/src/components/layouts/PublicLayout.tsx
 comercio-plus-frontend/src/components/Navbar.tsx
+comercio-plus-frontend/src/components/PriceAlertButton.tsx
 comercio-plus-frontend/src/components/ProductCard.tsx
 comercio-plus-frontend/src/components/products/create/ProductMethodSelector.tsx
 comercio-plus-frontend/src/components/products/create/ProductScannerKeyboardPanel.tsx
@@ -420,6 +430,12 @@ database/migrations/2026_02_22_000013_create_order_picking_events_table.php
 database/migrations/2026_02_22_000014_create_order_picking_sessions_table.php
 database/migrations/2026_02_22_000015_add_receive_fields_to_inventory_movements_table.php
 database/migrations/2026_02_22_000016_drop_legacy_order_items_table.php
+database/migrations/2026_02_27_000001_add_channel_to_orders_table.php
+database/migrations/2026_02_27_100001_create_credit_accounts_table.php
+database/migrations/2026_02_27_100002_create_credit_transactions_table.php
+database/migrations/2026_02_27_100003_add_is_verified_to_stores_table.php
+database/migrations/2026_02_27_100004_create_store_verifications_table.php
+database/migrations/2026_02_27_100005_create_product_alerts_table.php
 database/migrations_archive/duplicadas/2025_01_16_create_orders_table.php
 database/migrations_archive/fase4b_20260206/2024_01_01_000003_create_categories_table.php
 database/migrations_archive/fase4b_20260206/2024_01_01_000004_create_stores_table.php

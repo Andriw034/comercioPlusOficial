@@ -27,8 +27,21 @@ class Store extends Model
         'facebook',
         'instagram',
         'address',
+        'city',
         'is_visible',
         'is_verified',
+        'category',
+        'schedule',
+        'currency',
+        'taxes_enabled',
+        'payment_methods',
+    ];
+
+    protected $casts = [
+        'is_visible'      => 'boolean',
+        'is_verified'     => 'boolean',
+        'taxes_enabled'   => 'boolean',
+        'payment_methods' => 'array',
     ];
 
     public function user()

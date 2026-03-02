@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import API from '@/lib/api'
+import { ErpBadge, ErpBtn, ErpFilterSelect, ErpKpiCard, ErpPageHeader, ErpSearchBar } from '@/components/erp'
+import GlassCard from '@/components/ui/GlassCard'
 import type { CreditAccountRow, CreditTransactionRow, PaginatedResponse } from '@/types/api'
 
 type CreditIndexResponse = {
@@ -18,6 +20,8 @@ type CreditShowResponse = {
   transactions: CreditTransactionRow[]
 }
 
+type AccountFilter = 'all' | 'active' | 'suspended'
+
 const fmtCOP = (v: number) =>
   new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -28,6 +32,23 @@ const fmtCOP = (v: number) =>
 const toNumber = (value: number | string | null | undefined) => {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+const normalizeAccountStatus = (value: string | null | undefined): 'active' | 'suspended' => {
+  if ((value || '').toLowerCase() === 'suspended') return 'suspended'
+  return 'active'
+}
+
+const txLabel = (type: CreditTransactionRow['type']) => {
+  if (type === 'charge') return 'Cargo'
+  if (type === 'payment') return 'Pago'
+  return 'Ajuste'
+}
+
+const txBadgeStatus = (type: CreditTransactionRow['type']): 'pending' | 'paid' | 'processing' => {
+  if (type === 'charge') return 'pending'
+  if (type === 'payment') return 'paid'
+  return 'processing'
 }
 
 export default function DashboardCreditPage() {
@@ -48,6 +69,8 @@ export default function DashboardCreditPage() {
   const [note, setNote] = useState('')
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<AccountFilter>('all')
 
   const loadAccounts = useCallback(async (force = false) => {
     setLoading(true)
@@ -91,10 +114,24 @@ export default function DashboardCreditPage() {
     void loadAccounts()
   }, [loadAccounts])
 
-  const selectedBalance = useMemo(
-    () => toNumber(selectedAccount?.balance),
-    [selectedAccount?.balance],
-  )
+  const selectedBalance = useMemo(() => toNumber(selectedAccount?.balance), [selectedAccount?.balance])
+  const selectedLimit = useMemo(() => toNumber(selectedAccount?.credit_limit), [selectedAccount?.credit_limit])
+
+  const filteredAccounts = useMemo(() => {
+    const query = search.trim().toLowerCase()
+
+    return accounts.filter((account) => {
+      const accountStatus = normalizeAccountStatus(account.status)
+      if (statusFilter !== 'all' && accountStatus !== statusFilter) return false
+
+      if (!query) return true
+
+      const name = account.customer?.user?.name || ''
+      const email = account.customer?.user?.email || ''
+      const searchable = `${name} ${email} ${account.id}`.toLowerCase()
+      return searchable.includes(query)
+    })
+  }, [accounts, search, statusFilter])
 
   const openForm = (mode: 'charge' | 'payment') => {
     setFormMode(mode)
@@ -115,7 +152,7 @@ export default function DashboardCreditPage() {
 
     const parsed = Number(amount)
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      setFormError('Ingresa un monto válido.')
+      setFormError('Ingresa un monto valido.')
       return
     }
 
@@ -138,33 +175,70 @@ export default function DashboardCreditPage() {
     }
   }
 
-  return (
-    <div className="space-y-5">
-      <div>
-        <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
-        <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Fiado digital</h1>
-        <p className="text-[12px] text-slate-500 dark:text-white/40">Credito informal por cliente</p>
-      </div>
+  const accountFilterOptions: Array<{ value: string; label: string }> = [
+    { value: 'all', label: `Todas (${accounts.length})` },
+    {
+      value: 'active',
+      label: `Activas (${accounts.filter((account) => normalizeAccountStatus(account.status) === 'active').length})`,
+    },
+    {
+      value: 'suspended',
+      label: `Suspendidas (${accounts.filter((account) => normalizeAccountStatus(account.status) === 'suspended').length})`,
+    },
+  ]
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-white/40">Cuentas</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats.total_accounts}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-white/40">Deuda total</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{fmtCOP(stats.total_balance)}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-white/40">Sobre limite</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats.total_overdue}</p>
-        </div>
+  return (
+    <div className="space-y-4">
+      <ErpPageHeader
+        breadcrumb="Dashboard / Fiado"
+        title="Fiado digital"
+        subtitle="Credito informal por cliente"
+        actions={
+          <ErpBtn variant="secondary" size="md" onClick={() => void loadAccounts(true)}>
+            Recargar
+          </ErpBtn>
+        }
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <ErpKpiCard
+          label="Cuentas"
+          value={stats.total_accounts}
+          hint="Clientes con cupo"
+          icon="users"
+          iconBg="rgba(59,130,246,0.14)"
+          iconColor="#3B82F6"
+        />
+        <ErpKpiCard
+          label="Deuda total"
+          value={fmtCOP(stats.total_balance)}
+          hint="Saldo pendiente"
+          icon="dollar"
+          iconBg="rgba(255,161,79,0.14)"
+          iconColor="#FFA14F"
+        />
+        <ErpKpiCard
+          label="Sobre limite"
+          value={stats.total_overdue}
+          hint="Cuentas vencidas"
+          icon="alert"
+          iconBg="rgba(239,68,68,0.14)"
+          iconColor="#EF4444"
+        />
+        <ErpKpiCard
+          label="Deuda seleccionada"
+          value={selectedAccount ? fmtCOP(selectedBalance) : fmtCOP(0)}
+          hint={selectedAccount ? selectedAccount.customer?.user?.name || 'Cliente' : 'Sin cuenta seleccionada'}
+          icon="credit-card"
+          iconBg="rgba(16,185,129,0.14)"
+          iconColor="#10B981"
+        />
       </div>
 
       {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center text-[13px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/40">
+        <GlassCard className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center text-[13px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/40">
           Cargando cuentas de fiado...
-        </div>
+        </GlassCard>
       )}
 
       {!loading && error && (
@@ -174,31 +248,70 @@ export default function DashboardCreditPage() {
       )}
 
       {!loading && !error && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
-          {accounts.length === 0 ? (
+        <GlassCard className="overflow-hidden border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+          <div className="border-b border-slate-200 px-4 py-4 sm:px-5 dark:border-white/10">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] text-slate-900 sm:text-[32px] dark:text-white">Cuentas de fiado</h2>
+                <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">Selecciona una cuenta para ver detalle y registrar movimientos.</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 lg:grid-cols-[minmax(0,1fr)_280px_auto]">
+              <ErpSearchBar
+                value={search}
+                onChange={(value: string) => setSearch(value)}
+                placeholder="Buscar por cliente o correo"
+              />
+
+              <ErpFilterSelect
+                value={statusFilter}
+                onChange={(value: string) => {
+                  if (value === 'all' || value === 'active' || value === 'suspended') {
+                    setStatusFilter(value)
+                  }
+                }}
+                options={accountFilterOptions}
+                placeholder="Estado"
+              />
+
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-white/10 dark:bg-white/5">
+                <ErpBadge status="active" label={`${stats.total_accounts - stats.total_overdue} al dia`} />
+                <ErpBadge status="overdue" label={`${stats.total_overdue} vencidas`} />
+              </div>
+            </div>
+          </div>
+
+          {filteredAccounts.length === 0 ? (
             <div className="px-4 py-12 text-center text-[13px] text-slate-500 dark:text-white/40">
-              Aun no hay cuentas de fiado creadas.
+              Aun no hay cuentas de fiado para este filtro.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px]">
+              <table className="w-full min-w-[820px]">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-white/5 dark:bg-white/5">
+                  <tr className="border-b border-slate-100 bg-slate-50/70 dark:border-white/5 dark:bg-white/5">
                     <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Cliente</th>
                     <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Email</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Estado</th>
                     <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Deuda actual</th>
                     <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Limite</th>
                     <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {accounts.map((account) => {
+                  {filteredAccounts.map((account) => {
                     const isSelected = selectedAccount?.id === account.id
+                    const accountStatus = normalizeAccountStatus(account.status)
+                    const balance = toNumber(account.balance)
+                    const limit = toNumber(account.credit_limit)
+                    const overLimit = balance > limit
+
                     return (
                       <tr
                         key={account.id}
                         className={`border-b border-slate-100 last:border-b-0 dark:border-white/5 ${
-                          isSelected ? 'bg-orange-50/60 dark:bg-orange-500/10' : ''
+                          isSelected ? 'bg-orange-50/60 dark:bg-orange-500/10' : 'hover:bg-slate-50/60 dark:hover:bg-white/5'
                         }`}
                       >
                         <td className="px-4 py-3 text-[13px] font-semibold text-slate-900 dark:text-white">
@@ -207,20 +320,20 @@ export default function DashboardCreditPage() {
                         <td className="px-4 py-3 text-[13px] text-slate-600 dark:text-white/70">
                           {account.customer?.user?.email || '-'}
                         </td>
-                        <td className="px-4 py-3 text-[13px] font-semibold text-slate-900 dark:text-white">
-                          {fmtCOP(toNumber(account.balance))}
-                        </td>
-                        <td className="px-4 py-3 text-[13px] text-slate-700 dark:text-white/70">
-                          {fmtCOP(toNumber(account.credit_limit))}
+                        <td className="px-4 py-3">
+                          <ErpBadge status={accountStatus === 'active' ? 'active' : 'inactive'} label={accountStatus === 'active' ? 'Activa' : 'Suspendida'} />
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            onClick={() => void loadAccountDetail(account.id, true)}
-                            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/20 dark:bg-transparent dark:text-white/80 dark:hover:bg-white/10"
-                          >
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-semibold text-slate-900 dark:text-white">{fmtCOP(balance)}</span>
+                            {overLimit && <ErpBadge status="overdue" label="Sobre limite" />}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-slate-700 dark:text-white/70">{fmtCOP(limit)}</td>
+                        <td className="px-4 py-3">
+                          <ErpBtn variant="secondary" size="sm" onClick={() => void loadAccountDetail(account.id, true)}>
                             Ver detalle
-                          </button>
+                          </ErpBtn>
                         </td>
                       </tr>
                     )
@@ -229,36 +342,36 @@ export default function DashboardCreditPage() {
               </table>
             </div>
           )}
-        </div>
+        </GlassCard>
       )}
 
       {selectedAccount && (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+        <GlassCard className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-[18px] font-bold text-slate-900 dark:text-white">
+              <h2 className="text-[22px] font-black text-slate-900 dark:text-white">
                 {selectedAccount.customer?.user?.name || 'Cliente'}
               </h2>
-              <p className="text-[12px] text-slate-500 dark:text-white/50">
-                Deuda actual: {fmtCOP(selectedBalance)}
-              </p>
+              <p className="text-[12px] text-slate-500 dark:text-white/50">{selectedAccount.customer?.user?.email || '-'}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => openForm('charge')}
-                className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[12px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
-              >
-                Registrar cargo
-              </button>
-              <button
-                type="button"
-                onClick={() => openForm('payment')}
-                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
-              >
-                Registrar pago
-              </button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <ErpBadge
+                status={normalizeAccountStatus(selectedAccount.status) === 'active' ? 'active' : 'inactive'}
+                label={normalizeAccountStatus(selectedAccount.status) === 'active' ? 'Cuenta activa' : 'Cuenta suspendida'}
+              />
+              <ErpBadge status={selectedBalance > selectedLimit ? 'overdue' : 'ok'} label={`Deuda ${fmtCOP(selectedBalance)}`} />
+              <ErpBadge status="regular" label={`Limite ${fmtCOP(selectedLimit)}`} />
             </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <ErpBtn variant="secondary" size="sm" onClick={() => openForm('charge')}>
+              Registrar cargo
+            </ErpBtn>
+            <ErpBtn variant="success" size="sm" onClick={() => openForm('payment')}>
+              Registrar pago
+            </ErpBtn>
           </div>
 
           {formMode && (
@@ -266,6 +379,7 @@ export default function DashboardCreditPage() {
               <p className="text-[13px] font-semibold text-slate-800 dark:text-white">
                 {formMode === 'charge' ? 'Nuevo cargo' : 'Nuevo pago'}
               </p>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40">
@@ -280,6 +394,7 @@ export default function DashboardCreditPage() {
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 outline-none focus:border-orange-400 dark:border-white/20 dark:bg-white/5 dark:text-white"
                   />
                 </div>
+
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40">
                     Nota
@@ -299,30 +414,18 @@ export default function DashboardCreditPage() {
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => void submitForm()}
-                  disabled={saving}
-                  className="rounded-lg bg-orange-500 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
-                >
+              <div className="flex items-center gap-2">
+                <ErpBtn variant="primary" size="sm" onClick={() => void submitForm()} disabled={saving}>
                   {saving ? 'Guardando...' : 'Guardar'}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  disabled={saving}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/20 dark:bg-transparent dark:text-white/70 dark:hover:bg-white/10"
-                >
+                </ErpBtn>
+                <ErpBtn variant="ghost" size="sm" onClick={closeForm} disabled={saving}>
                   Cancelar
-                </button>
+                </ErpBtn>
               </div>
             </div>
           )}
 
-          {detailLoading && (
-            <p className="text-[13px] text-slate-500 dark:text-white/40">Cargando transacciones...</p>
-          )}
+          {detailLoading && <p className="text-[13px] text-slate-500 dark:text-white/40">Cargando transacciones...</p>}
 
           {!detailLoading && detailError && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
@@ -338,7 +441,7 @@ export default function DashboardCreditPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[620px]">
+                  <table className="w-full min-w-[720px]">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-white/5 dark:bg-white/5">
                         <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Fecha</th>
@@ -355,17 +458,7 @@ export default function DashboardCreditPage() {
                             {new Date(transaction.created_at).toLocaleString('es-CO')}
                           </td>
                           <td className="px-4 py-2.5">
-                            <span
-                              className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                                transaction.type === 'charge'
-                                  ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
-                                  : transaction.type === 'payment'
-                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
-                                    : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-white/70'
-                              }`}
-                            >
-                              {transaction.type}
-                            </span>
+                            <ErpBadge status={txBadgeStatus(transaction.type)} label={txLabel(transaction.type)} />
                           </td>
                           <td className="px-4 py-2.5 text-[12px] font-semibold text-slate-900 dark:text-white">
                             {fmtCOP(toNumber(transaction.amount))}
@@ -384,7 +477,7 @@ export default function DashboardCreditPage() {
               )}
             </div>
           )}
-        </div>
+        </GlassCard>
       )}
     </div>
   )

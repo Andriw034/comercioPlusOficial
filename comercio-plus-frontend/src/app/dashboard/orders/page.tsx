@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
-import StatusBadge from '@/components/ui/StatusBadge'
-import Button from '@/components/ui/button'
+import { Icon } from '@/components/Icon'
+import { ErpBadge, ErpBtn, ErpFilterSelect, ErpKpiCard, ErpPageHeader, ErpSearchBar } from '@/components/erp'
 
 type OrderStatus = 'pending' | 'processing' | 'paid' | 'approved' | 'completed' | 'cancelled'
+type OrderChannel = 'web' | 'whatsapp' | 'local'
 type OrderFilter = OrderStatus | 'all'
 
 interface OrderItem {
@@ -24,6 +25,7 @@ interface Order {
   customer_name: string
   customer_email: string
   status: OrderStatus
+  channel: OrderChannel
   payment_method: string
   subtotal: number
   tax_total: number
@@ -32,20 +34,38 @@ interface Order {
   created_at: string
 }
 
-const STATUS_CONFIG: Record<
-  OrderStatus,
-  {
-    label: string
-    variant: 'warning' | 'neutral' | 'brand' | 'success' | 'danger'
-    next?: OrderStatus
-  }
-> = {
-  pending: { label: 'Pendiente', variant: 'warning', next: 'processing' },
-  processing: { label: 'Procesando', variant: 'neutral', next: 'paid' },
-  paid: { label: 'Pagado', variant: 'brand', next: 'approved' },
-  approved: { label: 'Aprobado', variant: 'success', next: 'completed' },
-  completed: { label: 'Completado', variant: 'success' },
-  cancelled: { label: 'Cancelado', variant: 'danger' },
+interface OrdersMeta {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
+
+interface StatusConfig {
+  label: string
+  badge: 'pending' | 'processing' | 'paid' | 'approved' | 'completed' | 'cancelled'
+  next?: OrderStatus
+}
+
+const STATUS_CONFIG: Record<OrderStatus, StatusConfig> = {
+  pending: { label: 'Pendiente', badge: 'pending', next: 'processing' },
+  processing: { label: 'Procesando', badge: 'processing', next: 'paid' },
+  paid: { label: 'Pagado', badge: 'paid', next: 'approved' },
+  approved: { label: 'Aprobado', badge: 'approved', next: 'completed' },
+  completed: { label: 'Completado', badge: 'completed' },
+  cancelled: { label: 'Cancelado', badge: 'cancelled' },
+}
+
+const CHANNEL_LABEL: Record<OrderChannel, string> = {
+  web: 'Web',
+  whatsapp: 'WhatsApp',
+  local: 'Presencial',
+}
+
+const CHANNEL_BADGE: Record<OrderChannel, 'regular' | 'active' | 'medium'> = {
+  web: 'regular',
+  whatsapp: 'active',
+  local: 'medium',
 }
 
 const PIPELINE: OrderStatus[] = ['pending', 'processing', 'paid', 'approved', 'completed']
@@ -79,39 +99,51 @@ function normalizeStatus(value: unknown): OrderStatus {
   return 'pending'
 }
 
-function normalizeOrderItem(item: any): OrderItem {
+function normalizeChannel(value: unknown): OrderChannel {
+  const normalized = toText(value, 'web').toLowerCase()
+  if (normalized === 'whatsapp') return 'whatsapp'
+  if (normalized === 'local') return 'local'
+  return 'web'
+}
+
+function normalizeOrderItem(item: unknown): OrderItem {
+  const row = (item ?? {}) as Record<string, unknown>
+
   return {
-    product_id: toNumber(item?.product_id),
-    product_name: toText(item?.product_name, 'Producto'),
-    quantity: Math.max(0, toNumber(item?.quantity)),
-    unit_price: toNumber(item?.unit_price),
-    line_subtotal: toNumber(item?.line_subtotal),
-    tax_amount: toNumber(item?.tax_amount),
-    line_total: toNumber(item?.line_total),
+    product_id: toNumber(row.product_id),
+    product_name: toText(row.product_name, 'Producto'),
+    quantity: Math.max(0, toNumber(row.quantity)),
+    unit_price: toNumber(row.unit_price),
+    line_subtotal: toNumber(row.line_subtotal),
+    tax_amount: toNumber(row.tax_amount),
+    line_total: toNumber(row.line_total),
   }
 }
 
-function normalizeOrder(order: any): Order {
-  const id = toNumber(order?.id)
-  const invoiceNumber = toText(order?.invoice_number)
-  const createdAt = toText(order?.invoice_date || order?.date || order?.created_at)
+function normalizeOrder(order: unknown): Order {
+  const row = (order ?? {}) as Record<string, unknown>
+  const id = toNumber(row.id)
+  const invoiceNumber = toText(row.invoice_number)
+  const createdAt = toText(row.invoice_date || row.date || row.created_at)
+  const items = Array.isArray(row.items) ? row.items.map((item) => normalizeOrderItem(item)) : []
 
   return {
     id,
     reference: invoiceNumber || `PED-${id}`,
-    customer_name: toText(order?.customer_name, 'Cliente'),
-    customer_email: toText(order?.customer_email, '-'),
-    status: normalizeStatus(order?.status),
-    payment_method: toText(order?.payment_method, '-'),
-    subtotal: toNumber(order?.subtotal),
-    tax_total: toNumber(order?.tax_total),
-    total: toNumber(order?.total),
-    items: Array.isArray(order?.items) ? order.items.map(normalizeOrderItem) : [],
+    customer_name: toText(row.customer_name, 'Cliente'),
+    customer_email: toText(row.customer_email, '-'),
+    status: normalizeStatus(row.status),
+    channel: normalizeChannel(row.channel),
+    payment_method: toText(row.payment_method, '-'),
+    subtotal: toNumber(row.subtotal),
+    tax_total: toNumber(row.tax_total),
+    total: toNumber(row.total),
+    items,
     created_at: createdAt,
   }
 }
 
-function fmt(value: number) {
+function fmt(value: number): string {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
@@ -119,7 +151,7 @@ function fmt(value: number) {
   }).format(value)
 }
 
-function fmtDate(iso: string) {
+function fmtDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return '-'
 
@@ -132,7 +164,7 @@ function fmtDate(iso: string) {
   })
 }
 
-function relative(iso: string) {
+function relative(iso: string): string {
   const parsed = new Date(iso).getTime()
   if (Number.isNaN(parsed)) return '-'
 
@@ -143,18 +175,17 @@ function relative(iso: string) {
   return `hace ${Math.floor(diff / 86400)} d`
 }
 
-function OrderDetail({
-  order,
-  onClose,
-  onStatusUpdate,
-}: {
+interface OrderDetailProps {
   order: Order
   onClose: () => void
   onStatusUpdate: (id: number, status: OrderStatus) => Promise<void>
-}) {
-  const [updating, setUpdating] = useState(false)
-  const cfg = STATUS_CONFIG[order.status]
+}
 
+function OrderDetail({ order, onClose, onStatusUpdate }: OrderDetailProps) {
+  const [updating, setUpdating] = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
+
+  const cfg = STATUS_CONFIG[order.status]
   const pipelineIndex = PIPELINE.indexOf(order.status)
   const canAdvance = Boolean(cfg.next)
   const canCancel = order.status !== 'cancelled' && order.status !== 'completed'
@@ -170,13 +201,13 @@ function OrderDetail({
     }
   }
 
-  const cancelOrder = async () => {
-    if (!canCancel) return
-    if (!window.confirm('Cancelar este pedido?')) return
+  const confirmCancel = async () => {
+    if (!canCancel || updating) return
 
     setUpdating(true)
     try {
       await onStatusUpdate(order.id, 'cancelled')
+      setConfirmingCancel(false)
     } finally {
       setUpdating(false)
     }
@@ -184,70 +215,96 @@ function OrderDetail({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-2xl dark:bg-slate-900">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/95 px-6 py-4 backdrop-blur dark:border-white/10 dark:bg-slate-900/95">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">Pedido {order.reference}</h2>
-              <StatusBadge status={order.status} />
+      <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative z-10 flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-900">
+        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur dark:border-white/10 dark:bg-slate-900/95">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[17px] font-black text-slate-900 dark:text-white">Pedido {order.reference}</h2>
+                <ErpBadge status={STATUS_CONFIG[order.status].badge} label={STATUS_CONFIG[order.status].label} />
+              </div>
+              <p className="mt-1 text-[12px] text-slate-500 dark:text-white/40">{fmtDate(order.created_at)}</p>
             </div>
-            <p className="text-[12px] text-slate-400 dark:text-white/30">{fmtDate(order.created_at)}</p>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 dark:text-white/60 dark:hover:bg-white/10"
+              aria-label="Cerrar detalle"
+            >
+              <Icon name="x" size={16} />
+            </button>
           </div>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10">
-            x
-          </button>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <ErpBadge status={CHANNEL_BADGE[order.channel]} label={CHANNEL_LABEL[order.channel]} />
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:bg-white/10 dark:text-white/60">
+              {order.items.length} items
+            </span>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+              Total {fmt(order.total)}
+            </span>
+          </div>
         </div>
 
-        <div className="flex-1 space-y-5 p-6">
-          <div className="flex items-center gap-1">
-            {PIPELINE.map((status, index) => {
-              const done = pipelineIndex >= 0 ? index < pipelineIndex : false
-              const current = pipelineIndex >= 0 ? index === pipelineIndex : false
+        <div className="flex-1 space-y-4 p-5">
+          <div className="rounded-2xl border border-slate-100 p-4 dark:border-white/10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-white/30">Pipeline</p>
+            <div className="mt-3 flex items-center gap-1">
+              {PIPELINE.map((status, index) => {
+                const done = pipelineIndex >= 0 ? index < pipelineIndex : false
+                const current = pipelineIndex >= 0 ? index === pipelineIndex : false
 
-              return (
-                <div key={status} className="flex flex-1 items-center gap-1">
-                  <div className={`h-1.5 flex-1 rounded-full ${done || current ? 'bg-orange-500' : 'bg-slate-200 dark:bg-white/10'}`} />
-                  <div
-                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                      done
-                        ? 'bg-orange-500 text-white'
-                        : current
-                          ? 'bg-orange-500 text-white ring-2 ring-orange-300 dark:ring-orange-500/40'
-                          : 'bg-slate-200 text-slate-400 dark:bg-white/10 dark:text-white/30'
-                    }`}
-                  >
-                    {done ? 'OK' : index + 1}
+                return (
+                  <div key={status} className="flex flex-1 items-center gap-1">
+                    <div className={`h-1.5 flex-1 rounded-full ${done || current ? 'bg-orange-500' : 'bg-slate-200 dark:bg-white/10'}`} />
+                    <div
+                      className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                        done
+                          ? 'bg-orange-500 text-white'
+                          : current
+                            ? 'bg-orange-500 text-white ring-2 ring-orange-300 dark:ring-orange-500/40'
+                            : 'bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/40'
+                      }`}
+                    >
+                      {done ? 'OK' : index + 1}
+                    </div>
+                    {index < PIPELINE.length - 1 && (
+                      <div className={`h-1.5 flex-1 rounded-full ${done ? 'bg-orange-500' : 'bg-slate-200 dark:bg-white/10'}`} />
+                    )}
                   </div>
-                  {index < PIPELINE.length - 1 && (
-                    <div className={`h-1.5 flex-1 rounded-full ${done ? 'bg-orange-500' : 'bg-slate-200 dark:bg-white/10'}`} />
-                  )}
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-100 p-4 dark:border-white/10">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-white/30">Cliente</p>
-            <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{order.customer_name}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-white/30">Cliente</p>
+            <p className="mt-2 text-[14px] font-semibold text-slate-900 dark:text-white">{order.customer_name}</p>
             <p className="text-[13px] text-slate-500 dark:text-white/50">{order.customer_email}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-100 dark:border-white/10">
-            <p className="border-b border-slate-100 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:border-white/10 dark:text-white/30">
+          <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-white/10">
+            <p className="border-b border-slate-100 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:border-white/10 dark:text-white/30">
               Productos ({order.items.length})
             </p>
+
             {order.items.map((item) => (
-              <div key={`${order.id}-${item.product_id}`} className="flex items-center justify-between border-b border-slate-50 px-4 py-3 last:border-0 dark:border-white/5">
+              <div
+                key={`${order.id}-${item.product_id}`}
+                className="flex items-center justify-between border-b border-slate-100 px-4 py-3 last:border-0 dark:border-white/10"
+              >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-slate-800 dark:text-white">{item.product_name}</p>
-                  <p className="text-[11px] text-slate-400 dark:text-white/30">Cantidad: {item.quantity}</p>
+                  <p className="truncate text-[13px] font-semibold text-slate-800 dark:text-white">{item.product_name}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-white/40">Cantidad: {item.quantity}</p>
                 </div>
-                <p className="text-[13px] font-semibold text-slate-900 dark:text-white">{fmt(item.line_total)}</p>
+                <p className="text-[13px] font-bold text-slate-900 dark:text-white">{fmt(item.line_total)}</p>
               </div>
             ))}
 
-            <div className="space-y-1 border-t border-slate-100 px-4 py-3 dark:border-white/10">
+            <div className="space-y-1 border-t border-slate-100 bg-slate-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
               <div className="flex justify-between text-[12px] text-slate-500 dark:text-white/50">
                 <span>Subtotal</span>
                 <span>{fmt(order.subtotal)}</span>
@@ -256,48 +313,71 @@ function OrderDetail({
                 <span>IVA</span>
                 <span>{fmt(order.tax_total)}</span>
               </div>
-              <div className="flex justify-between border-t border-slate-100 pt-2 text-[15px] font-bold text-slate-900 dark:border-white/10 dark:text-white">
+              <div className="flex justify-between border-t border-slate-200 pt-2 text-[15px] font-black text-slate-900 dark:border-white/10 dark:text-white">
                 <span>Total</span>
                 <span>{fmt(order.total)}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border border-slate-100 px-4 py-3 dark:border-white/10">
-            <div>
-              <p className="text-[11px] text-slate-400 dark:text-white/30">Metodo de pago</p>
-              <p className="text-[13px] font-semibold text-slate-800 dark:text-white">{order.payment_method}</p>
-            </div>
+          <div className="rounded-2xl border border-slate-100 p-4 dark:border-white/10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-white/30">Metodo de pago</p>
+            <p className="mt-1 text-[13px] font-semibold text-slate-800 dark:text-white">{order.payment_method}</p>
           </div>
         </div>
 
-        <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white/95 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-900/95">
-          <Link
-            to={`/dashboard/orders/${order.id}/picking`}
-            className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-[13px] font-semibold text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
-          >
-            Alistar pedido
-          </Link>
-          <button
-            onClick={cancelOrder}
-            disabled={updating || !canCancel}
-            className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-500/20 dark:bg-transparent dark:hover:bg-red-500/10"
-          >
-            Cancelar pedido
-          </button>
-          {canAdvance && (
-            <Button className="flex-1" loading={updating} onClick={advanceStatus}>
-              {updating ? 'Actualizando...' : `Marcar como ${cfg.next ? STATUS_CONFIG[cfg.next].label : ''}`}
-            </Button>
+        <div className="sticky bottom-0 space-y-2 border-t border-slate-100 bg-white/95 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-900/95">
+          {confirmingCancel && canCancel && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 dark:border-rose-500/25 dark:bg-rose-500/10">
+              <p className="text-[12px] font-semibold text-rose-700 dark:text-rose-300">Confirmar cancelacion del pedido</p>
+              <div className="flex items-center gap-2">
+                <ErpBtn variant="ghost" size="sm" onClick={() => setConfirmingCancel(false)} disabled={updating}>
+                  No
+                </ErpBtn>
+                <ErpBtn variant="danger" size="sm" onClick={() => void confirmCancel()} disabled={updating}>
+                  {updating ? 'Cancelando...' : 'Si, cancelar'}
+                </ErpBtn>
+              </div>
+            </div>
           )}
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/dashboard/orders/${order.id}/picking`}
+              className="inline-flex h-9 items-center rounded-xl border border-blue-200 bg-blue-50 px-4 text-[12px] font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-300"
+            >
+              Alistar pedido
+            </Link>
+
+            <ErpBtn variant="danger" size="md" onClick={() => setConfirmingCancel(true)} disabled={!canCancel || updating}>
+              Cancelar pedido
+            </ErpBtn>
+
+            {canAdvance && cfg.next && (
+              <ErpBtn
+                variant="primary"
+                size="md"
+                onClick={() => void advanceStatus()}
+                disabled={updating}
+                className="flex-1 justify-center"
+              >
+                {updating ? 'Actualizando...' : `Marcar como ${STATUS_CONFIG[cfg.next].label}`}
+              </ErpBtn>
+            )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
+function isOrderFilter(value: string): value is OrderFilter {
+  return value === 'all' || value === 'pending' || value === 'processing' || value === 'paid' || value === 'approved' || value === 'completed' || value === 'cancelled'
+}
+
 export default function DashboardOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
+  const [meta, setMeta] = useState<OrdersMeta | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [statusFilter, setStatusFilter] = useState<OrderFilter>('all')
@@ -315,9 +395,13 @@ export default function DashboardOrdersPage() {
       const params = statusFilter !== 'all' ? { status: statusFilter } : undefined
       const { data } = await API.get('/merchant/orders', { params })
       const rows = Array.isArray(data?.data) ? data.data : []
-      setOrders(rows.map((row: any) => normalizeOrder(row)))
-    } catch (err: any) {
-      setLoadError(err?.response?.data?.message || 'No se pudieron cargar los pedidos.')
+      const nextMeta = (data?.meta ?? null) as OrdersMeta | null
+
+      setOrders(rows.map((row: unknown) => normalizeOrder(row)))
+      setMeta(nextMeta)
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { message?: string } } }
+      setLoadError(apiError?.response?.data?.message || 'No se pudieron cargar los pedidos.')
     } finally {
       setLoading(false)
     }
@@ -331,7 +415,7 @@ export default function DashboardOrdersPage() {
     setPage(1)
   }, [search, statusFilter])
 
-  const updateStatus = async (id: number, status: OrderStatus) => {
+  const updateStatus = async (id: number, status: OrderStatus): Promise<void> => {
     await API.put(`/merchant/orders/${id}/status`, { status })
 
     setOrders((previous) => previous.map((order) => (order.id === id ? { ...order, status } : order)))
@@ -364,6 +448,7 @@ export default function DashboardOrdersPage() {
         order.reference.toLowerCase().includes(query) ||
         order.customer_name.toLowerCase().includes(query) ||
         order.customer_email.toLowerCase().includes(query) ||
+        CHANNEL_LABEL[order.channel].toLowerCase().includes(query) ||
         String(order.id).includes(query)
       )
     })
@@ -387,20 +472,25 @@ export default function DashboardOrdersPage() {
       .reduce((sum, order) => sum + order.total, 0)
   }, [orders])
 
-  const escapeCsv = (value: string | number | null | undefined) => {
+  const revenueTotal = useMemo(() => orders.reduce((sum, order) => sum + order.total, 0), [orders])
+
+  const activeFlow = counts.pending + counts.processing + counts.paid + counts.approved
+
+  const escapeCsv = (value: string | number | null | undefined): string => {
     const raw = String(value ?? '')
     const escaped = raw.replace(/"/g, '""')
     return `"${escaped}"`
   }
 
-  const exportCsv = () => {
+  const exportCsv = (): void => {
     if (!orders.length) return
 
-    const headers = ['Pedido', 'Cliente', 'Email', 'Estado', 'Metodo de pago', 'Total', 'Fecha']
+    const headers = ['Pedido', 'Cliente', 'Email', 'Canal', 'Estado', 'Metodo de pago', 'Total', 'Fecha']
     const records = orders.map((order) => [
       order.reference,
       order.customer_name,
       order.customer_email,
+      CHANNEL_LABEL[order.channel],
       STATUS_CONFIG[order.status].label,
       order.payment_method,
       order.total,
@@ -424,186 +514,214 @@ export default function DashboardOrdersPage() {
     URL.revokeObjectURL(url)
   }
 
+  const filterOptions: Array<{ value: string; label: string }> = [
+    { value: 'all', label: `Todos (${orders.length})` },
+    { value: 'pending', label: `Pendientes (${counts.pending})` },
+    { value: 'processing', label: `Procesando (${counts.processing})` },
+    { value: 'paid', label: `Pagados (${counts.paid})` },
+    { value: 'approved', label: `Aprobados (${counts.approved})` },
+    { value: 'completed', label: `Completados (${counts.completed})` },
+    { value: 'cancelled', label: `Cancelados (${counts.cancelled})` },
+  ]
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
-          <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Pedidos</h1>
-          <p className="text-[12px] text-slate-500 dark:text-white/40">Seguimiento de ventas</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {todayTotal > 0 && (
-            <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-2 dark:border-green-500/20 dark:bg-green-500/10">
-              <p className="text-[11px] text-green-600 dark:text-green-400">Ventas hoy</p>
-              <p className="text-[18px] font-black text-green-700 dark:text-green-300">{fmt(todayTotal)}</p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={exportCsv}
-            disabled={!orders.length}
-            className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-[12px] font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-          >
-            ðŸ“Š Exportar
-          </button>
-        </div>
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {PIPELINE.map((status) => {
-          const config = STATUS_CONFIG[status]
-          const count = counts[status] || 0
-          return (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`min-w-[100px] rounded-2xl border px-4 py-3 text-center transition-all ${
-                statusFilter === status
-                  ? 'border-orange-400 bg-orange-50 dark:border-orange-500/50 dark:bg-orange-500/10'
-                  : 'border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-white/10 dark:bg-white/5'
-              }`}
+    <div className="space-y-4">
+      <ErpPageHeader
+        breadcrumb="Dashboard / Pedidos"
+        title="Pedidos ERP"
+        subtitle="Gestiona el flujo completo de pedidos, estados y alistamiento."
+        actions={
+          <>
+            <ErpBtn variant="secondary" size="md" icon={<Icon name="refresh" size={14} />} onClick={() => void load()}>
+              Recargar
+            </ErpBtn>
+            <ErpBtn
+              variant="primary"
+              size="md"
+              icon={<Icon name="download" size={14} />}
+              onClick={exportCsv}
+              disabled={!orders.length}
             >
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-white/30">{config.label}</p>
-              <p className={`mt-1 text-2xl font-black ${count > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-300 dark:text-white/20'}`}>{count}</p>
-            </button>
-          )
-        })}
+              Exportar CSV
+            </ErpBtn>
+          </>
+        }
+      />
 
-        <button
-          onClick={() => setStatusFilter('cancelled')}
-          className={`min-w-[100px] rounded-2xl border px-4 py-3 text-center transition-all ${
-            statusFilter === 'cancelled'
-              ? 'border-red-400 bg-red-50 dark:border-red-500/50 dark:bg-red-500/10'
-              : 'border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-white/10 dark:bg-white/5'
-          }`}
-        >
-          <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-white/30">Cancelados</p>
-          <p className={`mt-1 text-2xl font-black ${counts.cancelled > 0 ? 'text-red-500' : 'text-slate-300 dark:text-white/20'}`}>{counts.cancelled}</p>
-        </button>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <ErpKpiCard
+          label="Total pedidos"
+          value={meta?.total ?? orders.length}
+          hint="Registros disponibles"
+          icon="file-text"
+          iconBg="rgba(59,130,246,0.14)"
+          iconColor="#3B82F6"
+        />
+        <ErpKpiCard
+          label="En flujo"
+          value={activeFlow}
+          hint="Pendiente a aprobado"
+          icon="clock"
+          iconBg="rgba(245,158,11,0.14)"
+          iconColor="#F59E0B"
+        />
+        <ErpKpiCard
+          label="Ventas hoy"
+          value={fmt(todayTotal)}
+          hint="Facturado en el dia"
+          icon="trending"
+          iconBg="rgba(16,185,129,0.14)"
+          iconColor="#10B981"
+        />
+        <ErpKpiCard
+          label="Facturacion"
+          value={fmt(revenueTotal)}
+          hint="Suma total de pedidos"
+          icon="dollar"
+          iconBg="rgba(255,161,79,0.16)"
+          iconColor="#FFA14F"
+        />
       </div>
 
       {loadError && (
-        <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300">
+          <Icon name="alert" size={14} />
           <span>{loadError}</span>
-          <button onClick={() => void load()} className="ml-auto text-[12px] underline">
-            Reintentar
-          </button>
+          <div className="ml-auto">
+            <ErpBtn variant="ghost" size="sm" onClick={() => void load()}>
+              Reintentar
+            </ErpBtn>
+          </div>
         </div>
       )}
 
-      <GlassCard className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
-          <div className="relative min-w-[200px] flex-1">
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por pedido, cliente o correo..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-3 text-[13px] text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
-            />
+      <GlassCard className="overflow-hidden border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+        <div className="border-b border-slate-200 px-4 py-4 dark:border-white/10 sm:px-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] text-slate-900 sm:text-[32px] dark:text-white">Control de pedidos</h2>
+              <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">Filtra por estado, busca clientes y abre el detalle para gestionar el flujo.</p>
+            </div>
           </div>
 
-          <div className="flex gap-1">
-            {(['all', ...PIPELINE, 'cancelled'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setStatusFilter(filter)}
-                className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-                  statusFilter === filter
-                    ? 'bg-orange-500 text-white'
-                    : 'border border-slate-200 bg-white text-slate-500 hover:text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-white/50 dark:hover:text-white'
-                }`}
-              >
-                {filter === 'all' ? 'Todos' : STATUS_CONFIG[filter as OrderStatus].label}
-              </button>
-            ))}
+          <div className="mt-4 grid gap-2 lg:grid-cols-[minmax(0,1fr)_260px_auto]">
+            <ErpSearchBar
+              value={search}
+              onChange={(value: string) => setSearch(value)}
+              placeholder="Buscar por pedido, cliente, correo o canal"
+            />
+
+            <ErpFilterSelect
+              value={statusFilter}
+              onChange={(value: string) => {
+                if (isOrderFilter(value)) {
+                  setStatusFilter(value)
+                }
+              }}
+              options={filterOptions}
+              placeholder="Estado"
+            />
+
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-white/10 dark:bg-white/5">
+              <ErpBadge status="pending" label={`${counts.pending} pendientes`} />
+              <ErpBadge status="cancelled" label={`${counts.cancelled} cancelados`} />
+            </div>
           </div>
         </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
-            <p className="text-[13px] text-slate-400">Cargando pedidos...</p>
+            <p className="text-[13px] text-slate-500 dark:text-white/50">Cargando pedidos...</p>
           </div>
         ) : paginated.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-white/30">
+          <div className="flex flex-col items-center justify-center py-16 text-slate-500 dark:text-white/40">
             <p className="text-[13px]">Sin pedidos para mostrar</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[1040px]">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-white/5">
-                  {['Pedido', 'Cliente', 'Productos', 'Total', 'Pago', 'Estado', 'Fecha', 'Alistar'].map((header) => (
-                    <th key={header} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-white/30">
-                      {header}
-                    </th>
-                  ))}
+                <tr className="border-b border-slate-200 bg-slate-50/90 dark:border-white/10 dark:bg-white/5">
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Pedido</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Cliente</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Canal</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Items</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Total</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Pago</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Estado</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Fecha</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-white/40">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((order) => {
-                  return (
-                    <tr
-                      key={order.id}
-                      className="group cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50/80 dark:border-white/5 dark:hover:bg-white/5"
-                      onClick={() => setSelected(order)}
-                    >
-                      <td className="py-3 pl-4 pr-2">
-                        <span className="font-mono text-[13px] font-bold text-orange-600 dark:text-orange-400">{order.reference}</span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="text-[13px] font-semibold text-slate-900 dark:text-white">{order.customer_name}</p>
-                        <p className="text-[11px] text-slate-400 dark:text-white/30">{order.customer_email}</p>
-                      </td>
-                      <td className="px-3 py-3 text-[13px] text-slate-500 dark:text-white/50">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</td>
-                      <td className="px-3 py-3">
-                        <span className="text-[14px] font-bold text-slate-900 dark:text-white">{fmt(order.total)}</span>
-                      </td>
-                      <td className="px-3 py-3 text-[12px] text-slate-500 dark:text-white/50">{order.payment_method}</td>
-                      <td className="px-3 py-3">
-                        <StatusBadge status={order.status} />
-                      </td>
-                      <td className="px-3 py-3 text-[11px] text-slate-400 dark:text-white/30">{relative(order.created_at)}</td>
-                      <td className="py-3 pl-3 pr-4">
+                {paginated.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="border-b border-slate-100 transition-colors hover:bg-slate-50/90 dark:border-white/10 dark:hover:bg-white/5"
+                  >
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelected(order)}
+                        className="text-left font-mono text-[12px] font-bold text-orange-600 hover:underline dark:text-orange-400"
+                      >
+                        {order.reference}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-[13px] font-semibold text-slate-900 dark:text-white">{order.customer_name}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-white/40">{order.customer_email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <ErpBadge status={CHANNEL_BADGE[order.channel]} label={CHANNEL_LABEL[order.channel]} />
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-slate-600 dark:text-white/60">
+                      {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] font-black text-slate-900 dark:text-white">{fmt(order.total)}</td>
+                    <td className="px-4 py-3 text-[12px] text-slate-600 dark:text-white/60">{order.payment_method}</td>
+                    <td className="px-4 py-3">
+                      <ErpBadge status={STATUS_CONFIG[order.status].badge} label={STATUS_CONFIG[order.status].label} />
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-slate-500 dark:text-white/40">{relative(order.created_at)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <ErpBtn
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon name="eye" size={13} />}
+                          onClick={() => setSelected(order)}
+                        >
+                          Ver
+                        </ErpBtn>
                         <Link
                           to={`/dashboard/orders/${order.id}/picking`}
-                          onClick={(event) => event.stopPropagation()}
-                          className="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white"
+                          className="inline-flex h-8 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-300"
                         >
                           Alistar
                         </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 dark:border-white/5">
-            <p className="text-[12px] text-slate-400 dark:text-white/30">
-              {filtered.length} pedidos - Pagina {page} de {totalPages}
+          <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-white/10 sm:px-5">
+            <p className="text-[12px] text-slate-500 dark:text-white/40">
+              {filtered.length} pedidos · Pagina {page} de {totalPages}
             </p>
-            <div className="flex gap-1">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((previous) => previous - 1)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] text-slate-600 disabled:opacity-40 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
-              >
+            <div className="flex items-center gap-2">
+              <ErpBtn variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage((previous) => previous - 1)}>
                 Anterior
-              </button>
-              <button
-                disabled={page === totalPages}
-                onClick={() => setPage((previous) => previous + 1)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] text-slate-600 disabled:opacity-40 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
-              >
+              </ErpBtn>
+              <ErpBtn variant="secondary" size="sm" disabled={page === totalPages} onClick={() => setPage((previous) => previous + 1)}>
                 Siguiente
-              </button>
+              </ErpBtn>
             </div>
           </div>
         )}

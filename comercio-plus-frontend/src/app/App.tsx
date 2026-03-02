@@ -54,7 +54,7 @@ const DashboardReportsPage = lazy(() => import('./dashboard/reports/page'))
 const DashboardSettingsPage = lazy(() => import('./dashboard/settings/page'))
 const DashboardOrdersPage = lazy(() => import('./dashboard/orders/page'))
 const OrderPickingPage = lazy(() => import('./dashboard/orders/picking/page'))
-const DashboardStore = lazy(() => import('@/pages/DashboardStore'))
+const DashboardStore = lazy(() => import('./dashboard/store/page'))
 
 export default function App() {
   return (

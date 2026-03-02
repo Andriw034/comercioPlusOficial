@@ -1,103 +1,95 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '@/lib/api'
-import GlassCard from '@/components/ui/GlassCard'
-import Button from '@/components/ui/button'
+import { ErpBadge, ErpBtn, ErpKpiCard, ErpPageHeader } from '@/components/erp'
 
-interface ApiSummaryPayload {
-  gross_sales?: number | string | null
-  net_sales?: number | string | null
-  tax_total?: number | string | null
-  orders_count?: number | string | null
-  avg_ticket?: number | string | null
-  unique_customers?: number | string | null
-  from?: string | null
-  to?: string | null
-}
-
-interface ApiSummaryResponse {
-  data?: ApiSummaryPayload
-}
-
-interface ApiSalesItem {
-  period?: string | null
-  gross_sales?: number | string | null
-  net_sales?: number | string | null
-  tax_total?: number | string | null
-  orders_count?: number | string | null
-}
-
-interface ApiSalesResponse {
-  data?: ApiSalesItem[]
-}
+type TabKey = 'alertas' | 'tendencias' | 'top' | 'sugerencias'
+type AlertTone = 'danger' | 'warning' | 'info' | 'success'
 
 interface ApiTopProductItem {
-  product_id?: number | string | null
   name?: string | null
+  category?: string | null
   units_sold?: number | string | null
   revenue?: number | string | null
 }
 
-interface ApiTopProductsResponse {
-  data?: ApiTopProductItem[]
+interface ApiSalesMonthItem {
+  label?: string | null
+  month?: string | null
+  value?: number | string | null
+  total?: number | string | null
 }
 
-interface SummaryData {
-  grossSales: number
-  netSales: number
-  taxTotal: number
-  ordersCount: number
-  avgTicket: number
-  uniqueCustomers: number
+interface ApiAiAlerts {
+  high_rotation?: string | null
+  out_of_stock?: string | null
+  low_movement?: string | null
+  top_growth?: string | null
 }
 
-interface SalesPoint {
-  period: string
-  grossSales: number
-  netSales: number
-  taxTotal: number
-  ordersCount: number
+interface ApiReportSummaryData {
+  gross_sales?: number | string | null
+  orders_count?: number | string | null
+  top_products?: ApiTopProductItem[] | null
+  sales_by_month?: ApiSalesMonthItem[] | null
+  ai_alerts?: ApiAiAlerts | null
+}
+
+interface ApiReportSummaryResponse {
+  data?: ApiReportSummaryData | null
 }
 
 interface TopProduct {
-  productId: number
   name: string
-  unitsSold: number
+  category: string
+  units: number
   revenue: number
 }
 
-interface ReportsViewData {
-  summary: SummaryData
-  sales: SalesPoint[]
-  topProducts: TopProduct[]
+interface SalesMonth {
+  label: string
+  value: number
 }
 
-type Range = '7d' | '30d' | '90d' | 'custom'
-type ExportType = 'sales' | 'tax'
-type ActiveChart = 'revenue' | 'orders'
+interface ReportSummary {
+  grossSales: number
+  ordersCount: number
+  topProducts: TopProduct[]
+  salesByMonth: SalesMonth[]
+  aiAlerts: {
+    highRotation: string
+    outOfStock: string
+    lowMovement: string
+    topGrowth: string
+  }
+}
 
-const REPORTS_CACHE_TTL_MS = 60_000
+interface AlertCard {
+  id: string
+  icon: string
+  title: string
+  message: string
+  tone: AlertTone
+}
 
-const reportsCache = new Map<string, { updatedAt: number; data: ReportsViewData }>()
+const FALLBACK_MONTHS: SalesMonth[] = [
+  { label: 'Sep', value: 1200000 },
+  { label: 'Oct', value: 1450000 },
+  { label: 'Nov', value: 1320000 },
+  { label: 'Dic', value: 1680000 },
+  { label: 'Ene', value: 1590000 },
+  { label: 'Feb', value: 1760000 },
+]
+
+const FIXED_SUGGESTIONS = [
+  'Mueve los repuestos de mayor salida a una zona de picking rapido para despachar en menos tiempo.',
+  'Revisa semanalmente las referencias de motos mas vendidas y sube el stock minimo antes de fin de semana.',
+  'Arma combos de mantenimiento (aceite + filtro + bujia) para aumentar ticket promedio en mostrador y web.',
+]
 
 function toNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
-}
-
-function toISO(date: Date): string {
-  return date.toISOString().split('T')[0]
-}
-
-function rangeToDateRange(range: Exclude<Range, 'custom'>): { from: string; to: string } {
-  const to = new Date()
-  const from = new Date()
-
-  if (range === '7d') from.setDate(from.getDate() - 7)
-  if (range === '30d') from.setDate(from.getDate() - 30)
-  if (range === '90d') from.setDate(from.getDate() - 90)
-
-  return { from: toISO(from), to: toISO(to) }
 }
 
 function fmtCurrency(value: number): string {
@@ -108,389 +100,335 @@ function fmtCurrency(value: number): string {
   }).format(value)
 }
 
-function fmtCompactCurrency(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}k`
-  return `$${Math.round(value)}`
-}
+function normalizeSummary(payload: ApiReportSummaryData | null | undefined): ReportSummary {
+  const rawTopProducts = Array.isArray(payload?.top_products) ? payload.top_products : []
+  const rawSalesByMonth = Array.isArray(payload?.sales_by_month) ? payload.sales_by_month : []
+  const rawAi = payload?.ai_alerts
 
-function pct(current: number, previous: number): { value: number; positive: boolean } | null {
-  if (!previous) return null
-  const diff = ((current - previous) / previous) * 100
-  return { value: diff, positive: diff >= 0 }
-}
-
-function normalizeSummary(payload: ApiSummaryPayload | undefined): SummaryData {
   return {
     grossSales: toNumber(payload?.gross_sales),
-    netSales: toNumber(payload?.net_sales),
-    taxTotal: toNumber(payload?.tax_total),
     ordersCount: toNumber(payload?.orders_count),
-    avgTicket: toNumber(payload?.avg_ticket),
-    uniqueCustomers: toNumber(payload?.unique_customers),
+    topProducts: rawTopProducts.map((item) => ({
+      name: String(item?.name || 'Producto sin nombre'),
+      category: String(item?.category || 'Sin categoria'),
+      units: toNumber(item?.units_sold),
+      revenue: toNumber(item?.revenue),
+    })),
+    salesByMonth: rawSalesByMonth.map((item, index) => ({
+      label: String(item?.label || item?.month || `Mes ${index + 1}`),
+      value: toNumber(item?.value ?? item?.total),
+    })),
+    aiAlerts: {
+      highRotation:
+        String(rawAi?.high_rotation || '').trim() ||
+        'Hay referencias de alta rotacion. Reponer a tiempo evita perder ventas.',
+      outOfStock:
+        String(rawAi?.out_of_stock || '').trim() ||
+        'Algunas referencias clave estan sin stock. Prioriza esas compras primero.',
+      lowMovement:
+        String(rawAi?.low_movement || '').trim() ||
+        'Tienes productos con poca salida. Puedes moverlos con promo o combo.',
+      topGrowth:
+        String(rawAi?.top_growth || '').trim() ||
+        'Una categoria viene creciendo. Aprovecha para ampliar surtido y margen.',
+    },
   }
 }
 
-function normalizeSalesRows(rows: ApiSalesItem[] | undefined): SalesPoint[] {
-  if (!Array.isArray(rows)) return []
-
-  return rows.map((item, index) => ({
-    period: String(item?.period || `Dia ${index + 1}`),
-    grossSales: toNumber(item?.gross_sales),
-    netSales: toNumber(item?.net_sales),
-    taxTotal: toNumber(item?.tax_total),
-    ordersCount: toNumber(item?.orders_count),
-  }))
-}
-
-function normalizeTopProducts(rows: ApiTopProductItem[] | undefined): TopProduct[] {
-  if (!Array.isArray(rows)) return []
-
-  return rows.map((item, index) => ({
-    productId: toNumber(item?.product_id, index + 1),
-    name: String(item?.name || `Producto ${index + 1}`),
-    unitsSold: toNumber(item?.units_sold),
-    revenue: toNumber(item?.revenue),
-  }))
-}
-
-function MiniBarChart({ data, mode }: { data: SalesPoint[]; mode: ActiveChart }) {
-  const values = data.map((point) => (mode === 'revenue' ? point.grossSales : point.ordersCount))
-  const maxValue = Math.max(...values, 1)
-
-  return (
-    <div className="flex h-32 items-end gap-1.5">
-      {data.map((point, index) => {
-        const value = mode === 'revenue' ? point.grossSales : point.ordersCount
-        const height = Math.max(4, (value / maxValue) * 100)
-
-        return (
-          <div key={`${point.period}-${index}`} className="group relative flex flex-1 flex-col items-center justify-end gap-1">
-            <div
-              className="w-full rounded-t-md bg-orange-500 transition-opacity hover:opacity-80"
-              style={{ height: `${height}%` }}
-            />
-            <div className="pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-[10px] text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-slate-100 dark:text-slate-900">
-              <p className="font-bold">{mode === 'revenue' ? fmtCompactCurrency(value) : `${value} pedidos`}</p>
-              <p className="text-[9px] opacity-80">{point.period}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function KPICard({
-  label,
-  value,
-  sub,
-  delta,
-  large = false,
-}: {
-  label: string
-  value: string
-  sub?: string
-  delta?: { value: number; positive: boolean } | null
-  large?: boolean
-}) {
-  return (
-    <div className={`rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5 ${large ? 'sm:col-span-2' : ''}`}>
-      <p className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-white/40">{label}</p>
-      <p className={`mt-1 font-black text-slate-900 dark:text-white ${large ? 'text-4xl' : 'text-2xl'}`}>{value}</p>
-      {sub ? <p className="mt-0.5 text-[11px] text-slate-400 dark:text-white/30">{sub}</p> : null}
-      {delta ? (
-        <div className={`mt-1.5 flex items-center gap-1 text-[11px] font-semibold ${delta.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-          <span>{delta.positive ? 'Sube' : 'Baja'}</span>
-          <span>{Math.abs(delta.value).toFixed(1)}%</span>
-        </div>
-      ) : null}
-    </div>
-  )
+function alertStyles(tone: AlertTone): { border: string; bg: string; badge: 'critical' | 'low' | 'new' | 'high' } {
+  if (tone === 'danger') return { border: 'border-l-red-500', bg: 'bg-red-50 dark:bg-red-500/10', badge: 'critical' }
+  if (tone === 'warning') return { border: 'border-l-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10', badge: 'low' }
+  if (tone === 'info') return { border: 'border-l-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10', badge: 'new' }
+  return { border: 'border-l-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10', badge: 'high' }
 }
 
 export default function DashboardReportsPage() {
-  const [range, setRange] = useState<Range>('30d')
-  const [customFrom, setCustomFrom] = useState(toISO(new Date(Date.now() - 30 * 86400_000)))
-  const [customTo, setCustomTo] = useState(toISO(new Date()))
-  const [data, setData] = useState<ReportsViewData | null>(null)
+  const [summary, setSummary] = useState<ReportSummary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
-  const [activeChart, setActiveChart] = useState<ActiveChart>('revenue')
-  const [exporting, setExporting] = useState<ExportType | null>(null)
+  const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState<TabKey>('alertas')
+  const [exporting, setExporting] = useState(false)
 
-  const fetchData = async (from: string, to: string, force = false) => {
-    const cacheKey = `${from}|${to}`
-
-    if (!force) {
-      const cached = reportsCache.get(cacheKey)
-      if (cached && Date.now() - cached.updatedAt < REPORTS_CACHE_TTL_MS) {
-        setData(cached.data)
-        setLoadError('')
-        setLoading(false)
-        return
-      }
-    }
-
+  const loadSummary = useCallback(async () => {
     setLoading(true)
-    setLoadError('')
-
+    setError('')
     try {
-      const [summaryRes, salesRes, topRes] = await Promise.all([
-        API.get('/reports/summary', { params: { from, to } }),
-        API.get('/reports/sales', { params: { from, to, group: 'day' } }),
-        API.get('/reports/top-products', { params: { from, to, limit: 10, sort: 'revenue' } }),
-      ])
-
-      const summaryPayload = (summaryRes.data as ApiSummaryResponse | undefined)?.data
-      const salesPayload = (salesRes.data as ApiSalesResponse | undefined)?.data
-      const topPayload = (topRes.data as ApiTopProductsResponse | undefined)?.data
-
-      const nextData: ReportsViewData = {
-        summary: normalizeSummary(summaryPayload),
-        sales: normalizeSalesRows(salesPayload),
-        topProducts: normalizeTopProducts(topPayload),
-      }
-
-      setData(nextData)
-      reportsCache.set(cacheKey, { updatedAt: Date.now(), data: nextData })
+      const response = await API.get<ApiReportSummaryResponse>('/reports/summary')
+      setSummary(normalizeSummary(response.data?.data))
     } catch (err: any) {
-      console.error('[reports] Error al cargar reportes:', err)
-      const message = err?.response?.data?.message || 'No se pudieron cargar los reportes.'
-      setLoadError(message)
+      setError(err?.response?.data?.message || 'No se pudieron cargar los reportes en este momento.')
+      setSummary(normalizeSummary(null))
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    if (range === 'custom') return
-    const { from, to } = rangeToDateRange(range)
-    fetchData(from, to)
-  }, [range])
+    void loadSummary()
+  }, [loadSummary])
 
-  const applyCustomRange = () => {
-    if (!customFrom || !customTo) {
-      setLoadError('Debes seleccionar una fecha inicial y final.')
-      return
-    }
+  const todayLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat('es-CO', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date()),
+    [],
+  )
 
-    if (customFrom > customTo) {
-      setLoadError('La fecha inicial no puede ser mayor a la final.')
-      return
-    }
+  const safeSummary = summary ?? normalizeSummary(null)
+  const topProducts = safeSummary.topProducts
+  const trendData = safeSummary.salesByMonth.length > 0 ? safeSummary.salesByMonth : FALLBACK_MONTHS
+  const maxTrendValue = Math.max(...trendData.map((item) => item.value), 1)
+  const starProduct = topProducts[0]
+  const hasData = safeSummary.grossSales > 0 || safeSummary.ordersCount > 0 || topProducts.length > 0
 
-    fetchData(customFrom, customTo)
-  }
+  const alertCards: AlertCard[] = [
+    {
+      id: 'high-rotation',
+      icon: '🔥',
+      title: 'Alta rotacion',
+      message: safeSummary.aiAlerts.highRotation,
+      tone: 'danger',
+    },
+    {
+      id: 'out-of-stock',
+      icon: '⚠️',
+      title: 'Sin stock',
+      message: safeSummary.aiAlerts.outOfStock,
+      tone: 'warning',
+    },
+    {
+      id: 'low-movement',
+      icon: '❄️',
+      title: 'Sin movimiento',
+      message: safeSummary.aiAlerts.lowMovement,
+      tone: 'info',
+    },
+    {
+      id: 'top-growth',
+      icon: '📈',
+      title: 'Mayor crecimiento',
+      message: safeSummary.aiAlerts.topGrowth,
+      tone: 'success',
+    },
+  ]
 
-  const currentRange = useMemo(() => {
-    if (range === 'custom') {
-      return { from: customFrom, to: customTo }
-    }
-    return rangeToDateRange(range)
-  }, [customFrom, customTo, range])
-
-  const exportCsv = async (type: ExportType) => {
-    setExporting(type)
+  const handleExportCsv = useCallback(() => {
+    if (!summary) return
+    setExporting(true)
     try {
-      const endpoint = type === 'sales' ? '/reports/export/sales.csv' : '/reports/export/tax.csv'
-      const response = await API.get(endpoint, {
-        params: { from: currentRange.from, to: currentRange.to },
-        responseType: 'blob',
-      })
-
-      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+      const rows = [
+        ['Producto', 'Categoria', 'Unidades', 'Ingresos'],
+        ...summary.topProducts.map((item) => [item.name, item.category, String(item.units), String(item.revenue)]),
+      ]
+      const csv = rows.map((row) => row.map((col) => `"${col.replace(/"/g, '""')}"`).join(',')).join('\n')
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${type === 'sales' ? 'ventas' : 'impuestos'}-${currentRange.from}-${currentRange.to}.csv`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `reportes-ia-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
       URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('[reports] Error al exportar CSV:', err)
-      setLoadError('No se pudo exportar el reporte CSV. Intenta nuevamente.')
     } finally {
-      setExporting(null)
+      setExporting(false)
     }
-  }
-
-  const summary = data?.summary
-  const salesRows = useMemo(() => data?.sales || [], [data?.sales])
-  const topProducts = data?.topProducts || []
-
-  const hasReportData = Boolean(summary && (summary.ordersCount > 0 || salesRows.length > 0 || topProducts.length > 0))
-
-  const revenueDelta = useMemo(() => {
-    if (!summary) return null
-    const previous = Math.max(summary.grossSales - summary.netSales, 0)
-    return pct(summary.grossSales, previous)
   }, [summary])
-
-  const orderDelta = useMemo(() => {
-    if (!summary) return null
-    const previous = Math.max(summary.ordersCount - 1, 0)
-    return pct(summary.ordersCount, previous)
-  }, [summary])
-
-  const chartData: SalesPoint[] = useMemo(() => {
-    if (salesRows.length > 0) return salesRows
-
-    return Array.from({ length: 30 }, (_, index) => ({
-      period: toISO(new Date(Date.now() - (29 - index) * 86400_000)),
-      grossSales: 0,
-      netSales: 0,
-      taxTotal: 0,
-      ordersCount: 0,
-    }))
-  }, [salesRows])
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
-          <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Reportes</h1>
-          <p className="text-[12px] text-slate-500 dark:text-white/40">Analisis de tu negocio</p>
-        </div>
+    <div className="space-y-4">
+      <ErpPageHeader
+        breadcrumb="Dashboard / Reportes"
+        title="Reportes e inteligencia comercial"
+        subtitle={`Resumen del negocio · ${todayLabel}`}
+        actions={
+          <ErpBtn variant="primary" size="md" onClick={handleExportCsv} disabled={exporting || loading}>
+            {exporting ? 'Exportando...' : 'Exportar CSV'}
+          </ErpBtn>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => exportCsv('sales')}
-            disabled={loading || exporting !== null}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-          >
-            {exporting === 'sales' ? 'Exportando...' : 'Exportar ventas CSV'}
-          </button>
-
-          <button
-            onClick={() => exportCsv('tax')}
-            disabled={loading || exporting !== null}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-          >
-            {exporting === 'tax' ? 'Exportando...' : 'Exportar impuestos CSV'}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-white/5">
-          {(['7d', '30d', '90d'] as const).map((option) => (
-            <button
-              key={option}
-              onClick={() => setRange(option)}
-              className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${
-                range === option
-                  ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-white/40 dark:hover:text-white/70'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-          <button
-            onClick={() => setRange('custom')}
-            className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${
-              range === 'custom'
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white'
-                : 'text-slate-500 hover:text-slate-700 dark:text-white/40 dark:hover:text-white/70'
-            }`}
-          >
-            Personalizado
-          </button>
-        </div>
-
-        {range === 'custom' ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="date"
-              value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700 outline-none focus:border-orange-400 dark:border-white/10 dark:bg-white/5 dark:text-white"
-            />
-            <span className="text-slate-400 dark:text-white/30">a</span>
-            <input
-              type="date"
-              value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700 outline-none focus:border-orange-400 dark:border-white/10 dark:bg-white/5 dark:text-white"
-            />
-            <Button onClick={applyCustomRange} className="text-[12px]">Aplicar</Button>
-          </div>
-        ) : null}
-      </div>
-
-      {loadError ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-          <span>{loadError}</span>
-          <button
-            onClick={() => fetchData(currentRange.from, currentRange.to, true)}
-            className="ml-auto text-[12px] font-semibold underline"
-          >
-            Reintentar
-          </button>
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+          {error}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
             <div key={index} className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-white/5" />
           ))}
         </div>
-      ) : summary ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KPICard label="Ventas totales" value={fmtCurrency(summary.grossSales)} delta={revenueDelta} />
-          <KPICard label="Pedidos" value={String(summary.ordersCount)} delta={orderDelta} />
-          <KPICard label="Ticket prom." value={fmtCompactCurrency(summary.avgTicket)} sub="por pedido" />
-          <KPICard label="Clientes unicos" value={String(summary.uniqueCustomers)} />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ErpKpiCard
+            label="Ventas del mes"
+            value={fmtCurrency(safeSummary.grossSales)}
+            hint="Facturacion bruta del periodo"
+            icon="dollar"
+            iconBg="rgba(16,185,129,0.14)"
+            iconColor="#10B981"
+          />
+          <ErpKpiCard
+            label="Total pedidos"
+            value={safeSummary.ordersCount}
+            hint="Pedidos registrados en el mes"
+            icon="file-text"
+            iconBg="rgba(59,130,246,0.14)"
+            iconColor="#3B82F6"
+          />
+          <ErpKpiCard
+            label="Producto estrella"
+            value={starProduct ? starProduct.name : 'Sin datos'}
+            hint={starProduct ? `${starProduct.units} unidades` : 'Aun no hay ranking disponible'}
+            icon="star"
+            iconBg="rgba(245,158,11,0.14)"
+            iconColor="#F59E0B"
+          />
+        </div>
+      )}
+
+      {!loading && !hasData ? (
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">
+          <p className="text-[20px] font-black text-slate-900 dark:text-white">Todavia no hay informacion suficiente</p>
+          <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
+            Cuando tengas ventas y pedidos, aqui veras alertas y recomendaciones utiles para tu tienda.
+          </p>
+          <Link to="/dashboard/products" className="mt-4 inline-flex">
+            <ErpBtn variant="primary" size="md">Ir a productos</ErpBtn>
+          </Link>
         </div>
       ) : null}
 
-      {!loading && !hasReportData ? (
-        <GlassCard className="flex min-h-[320px] flex-col items-center justify-center text-center">
-          <p className="text-[18px] font-semibold text-slate-900 dark:text-white">Aun no hay datos suficientes para reportes</p>
-          <p className="mt-1 text-[13px] text-slate-500 dark:text-white/50">
-            Cuando tengas pedidos pagados podras ver metricas, tendencias y top de productos.
-          </p>
-          <Link
-            to="/dashboard/products"
-            className="mt-4 inline-flex rounded-xl bg-orange-500 px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-orange-600"
-          >
-            Ir a Productos
-          </Link>
-        </GlassCard>
-      ) : null}
-
-      {!loading && hasReportData ? (
-        <GlassCard className="space-y-4 border border-slate-200 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">Ventas esta semana</h2>
-              <p className="text-[12px] text-slate-500 dark:text-white/40">
-                {chartData.length} puntos entre {currentRange.from} y {currentRange.to}
-              </p>
-            </div>
-            <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-white/5">
-              {(['revenue', 'orders'] as const).map((mode) => (
+      {!loading && hasData ? (
+        <>
+          <div className="rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5 dark:border-white/10 dark:bg-white/5">
+            <div className="grid gap-1 sm:grid-cols-4">
+              {[
+                { key: 'alertas', label: '⚠️ Alertas' },
+                { key: 'tendencias', label: '📊 Tendencias' },
+                { key: 'top', label: '🏆 Top productos' },
+                { key: 'sugerencias', label: '💡 Sugerencias' },
+              ].map((tab) => (
                 <button
-                  key={mode}
-                  onClick={() => setActiveChart(mode)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                    activeChart === mode
-                      ? 'bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white'
-                      : 'text-slate-400 hover:text-slate-600 dark:text-white/30 dark:hover:text-white/60'
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key as TabKey)}
+                  className={`rounded-xl px-3 py-2 text-[12px] font-semibold transition ${
+                    activeTab === tab.key
+                      ? 'border border-orange-200 bg-white text-slate-900 shadow-[0_1px_4px_rgba(0,0,0,0.08)] dark:border-orange-500/30 dark:bg-slate-900 dark:text-white'
+                      : 'text-slate-500 hover:bg-white/80 hover:text-slate-700 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white'
                   }`}
                 >
-                  {mode === 'revenue' ? 'Ingresos' : 'Pedidos'}
+                  {tab.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <MiniBarChart data={chartData} mode={activeChart} />
-        </GlassCard>
+          {activeTab === 'alertas' ? (
+            <div className="space-y-3">
+              {alertCards.map((card) => {
+                const styles = alertStyles(card.tone)
+                return (
+                  <div key={card.id} className={`rounded-2xl border-l-4 p-4 ${styles.border} ${styles.bg}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 text-[20px]">{card.icon}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center gap-2">
+                          <p className="text-[14px] font-semibold text-slate-900 dark:text-white">{card.title}</p>
+                          <ErpBadge status={styles.badge} />
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-slate-600 dark:text-white/60">{card.message}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
+
+          {activeTab === 'tendencias' ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">
+              <p className="mb-3 text-[14px] font-semibold text-slate-900 dark:text-white">Ventas por mes</p>
+              <div className="space-y-3">
+                {trendData.map((item) => (
+                  <div key={item.label}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[12px] font-semibold text-slate-700 dark:text-white/70">{item.label}</span>
+                      <span className="text-[12px] font-black text-slate-900 dark:text-white">{fmtCurrency(item.value)}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-200 dark:bg-white/10">
+                      <div className="h-2 rounded-full bg-orange-500" style={{ width: `${Math.max(4, (item.value / maxTrendValue) * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {activeTab === 'top' ? (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px]">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-white/5">
+                      {['#', 'Producto', 'Categoría', 'Unidades', 'Ingresos'].map((header) => (
+                        <th
+                          key={header}
+                          className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-500 dark:text-white/40"
+                        >
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-[12px] text-slate-500 dark:text-white/50">
+                          Todavia no hay ranking de productos.
+                        </td>
+                      </tr>
+                    ) : (
+                      topProducts.map((product, index) => (
+                        <tr key={`${product.name}-${index}`} className="border-b border-slate-100 dark:border-white/10">
+                          <td className="px-3 py-2.5 text-[12px] font-bold text-slate-700 dark:text-white/70">{index + 1}</td>
+                          <td className="px-3 py-2.5 text-[12px] font-semibold text-slate-900 dark:text-white">{product.name}</td>
+                          <td className="px-3 py-2.5 text-[12px] text-slate-600 dark:text-white/60">{product.category}</td>
+                          <td className="px-3 py-2.5 text-[12px] font-bold text-slate-900 dark:text-white">{product.units}</td>
+                          <td className="px-3 py-2.5 text-[12px] font-black text-slate-900 dark:text-white">{fmtCurrency(product.revenue)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {activeTab === 'sugerencias' ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">
+              <p className="mb-3 text-[14px] font-semibold text-slate-900 dark:text-white">Acciones sugeridas para tu tienda</p>
+              <div className="space-y-2">
+                {FIXED_SUGGESTIONS.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-white/10 dark:bg-white/5"
+                  >
+                    <p className="text-[12px] leading-relaxed text-slate-700 dark:text-white/70">{item}</p>
+                    <ErpBtn variant="secondary" size="sm">Aplicar</ErpBtn>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   )

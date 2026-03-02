@@ -1,4 +1,4 @@
-﻿# UNIVERSAL_COMERCIOPLUS
+# UNIVERSAL_COMERCIOPLUS
 
 Estado: ACTIVO (fuente unica de verdad)
 Ultima actualizacion: 2026-02-27
@@ -11907,13 +11907,7 @@ Probar sistemÃ¡ticamente todas las vistas del proyecto ComercioRealPlus para a
 
 Incluye todos los archivos textuales de codigo/configuracion del repositorio (sin binarios ni dependencias externas compiladas).
 
-Conteo de archivos incluidos: 655
-
-## 18) Volcado completo de codigo y configuracion (literal)
-
-Incluye todos los archivos textuales de codigo/configuracion del repositorio (sin binarios ni dependencias externas compiladas).
-
-Conteo de archivos incluidos: 655
+Conteo de archivos incluidos: 671
 
 <!-- BEGIN_FULL_CODE_DUMP -->
 
@@ -12174,6 +12168,83 @@ FILESYSTEM_DISK=local
 
 ---
 
+### FILE: app/Console/Commands/CheckPriceAlertsCommand.php
+
+<!-- BEGIN_CODE_FILE: app/Console/Commands/CheckPriceAlertsCommand.php -->
+~~~~php
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\Notification;
+use App\Models\ProductAlert;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+
+class CheckPriceAlertsCommand extends Command
+{
+    protected $signature = 'alerts:check-prices';
+
+    protected $description = 'Verifica alertas de precio y notifica a usuarios cuando el precio baja al objetivo';
+
+    public function handle(): int
+    {
+        $triggered = 0;
+
+        ProductAlert::query()
+            ->where('is_triggered', false)
+            ->with('product:id,name,price,status', 'user:id,name')
+            ->chunkById(100, function ($alerts) use (&$triggered) {
+                foreach ($alerts as $alert) {
+                    if (! $alert->product || $alert->product->status !== 'active') {
+                        continue;
+                    }
+
+                    if ((float) $alert->product->price <= (float) $alert->target_price) {
+                        DB::transaction(function () use ($alert, &$triggered) {
+                            $lockedAlert = ProductAlert::query()->lockForUpdate()->find($alert->id);
+                            if (! $lockedAlert || $lockedAlert->is_triggered) {
+                                return;
+                            }
+
+                            $lockedAlert->update([
+                                'is_triggered' => true,
+                                'triggered_at' => now(),
+                            ]);
+
+                            $product = $alert->product;
+                            if (! $product) {
+                                return;
+                            }
+
+                            $priceFormatted = number_format((float) $product->price, 0, ',', '.');
+                            Notification::query()->create([
+                                'user_id' => $lockedAlert->user_id,
+                                'type' => 'price_alert',
+                                'message' => "El precio de \"{$product->name}\" bajó a \${$priceFormatted} COP. ¡Es el precio que esperabas!",
+                                'read' => false,
+                            ]);
+
+                            $triggered++;
+                        });
+                    }
+                }
+            });
+
+        if ($triggered > 0) {
+            $this->info("Se dispararon {$triggered} alerta(s) de precio.");
+        } else {
+            $this->info('No hay alertas de precio que notificar.');
+        }
+
+        return self::SUCCESS;
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Console/Commands/CheckPriceAlertsCommand.php -->
+
+---
+
 ### FILE: app/Console/Commands/CheckReorderCommand.php
 
 <!-- BEGIN_CODE_FILE: app/Console/Commands/CheckReorderCommand.php -->
@@ -12264,13 +12335,13 @@ class ClearUsers extends Command
      */
     public function handle()
     {
-        // Deshabilitar temporalmente las restricciones de clave forÃƒÂ¡nea
+        // Deshabilitar temporalmente las restricciones de clave forÃ¡nea
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         // Eliminar registros de la tabla users
         DB::table('users')->truncate();
 
-        // Habilitar nuevamente las restricciones de clave forÃƒÂ¡nea
+        // Habilitar nuevamente las restricciones de clave forÃ¡nea
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $this->info('Todos los usuarios han sido eliminados correctamente.');
@@ -12360,7 +12431,7 @@ use Illuminate\Support\Facades\Hash;
 class UpdatePasswords extends Command
 {
     protected $signature = 'users:update-passwords';
-    protected $description = 'Actualizar contraseÃƒÂ±as antiguas no hasheadas a bcrypt';
+    protected $description = 'Actualizar contraseÃ±as antiguas no hasheadas a bcrypt';
 
     public function handle()
     {
@@ -12370,16 +12441,16 @@ class UpdatePasswords extends Command
         foreach ($users as $user) {
             $password = $user->password;
 
-            // Verificar si la contraseÃƒÂ±a parece no estar hasheada (no empieza con $2y$ o $2a$)
+            // Verificar si la contraseÃ±a parece no estar hasheada (no empieza con $2y$ o $2a$)
             if (!str_starts_with($password, '$2y$') && !str_starts_with($password, '$2a$')) {
                 $user->password = Hash::make($password);
                 $user->save();
                 $updatedCount++;
-                $this->info("ContraseÃƒÂ±a actualizada para usuario ID: {$user->id}");
+                $this->info("ContraseÃ±a actualizada para usuario ID: {$user->id}");
             }
         }
 
-        $this->info("Proceso completado. Total de contraseÃƒÂ±as actualizadas: {$updatedCount}");
+        $this->info("Proceso completado. Total de contraseÃ±as actualizadas: {$updatedCount}");
         return 0;
     }
 }
@@ -12406,7 +12477,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('alerts:check-prices')->dailyAt('08:00');
     }
 
     /**
@@ -12422,6 +12493,7 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\ClearUsers::class,
         \App\Console\Commands\UpdatePasswords::class,
+        \App\Console\Commands\CheckPriceAlertsCommand::class,
     ];
 }
 ~~~~
@@ -12492,7 +12564,7 @@ class Handler extends ExceptionHandler
 ~~~~php
 <?php
 // Archivo helpers.php creado para evitar error de carga en Composer.
-// AquÃƒÂ­ puedes agregar funciones helper globales si es necesario.
+// AquÃ­ puedes agregar funciones helper globales si es necesario.
 
 
 
@@ -12594,7 +12666,7 @@ class CategoryController extends Controller
 
         return redirect()
             ->route('admin.categories.index')
-            ->with('status', 'CategorÃƒÂ­a creada correctamente.');
+            ->with('status', 'CategorÃ­a creada correctamente.');
     }
 
     public function edit(Category $category)
@@ -12615,7 +12687,7 @@ class CategoryController extends Controller
 
         return redirect()
             ->route('admin.categories.index')
-            ->with('status', 'CategorÃƒÂ­a actualizada.');
+            ->with('status', 'CategorÃ­a actualizada.');
     }
 
     public function destroy(Category $category)
@@ -12624,17 +12696,17 @@ class CategoryController extends Controller
 
         // Si prefieres bloquear cuando tiene productos, cambia este bloque:
         if ($category->products()->exists()) {
-            return back()->with('error', 'No puedes eliminar una categorÃƒÂ­a con productos.');
+            return back()->with('error', 'No puedes eliminar una categorÃ­a con productos.');
         }
 
         $category->delete();
 
         return redirect()
             ->route('admin.categories.index')
-            ->with('status', 'CategorÃƒÂ­a eliminada.');
+            ->with('status', 'CategorÃ­a eliminada.');
     }
 
-    // Endpoint JSON para creaciÃƒÂ³n "en vivo" desde Productos
+    // Endpoint JSON para creaciÃ³n "en vivo" desde Productos
     public function storeJson(Request $request)
     {
         $request->validate(['name' => ['required','string','max:80']]);
@@ -12647,7 +12719,7 @@ class CategoryController extends Controller
         if ($exists) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Ya existe una categorÃƒÂ­a con ese nombre.',
+                'message' => 'Ya existe una categorÃ­a con ese nombre.',
             ], 422);
         }
 
@@ -12661,7 +12733,7 @@ class CategoryController extends Controller
             'ok'   => true,
             'id'   => $category->id,
             'name' => $category->name,
-            'message' => 'CategorÃƒÂ­a creada.',
+            'message' => 'CategorÃ­a creada.',
         ]);
     }
 
@@ -12719,7 +12791,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar formulario de creaciÃƒÂ³n de producto.
+     * Mostrar formulario de creaciÃ³n de producto.
      */
     public function create()
     {
@@ -12764,11 +12836,11 @@ class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', 'Ã¢Å“â€¦ Producto creado correctamente.');
+            ->with('success', 'âœ… Producto creado correctamente.');
     }
 
     /**
-     * Mostrar formulario de ediciÃƒÂ³n.
+     * Mostrar formulario de ediciÃ³n.
      */
     public function edit(Product $product)
     {
@@ -12819,7 +12891,7 @@ class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', 'Ã¢Å“â€¦ Producto actualizado correctamente.');
+            ->with('success', 'âœ… Producto actualizado correctamente.');
     }
 
     /**
@@ -12838,11 +12910,11 @@ class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', 'Ã°Å¸â€”â€˜Ã¯Â¸Â Producto eliminado correctamente.');
+            ->with('success', 'ðŸ—‘ï¸ Producto eliminado correctamente.');
     }
 
     /**
-     * Genera un slug ÃƒÂºnico por tienda.
+     * Genera un slug Ãºnico por tienda.
      */
     protected function generateUniqueSlug(string $name, int $storeId, ?int $ignoreId = null): string
     {
@@ -12898,7 +12970,7 @@ class SettingsController extends Controller
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'ConfiguraciÃƒÂ³n general actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n general actualizada.');
     }
 
     public function updateAppearance(UpdateAppearanceRequest $request)
@@ -12929,28 +13001,28 @@ class SettingsController extends Controller
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'ConfiguraciÃƒÂ³n de pagos actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de pagos actualizada.');
     }
 
     public function updateShipping(UpdateShippingRequest $request)
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'ConfiguraciÃƒÂ³n de envÃƒÂ­os actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de envÃ­os actualizada.');
     }
 
     public function updateTaxes(UpdateTaxesRequest $request)
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'ConfiguraciÃƒÂ³n de impuestos actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de impuestos actualizada.');
     }
 
     public function updateNotifications(UpdateNotificationsRequest $request)
     {
         $store = auth()->user()->stores()->firstOrFail();
         $store->update($request->validated());
-        return redirect()->back()->with('success', 'ConfiguraciÃƒÂ³n de notificaciones actualizada.');
+        return redirect()->back()->with('success', 'ConfiguraciÃ³n de notificaciones actualizada.');
     }
 }
 ~~~~
@@ -12974,8 +13046,8 @@ class StatsPageController extends Controller
     {
         // Requiere login; agrega otros middlewares si usas roles/permisos
         $this->middleware('auth');
-        // $this->middleware('verified');           // si usas verificaciÃƒÂ³n de email
-        // $this->middleware('role:admin');        // si usas Spatie Permissions y solo admin ve estadÃƒÂ­sticas
+        // $this->middleware('verified');           // si usas verificaciÃ³n de email
+        // $this->middleware('role:admin');        // si usas Spatie Permissions y solo admin ve estadÃ­sticas
     }
 
     public function index()
@@ -14177,6 +14249,236 @@ class ClaimController extends Controller
 
 ---
 
+### FILE: app/Http/Controllers/Api/CreditController.php
+
+<!-- BEGIN_CODE_FILE: app/Http/Controllers/Api/CreditController.php -->
+~~~~php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\CreditAccount;
+use App\Models\CreditTransaction;
+use App\Models\Customer;
+use App\Models\Store;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class CreditController extends Controller
+{
+    public function index(Request $request)
+    {
+        $store = $this->resolveMerchantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        $baseQuery = CreditAccount::query()->where('store_id', $store->id);
+        $accounts = (clone $baseQuery)
+            ->with(['customer.user:id,name,email,phone'])
+            ->orderByDesc('id')
+            ->paginate(20);
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $accounts,
+            'stats' => [
+                'total_accounts' => (clone $baseQuery)->count(),
+                'total_balance' => (float) ((clone $baseQuery)->sum('balance') ?? 0),
+                'total_overdue' => (clone $baseQuery)->whereColumn('balance', '>', 'credit_limit')->count(),
+            ],
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $store = $this->resolveMerchantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'credit_limit' => 'required|numeric|min:0',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            Customer::query()
+                ->where('id', (int) $validated['customer_id'])
+                ->where('store_id', (int) $store->id)
+                ->firstOrFail();
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Cliente no encontrado para esta tienda'], 404);
+        }
+
+        $account = CreditAccount::query()->firstOrCreate(
+            [
+                'store_id' => (int) $store->id,
+                'customer_id' => (int) $validated['customer_id'],
+            ],
+            [
+                'balance' => 0,
+                'credit_limit' => (float) $validated['credit_limit'],
+                'status' => 'active',
+            ],
+        );
+
+        $account->update([
+            'credit_limit' => (float) $validated['credit_limit'],
+        ]);
+
+        $account->load(['customer.user:id,name,email,phone']);
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $account,
+        ], 201);
+    }
+
+    public function show(Request $request, CreditAccount $creditAccount)
+    {
+        $store = $this->resolveMerchantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        if ((int) $creditAccount->store_id !== (int) $store->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $creditAccount->load(['customer.user:id,name,email,phone']);
+        $transactions = $creditAccount->transactions()->limit(50)->get();
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $creditAccount,
+            'transactions' => $transactions,
+        ]);
+    }
+
+    public function charge(Request $request, CreditAccount $creditAccount)
+    {
+        $store = $this->resolveMerchantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        if ((int) $creditAccount->store_id !== (int) $store->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $result = DB::transaction(function () use ($creditAccount, $request, $validated) {
+            $account = CreditAccount::query()->lockForUpdate()->findOrFail($creditAccount->id);
+            $amount = (float) $validated['amount'];
+            $newBalance = round(((float) $account->balance) + $amount, 2);
+
+            $account->update([
+                'balance' => $newBalance,
+            ]);
+
+            $transaction = CreditTransaction::query()->create([
+                'credit_account_id' => (int) $account->id,
+                'type' => 'charge',
+                'amount' => $amount,
+                'balance_after' => $newBalance,
+                'note' => $validated['note'] ?? null,
+                'created_by' => (int) $request->user()->id,
+            ]);
+
+            return [
+                'transaction' => $transaction,
+                'balance' => $newBalance,
+            ];
+        });
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $result['transaction'],
+            'balance' => $result['balance'],
+        ], 201);
+    }
+
+    public function payment(Request $request, CreditAccount $creditAccount)
+    {
+        $store = $this->resolveMerchantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        if ((int) $creditAccount->store_id !== (int) $store->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $result = DB::transaction(function () use ($creditAccount, $request, $validated) {
+                $account = CreditAccount::query()->lockForUpdate()->findOrFail($creditAccount->id);
+                $amount = (float) $validated['amount'];
+
+                if ((float) $account->balance < $amount) {
+                    throw new HttpResponseException(response()->json([
+                        'message' => 'El pago supera la deuda actual',
+                    ], 422));
+                }
+
+                $newBalance = round(((float) $account->balance) - $amount, 2);
+
+                $account->update([
+                    'balance' => $newBalance,
+                ]);
+
+                $transaction = CreditTransaction::query()->create([
+                    'credit_account_id' => (int) $account->id,
+                    'type' => 'payment',
+                    'amount' => $amount,
+                    'balance_after' => $newBalance,
+                    'note' => $validated['note'] ?? null,
+                    'created_by' => (int) $request->user()->id,
+                ]);
+
+                return [
+                    'transaction' => $transaction,
+                    'balance' => $newBalance,
+                ];
+            });
+        } catch (HttpResponseException $exception) {
+            return $exception->getResponse();
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $result['transaction'],
+            'balance' => $result['balance'],
+        ], 201);
+    }
+
+    private function resolveMerchantStore(Request $request): ?Store
+    {
+        try {
+            return Store::query()->where('user_id', $request->user()->id)->firstOrFail();
+        } catch (ModelNotFoundException) {
+            return null;
+        }
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Http/Controllers/Api/CreditController.php -->
+
+---
+
 ### FILE: app/Http/Controllers/Api/CustomerController.php
 
 <!-- BEGIN_CODE_FILE: app/Http/Controllers/Api/CustomerController.php -->
@@ -14290,13 +14592,13 @@ class DemoImageController extends Controller
      */
     public function index(Request $request, PexelsApi $pexels)
     {
-        // Si no hay API key, devolver vacÃ­o (no exponer error sensible)
+        // Si no hay API key, devolver vacío (no exponer error sensible)
         if (!config('services.pexels.key')) {
             return response()->json([
                 'error' => false,
                 'status' => 200,
                 'data' => [],
-                'message' => 'PEXELS_API_KEY no configurada: retornando lista vacÃ­a.',
+                'message' => 'PEXELS_API_KEY no configurada: retornando lista vacía.',
             ]);
         }
 
@@ -15394,6 +15696,7 @@ class InventoryReceiveController extends Controller
         return $sqlState === '23000' || $driverCode === 1062;
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Http/Controllers/Api/Merchant/InventoryReceiveController.php -->
 
@@ -16519,6 +16822,7 @@ class ProductCodeLookupController extends Controller
         ];
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Http/Controllers/Api/Merchant/ProductCodeLookupController.php -->
 
@@ -16574,7 +16878,7 @@ class NotificacionController extends Controller
         $notification = Notification::create($validated);
 
         return response()->json([
-            'message' => 'NotificaciÃ³n creada correctamente.',
+            'message' => 'Notificación creada correctamente.',
             'data' => $notification,
         ], 201);
     }
@@ -16587,7 +16891,7 @@ class NotificacionController extends Controller
         $notification = Notification::find($id);
 
         if (!$notification) {
-            return response()->json(['message' => 'NotificaciÃ³n no encontrada'], 404);
+            return response()->json(['message' => 'Notificación no encontrada'], 404);
         }
 
         return response()->json($notification);
@@ -16609,7 +16913,7 @@ class NotificacionController extends Controller
         $notification = Notification::find($id);
 
         if (!$notification) {
-            return response()->json(['message' => 'NotificaciÃ³n no encontrada'], 404);
+            return response()->json(['message' => 'Notificación no encontrada'], 404);
         }
 
         $validated = $request->validate([
@@ -16621,7 +16925,7 @@ class NotificacionController extends Controller
         $notification->update($validated);
 
         return response()->json([
-            'message' => 'NotificaciÃ³n actualizada correctamente.',
+            'message' => 'Notificación actualizada correctamente.',
             'data' => $notification,
         ]);
     }
@@ -16634,13 +16938,13 @@ class NotificacionController extends Controller
         $notification = Notification::find($id);
 
         if (!$notification) {
-            return response()->json(['message' => 'NotificaciÃ³n no encontrada'], 404);
+            return response()->json(['message' => 'Notificación no encontrada'], 404);
         }
 
         $notification->delete();
 
         return response()->json([
-            'message' => 'NotificaciÃ³n eliminada correctamente.',
+            'message' => 'Notificación eliminada correctamente.',
         ]);
     }
 }
@@ -16714,7 +17018,9 @@ class OrderController extends Controller
             'date' => 'nullable|date',
             'payment_method' => 'required|string|max:255',
             'status' => 'nullable|in:pending,processing,paid,approved,cancelled,completed',
+            'channel' => 'nullable|in:web,whatsapp,local',
         ]);
+        $validated['channel'] = (string) ($validated['channel'] ?? 'web');
 
         $order = $this->orderBillingService->createOrder($validated, (int) $request->user()->id);
 
@@ -17171,6 +17477,90 @@ class OrderProductController extends Controller
 }
 ~~~~
 <!-- END_CODE_FILE: app/Http/Controllers/Api/OrderProductController.php -->
+
+---
+
+### FILE: app/Http/Controllers/Api/ProductAlertController.php
+
+<!-- BEGIN_CODE_FILE: app/Http/Controllers/Api/ProductAlertController.php -->
+~~~~php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\ProductAlert;
+use Illuminate\Http\Request;
+
+class ProductAlertController extends Controller
+{
+    public function mine(Request $request, Product $product)
+    {
+        $user = $request->user('sanctum') ?? auth('sanctum')->user() ?? $request->user();
+        if (! $user) {
+            return response()->json([
+                'data' => null,
+                'following' => false,
+            ]);
+        }
+
+        $alert = ProductAlert::query()
+            ->where('user_id', $user->id)
+            ->where('product_id', $product->id)
+            ->first();
+
+        return response()->json([
+            'data' => $alert,
+            'following' => $alert !== null,
+        ]);
+    }
+
+    public function store(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'target_price' => 'required|numeric|min:0',
+        ]);
+
+        if (strtolower((string) $product->status) !== 'active') {
+            return response()->json([
+                'message' => 'El producto no está disponible para alertas',
+            ], 422);
+        }
+
+        $alert = ProductAlert::query()->updateOrCreate(
+            [
+                'user_id' => (int) $request->user()->id,
+                'product_id' => (int) $product->id,
+            ],
+            [
+                'target_price' => (float) $validated['target_price'],
+                'is_triggered' => false,
+                'triggered_at' => null,
+            ],
+        );
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $alert,
+        ], 201);
+    }
+
+    public function destroy(Request $request, Product $product)
+    {
+        ProductAlert::query()
+            ->where('user_id', (int) $request->user()->id)
+            ->where('product_id', (int) $product->id)
+            ->delete();
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Alerta eliminada',
+        ]);
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Http/Controllers/Api/ProductAlertController.php -->
 
 ---
 
@@ -17669,6 +18059,7 @@ class ProductController extends Controller
         }
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Http/Controllers/Api/ProductController.php -->
 
@@ -17899,7 +18290,7 @@ class PublicProductController extends Controller
      */
     public function index(Request $request)
     {
-        // ImplementaciÃ³n con validaciÃ³n y paginaciÃ³n personalizada
+        // Implementación con validación y paginación personalizada
         $data = $request->validate([
             'q'           => ['nullable','string','max:100'],
             'category_id' => ['nullable','integer'],
@@ -17992,7 +18383,7 @@ class PublicStoreController extends Controller
 
         return response()->json([
             'status' => 'ok',
-            'message' => 'Listado de tiendas pÃºblicas',
+            'message' => 'Listado de tiendas públicas',
             'data' => $query,
         ]);
     }
@@ -18021,12 +18412,12 @@ class PublicStoreController extends Controller
             'description' => $data['description'] ?? null,
             'direccion' => $data['address'],
             'telefono' => $data['phone'],
-            // email no estÃ¡ persistido en stores
+            // email no está persistido en stores
             'user_id' => $data['user_id'],
             'slug' => $data['slug'] ?? Str::slug($data['name']),
         ];
 
-        // Validar slug Ãºnico si se generÃ³
+        // Validar slug único si se generó
         if (Store::where('slug', $payload['slug'])->exists()) {
             return response()->json(['message' => 'El slug ya existe', 'errors' => ['slug' => ['The slug has already been taken.']]], 422);
         }
@@ -18053,7 +18444,7 @@ class PublicStoreController extends Controller
             'description' => $data['description'] ?? $store->description,
             'direccion' => $data['address'] ?? $store->direccion,
             'telefono' => $data['phone'] ?? $store->telefono,
-            // email no estÃ¡ persistido en stores
+            // email no está persistido en stores
             'user_id' => $data['user_id'] ?? $store->user_id,
         ];
         if (!isset($data['slug']) && isset($data['name'])) {
@@ -19017,7 +19408,7 @@ class SettingController extends Controller
         $setting = Setting::where('key', $key)->first();
 
         if (!$setting) {
-            return response()->json(['message' => 'ConfiguraciÃ³n no encontrada'], 404);
+            return response()->json(['message' => 'Configuración no encontrada'], 404);
         }
 
         return response()->json([
@@ -19044,7 +19435,7 @@ class SettingController extends Controller
         }
 
         return response()->json([
-            'message' => 'ConfiguraciÃ³n actualizada correctamente',
+            'message' => 'Configuración actualizada correctamente',
             'data' => Setting::all(),
         ]);
     }
@@ -19483,6 +19874,116 @@ class StoreController extends Controller
 }
 ~~~~
 <!-- END_CODE_FILE: app/Http/Controllers/Api/StoreController.php -->
+
+---
+
+### FILE: app/Http/Controllers/Api/StoreVerificationController.php
+
+<!-- BEGIN_CODE_FILE: app/Http/Controllers/Api/StoreVerificationController.php -->
+~~~~php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Store;
+use App\Models\StoreVerification;
+use App\Services\CloudinaryService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+
+class StoreVerificationController extends Controller
+{
+    public function __construct(private readonly CloudinaryService $cloudinaryService)
+    {
+    }
+
+    public function show(Request $request)
+    {
+        $store = $this->resolveMerchantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        $verification = StoreVerification::query()
+            ->where('store_id', $store->id)
+            ->first();
+
+        if (! $verification) {
+            return response()->json([
+                'status' => 'ok',
+                'data' => null,
+                'store_is_verified' => false,
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $verification,
+            'store_is_verified' => (bool) $store->is_verified,
+        ]);
+    }
+
+    public function submit(Request $request)
+    {
+        $store = $this->resolveMerchantStore($request);
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada'], 404);
+        }
+
+        if ((bool) $store->is_verified) {
+            return response()->json([
+                'message' => 'Tu tienda ya está verificada',
+            ], 422);
+        }
+
+        $pending = StoreVerification::query()
+            ->where('store_id', $store->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($pending) {
+            return response()->json([
+                'message' => 'Ya tienes una solicitud de verificación en revisión',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'document' => 'required|file|max:5120|mimetypes:application/pdf,image/jpeg,image/png,image/webp',
+        ]);
+
+        $upload = $this->cloudinaryService->uploadImage($validated['document'], 'comercio-plus/verifications');
+
+        $verification = StoreVerification::query()->updateOrCreate(
+            ['store_id' => $store->id],
+            [
+                'status' => 'pending',
+                'document_url' => $upload['url'],
+                'document_path' => $upload['path'],
+                'notes' => null,
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+            ],
+        );
+
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Solicitud de verificación enviada',
+            'data' => $verification,
+        ], 201);
+    }
+
+    private function resolveMerchantStore(Request $request): ?Store
+    {
+        try {
+            return Store::query()->where('user_id', $request->user()->id)->firstOrFail();
+        } catch (ModelNotFoundException) {
+            return null;
+        }
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Http/Controllers/Api/StoreVerificationController.php -->
 
 ---
 
@@ -19937,6 +20438,7 @@ class UploadController extends Controller
         ]);
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Http/Controllers/Api/UploadController.php -->
 
@@ -20027,7 +20529,7 @@ class UserController extends Controller
 
         if (!Auth::attempt($validated, $validated['remember'] ?? false)) {
             return response()->json([
-                'message' => 'Credenciales invÃ¡lidas',
+                'message' => 'Credenciales inválidas',
             ], 401);
         }
 
@@ -20046,7 +20548,7 @@ class UserController extends Controller
         return view('users.edit', compact('user', 'roles'));
     }
 
-    // Obtener un usuario especÃ­fico
+    // Obtener un usuario específico
     public function show($id)
     {
         $user = User::find($id);
@@ -20167,6 +20669,7 @@ class WompiController extends Controller
             'customer.address' => 'nullable|string',
             'customer.city' => 'nullable|string',
             'paymentMethod' => 'required|in:PSE,NEQUI,BANCOLOMBIA,CARD',
+            'channel' => 'nullable|in:web,whatsapp,local',
         ]);
 
         try {
@@ -20198,6 +20701,7 @@ class WompiController extends Controller
                 'items' => $items,
                 'payment_method' => $validated['paymentMethod'],
                 'status' => 'pending',
+                'channel' => (string) ($validated['channel'] ?? 'web'),
                 'currency' => 'COP',
             ], (int) $user->id);
 
@@ -20224,7 +20728,7 @@ class WompiController extends Controller
     }
 
     /**
-     * 2. CREAR TRANSACCIÃ“N EN WOMPI
+     * 2. CREAR TRANSACCIÓN EN WOMPI
      * POST /api/payments/wompi/create
      */
     public function createPayment(Request $request)
@@ -20243,10 +20747,10 @@ class WompiController extends Controller
             $orderAmountInCents = (int) round(((float) ($order->total ?? 0)) * 100);
             $amountInCents = $orderAmountInCents > 0 ? $orderAmountInCents : (int) $validated['amount'];
 
-            // Generar referencia Ãºnica
+            // Generar referencia única
             $reference = 'ORDER-' . $order->id . '-' . time();
 
-            // Preparar datos de transacciÃ³n
+            // Preparar datos de transacción
             $transactionData = [
                 'public_key' => $this->publicKey,
                 'currency' => $validated['currency'],
@@ -20261,7 +20765,7 @@ class WompiController extends Controller
                 ],
             ];
 
-            // ConfiguraciÃ³n especÃ­fica por mÃ©todo de pago
+            // Configuración específica por método de pago
             switch ($validated['paymentMethod']) {
                 case 'PSE':
                     $transactionData['payment_method'] = [
@@ -20294,7 +20798,7 @@ class WompiController extends Controller
                     break;
             }
 
-            // Crear transacciÃ³n en Wompi
+            // Crear transacción en Wompi
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->privateKey,
                 'Content-Type' => 'application/json',
@@ -20371,7 +20875,7 @@ class WompiController extends Controller
     }
 
     /**
-     * Manejar actualizaciÃ³n de transacciÃ³n
+     * Manejar actualización de transacción
      */
     private function handleTransactionUpdate($transaction)
     {
@@ -20393,7 +20897,7 @@ class WompiController extends Controller
             case 'APPROVED':
                 $order->markAsPaid($transaction);
 
-                // Enviar email de confirmaciÃ³n
+                // Enviar email de confirmación
                 $this->sendOrderConfirmationEmail($order);
 
                 // Notificar a vendedores
@@ -20433,7 +20937,7 @@ class WompiController extends Controller
     }
 
     /**
-     * 4. CONSULTAR ESTADO DE TRANSACCIÃ“N
+     * 4. CONSULTAR ESTADO DE TRANSACCIÓN
      * GET /api/payments/wompi/status/{transactionId}
      */
     public function getTransactionStatus($transactionId)
@@ -20477,11 +20981,11 @@ class WompiController extends Controller
     }
 
     /**
-     * Enviar email de confirmaciÃ³n
+     * Enviar email de confirmación
      */
     private function sendOrderConfirmationEmail($order)
     {
-        // Implementar envÃ­o de email
+        // Implementar envío de email
         // Mail::to($order->customer_email)->send(new OrderConfirmed($order));
         Log::info("Email sent to {$order->customer_email}");
     }
@@ -20491,7 +20995,7 @@ class WompiController extends Controller
      */
     private function notifySellerNewOrder($order)
     {
-        // Implementar notificaciÃ³n a vendedores
+        // Implementar notificación a vendedores
         Log::info("Sellers notified for order {$order->id}");
     }
 }
@@ -20722,7 +21226,7 @@ use Illuminate\Support\Facades\Password;
 class ForgotPasswordController extends Controller
 {
     /**
-     * Mostrar el formulario para solicitar el enlace de restablecimiento de contraseÃƒÂ±a.
+     * Mostrar el formulario para solicitar el enlace de restablecimiento de contraseÃ±a.
      */
     public function showLinkRequestForm()
     {
@@ -20730,7 +21234,7 @@ class ForgotPasswordController extends Controller
     }
 
     /**
-     * Enviar el enlace de restablecimiento de contraseÃƒÂ±a por correo.
+     * Enviar el enlace de restablecimiento de contraseÃ±a por correo.
      */
     public function sendResetLinkEmail(Request $request)
     {
@@ -20761,7 +21265,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Store; // Ã¢Å“â€¦ para verificar si el usuario ya tiene tienda
+use App\Models\Store; // âœ… para verificar si el usuario ya tiene tienda
 
 class LoginController extends Controller
 {
@@ -20775,8 +21279,8 @@ class LoginController extends Controller
 
     /**
      * Autentica al usuario (web) y redirige:
-     * - Si NO tiene tienda Ã¢â€ â€™ a crear tienda (/stores/create).
-     * - Si SÃƒÂ tiene tienda Ã¢â€ â€™ al panel admin (/admin).
+     * - Si NO tiene tienda â†’ a crear tienda (/stores/create).
+     * - Si SÃ tiene tienda â†’ al panel admin (/admin).
      *
      * Si existe una URL "intended" previa de Laravel, se respeta,
      * pero usando el destino calculado como fallback.
@@ -20793,18 +21297,18 @@ class LoginController extends Controller
 
             $user = Auth::user();
 
-            // Ã¢Å“â€¦ Verificamos si el usuario es comerciante y ya tiene tienda
+            // âœ… Verificamos si el usuario es comerciante y ya tiene tienda
             $isMerchant = $user->hasRole('comerciante');
             $tieneTienda = Store::where('user_id', $user->id)->exists();
 
-            // Ã¢Å“â€¦ Elegimos el destino por defecto
+            // âœ… Elegimos el destino por defecto
             if ($isMerchant && !$tieneTienda) {
-                $fallback = route('store.create');  // comerciante sin tienda Ã¢â€ â€™ crear tienda
+                $fallback = route('store.create');  // comerciante sin tienda â†’ crear tienda
             } else {
-                $fallback = route('admin.dashboard');  // tiene tienda o no es comerciante Ã¢â€ â€™ panel
+                $fallback = route('admin.dashboard');  // tiene tienda o no es comerciante â†’ panel
             }
 
-            // Ã¢Å“â€¦ Redirige a la intended si existe, si no al fallback
+            // âœ… Redirige a la intended si existe, si no al fallback
             return redirect()->intended($fallback);
         }
 
@@ -20814,7 +21318,7 @@ class LoginController extends Controller
     }
 
     /**
-     * Cierra sesiÃƒÂ³n (web).
+     * Cierra sesiÃ³n (web).
      */
     public function logout(Request $request)
     {
@@ -20850,7 +21354,7 @@ class LoginController extends Controller
         }
 
         return response()->json([
-            'message' => 'Credenciales invÃƒÂ¡lidas'
+            'message' => 'Credenciales invÃ¡lidas'
         ], 401);
     }
 }
@@ -21119,7 +21623,7 @@ use Illuminate\Support\Str;
 class ResetPasswordController extends Controller
 {
     /**
-     * Mostrar el formulario para restablecer la contraseÃƒÂ±a.
+     * Mostrar el formulario para restablecer la contraseÃ±a.
      */
     public function showResetForm(Request $request, $token = null)
     {
@@ -21129,7 +21633,7 @@ class ResetPasswordController extends Controller
     }
 
     /**
-     * Restablecer la contraseÃƒÂ±a.
+     * Restablecer la contraseÃ±a.
      */
     public function reset(Request $request)
     {
@@ -21266,7 +21770,7 @@ class CategoryController extends Controller
 
         Category::create($validated);
 
-        return redirect()->route('categories.index')->with('success', 'CategorÃƒÂ­a creada correctamente.');
+        return redirect()->route('categories.index')->with('success', 'CategorÃ­a creada correctamente.');
     }
 
     public function edit(Category $category)
@@ -21282,14 +21786,14 @@ class CategoryController extends Controller
 
         $category->update($validated);
 
-        return redirect()->route('categories.index')->with('success', 'CategorÃƒÂ­a actualizada correctamente.');
+        return redirect()->route('categories.index')->with('success', 'CategorÃ­a actualizada correctamente.');
     }
 
     public function destroy(Category $category)
     {
         $category->delete();
 
-        return redirect()->route('categories.index')->with('success', 'CategorÃƒÂ­a eliminada correctamente.');
+        return redirect()->route('categories.index')->with('success', 'CategorÃ­a eliminada correctamente.');
     }
 }
 ~~~~
@@ -21388,7 +21892,7 @@ class BrandingController extends Controller
     {
         $user = $request->user();
 
-        // Guardar imÃƒÂ¡genes
+        // Guardar imÃ¡genes
         $logoPath  = $request->file('logo')->store('stores/'. $user->id .'/branding', 'public');
         $coverPath = $request->file('cover')->store('stores/'. $user->id .'/branding', 'public');
 
@@ -21467,7 +21971,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Si el comerciante aÃƒÂºn NO tiene tienda, lo llevamos a crearla
+        // Si el comerciante aÃºn NO tiene tienda, lo llevamos a crearla
         $tieneTienda = Store::where('user_id', $user->id)->exists();
         if (!$tieneTienda) {
             return redirect()
@@ -21475,7 +21979,7 @@ class DashboardController extends Controller
                 ->with('info', 'Crea tu tienda para comenzar.');
         }
 
-        // EstadÃƒÂ­sticas del dashboard
+        // EstadÃ­sticas del dashboard
         $store = $user->stores->first();
         $totalProducts = Product::where('store_id', $store->id)->count();
         $activeProducts = Product::where('store_id', $store->id)->where('status', 1)->count();
@@ -21521,11 +22025,11 @@ class DashboardController extends Controller
                 @error('name')
                     <p class="text-red-400 text-sm mt-2 font-medium">{{ $message }}</p>
                 @enderror
-            </div>ÃƒÂ±
+            </div>Ã±
 
             <div class="mb-6">
-                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">DescripciÃƒÂ³n</label>
-                <textarea name="description" id="description" rows="5" placeholder="Ingrese la descripciÃƒÂ³n detallada del producto"
+                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">DescripciÃ³n</label>
+                <textarea name="description" id="description" rows="5" placeholder="Ingrese la descripciÃ³n detallada del producto"
                           class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('description') ring-red-400 border-red-400 @enderror transition-all resize-vertical"
                           required>{{ old('description') }}</textarea>
                 @error('description')
@@ -21555,9 +22059,9 @@ class DashboardController extends Controller
                 </div>
             </div>
 
-            {{-- BLOQUE: CategorÃƒÂ­as populares --}}
+            {{-- BLOQUE: CategorÃ­as populares --}}
             <div class="mb-4">
-                <p class="text-sm text-gray-300 mb-2">CategorÃƒÂ­as mÃƒÂ¡s populares</p>
+                <p class="text-sm text-gray-300 mb-2">CategorÃ­as mÃ¡s populares</p>
 
                 @if(isset($popularCategories) && $popularCategories->count() > 0)
                     <div class="flex flex-wrap gap-2 mb-3">
@@ -21571,22 +22075,22 @@ class DashboardController extends Controller
                         @endforeach
                     </div>
                 @else
-                    <div class="text-sm text-gray-500 mb-3">No hay categorÃƒÂ­as populares para mostrar.</div>
+                    <div class="text-sm text-gray-500 mb-3">No hay categorÃ­as populares para mostrar.</div>
                 @endif
             </div>
 
-            {{-- SELECT de categorÃƒÂ­as con optgroups: "MÃƒÂ¡s populares" + "Todas" --}}
+            {{-- SELECT de categorÃ­as con optgroups: "MÃ¡s populares" + "Todas" --}}
             <div class="mb-6">
-                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">CategorÃƒÂ­a</label>
+                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">CategorÃ­a</label>
 
                 <select name="category_id" id="category_id"
                         class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 @error('category_id') ring-red-400 border-red-400 @enderror transition-all"
                         required>
-                    <option value="" class="text-gray-500">Seleccionar categorÃƒÂ­a</option>
+                    <option value="" class="text-gray-500">Seleccionar categorÃ­a</option>
 
                     {{-- Optgroup populares (si existen) --}}
                     @if(isset($popularCategories) && $popularCategories->count() > 0)
-                        <optgroup label="MÃƒÂ¡s populares">
+                        <optgroup label="MÃ¡s populares">
                             @foreach($popularCategories as $pc)
                                 <option value="{{ $pc->id }}" {{ old('category_id') == $pc->id ? 'selected' : '' }}>
                                     {{ $pc->name }}
@@ -21595,8 +22099,8 @@ class DashboardController extends Controller
                         </optgroup>
                     @endif
 
-                    {{-- Optgroup todas las categorÃƒÂ­as (sin repetir las populares) --}}
-                    <optgroup label="Todas las categorÃƒÂ­as">
+                    {{-- Optgroup todas las categorÃ­as (sin repetir las populares) --}}
+                    <optgroup label="Todas las categorÃ­as">
                         @php
                             $popularIds = isset($popularCategories) ? $popularCategories->pluck('id')->toArray() : [];
                         @endphp
@@ -21625,7 +22129,7 @@ class DashboardController extends Controller
                     </label>
                     <span id="file-name" class="text-gray-300 text-sm">No file chosen</span>
                 </div>
-                <p class="text-sm text-gray-400 mt-2">Formatos permitidos: JPG, PNG, GIF. TamaÃƒÂ±o mÃƒÂ¡ximo: 2MB. La imagen se mostrarÃƒÂ¡ en tu vitrina.</p>
+                <p class="text-sm text-gray-400 mt-2">Formatos permitidos: JPG, PNG, GIF. TamaÃ±o mÃ¡ximo: 2MB. La imagen se mostrarÃ¡ en tu vitrina.</p>
                 @error('image')
                     <p class="text-red-400 text-sm mt-2 font-medium">{{ $message }}</p>
                 @enderror
@@ -21660,7 +22164,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Quick-select de categorÃƒÂ­as (chips)
+    // Quick-select de categorÃ­as (chips)
     const popularButtons = document.querySelectorAll('.btn-popular');
     const select = document.getElementById('category_id');
 
@@ -21761,7 +22265,7 @@ class HomeController extends Controller
             ->get(['id','nombre_tienda as name','slug','logo','calificacion_promedio','categoria_principal']);
 
         return view('welcome', compact('categories','products','stores'))
-            ->with('title', 'ComercioPlus Ã¢â‚¬â€ Bienvenido');
+            ->with('title', 'ComercioPlus â€” Bienvenido');
     }
 }
 ~~~~
@@ -21792,7 +22296,6 @@ class LocationController extends Controller
 
 <!-- BEGIN_CODE_FILE: app/Http/Controllers/messages.php -->
 ~~~~php
-
 ~~~~
 <!-- END_CODE_FILE: app/Http/Controllers/messages.php -->
 
@@ -22025,7 +22528,7 @@ class ProductController extends Controller
         $store = $this->getUserStore($user);
 
         if (! $store) {
-            return redirect()->route('admin.dashboard')->with('info', 'Crea tu tienda para ver el catÃƒÂ¡logo.');
+            return redirect()->route('admin.dashboard')->with('info', 'Crea tu tienda para ver el catÃ¡logo.');
         }
 
         $products = Product::with('category')
@@ -22037,7 +22540,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar formulario de creaciÃƒÂ³n
+     * Mostrar formulario de creaciÃ³n
      */
     public function create()
     {
@@ -22054,7 +22557,7 @@ class ProductController extends Controller
             return redirect()->route('admin.dashboard')->with('info', 'Necesitas crear una tienda antes de agregar productos.');
         }
 
-        // SÃƒÂ³lo categorÃƒÂ­as de la tienda
+        // SÃ³lo categorÃ­as de la tienda
         $categories = Category::where('store_id', $store->id)
             ->orderByDesc('is_popular')
             ->orderByDesc('popularity')
@@ -22119,7 +22622,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar formulario ediciÃƒÂ³n
+     * Mostrar formulario ediciÃ³n
      */
     public function edit(Product $product)
     {
@@ -22215,7 +22718,7 @@ class ProductController extends Controller
         return redirect()->route('admin.products.index')->with('success', 'Producto eliminado correctamente.');
     }
     /**
-     * Activa o desactiva la promociÃƒÂ³n de un producto.
+     * Activa o desactiva la promociÃ³n de un producto.
      */
     public function togglePromotion(Product $product)
     {
@@ -22227,11 +22730,11 @@ class ProductController extends Controller
             abort(403, 'No tienes permiso para modificar este producto.');
         }
 
-        // Cambiar el estado de la promociÃƒÂ³n
+        // Cambiar el estado de la promociÃ³n
         $product->is_promo = !$product->is_promo;
         $product->save();
 
-        return back()->with('success', 'El estado de la promociÃƒÂ³n ha sido actualizado.');
+        return back()->with('success', 'El estado de la promociÃ³n ha sido actualizado.');
     }
 
 
@@ -22270,7 +22773,7 @@ class ProductController extends Controller
     {
         if (! $user) return null;
 
-        // preferencias por mÃƒÂ©todo
+        // preferencias por mÃ©todo
         if (method_exists($user, 'store')) {
             try {
                 $s = $user->store;
@@ -22576,7 +23079,7 @@ class ProfileController extends Controller
 
         // Manejo del avatar
         if ($request->hasFile('avatar')) {
-            // Si ya tenÃƒÂ­a un avatar, lo borramos del storage
+            // Si ya tenÃ­a un avatar, lo borramos del storage
             if ($user->avatar_path && Storage::disk('public')->exists($user->avatar_path)) {
                 Storage::disk('public')->delete($user->avatar_path);
             }
@@ -22620,7 +23123,7 @@ class StoreController extends Controller
     }
 
     /**
-     * Mostrar formulario para crear tienda (wizard bÃƒÂ¡sico).
+     * Mostrar formulario para crear tienda (wizard bÃ¡sico).
      * Ruta esperada: route('store.create')
      */
     public function create()
@@ -22642,14 +23145,14 @@ class StoreController extends Controller
     {
         $user = Auth::user();
 
-        // Validaciones bÃƒÂ¡sicas
+        // Validaciones bÃ¡sicas
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'primary_color' => 'nullable|string|size:7', // ej. #ff6600
         ]);
 
-        // Generar slug ÃƒÂºnico
+        // Generar slug Ãºnico
         $baseSlug = Str::slug($data['name']);
         $slug = $baseSlug;
         $i = 1;
@@ -22787,7 +23290,7 @@ class UserController extends Controller
     // Mostrar la lista de usuarios
     public function index()
     {
-        // Obtener usuarios con su rol relacionado y paginaciÃƒÂ³n
+        // Obtener usuarios con su rol relacionado y paginaciÃ³n
         $users = User::with('roles')->paginate(10);
 
         // Enviar datos a la vista
@@ -22797,7 +23300,7 @@ class UserController extends Controller
     public function create()
     {
 
-        $roles = Role::all(); // AsegÃƒÂºrate de importar el modelo Role
+        $roles = Role::all(); // AsegÃºrate de importar el modelo Role
 
         return view('users.create', compact('roles'));
     }
@@ -22976,7 +23479,7 @@ class ExtProductDashboardController extends Controller
                 return redirect()->back()->with('warning', 'Este producto ya ha sido importado anteriormente.');
             }
 
-            // Crear o encontrar categorÃƒÂ­a
+            // Crear o encontrar categorÃ­a
             $category = null;
             if (!empty($externalProduct['category'])) {
                 $category = Category::firstOrCreate(
@@ -23237,12 +23740,12 @@ use App\Models\Product;
 class ProductController extends Controller
 {
     /**
-     * Listado pÃƒÂºblico de productos (solo de tiendas visibles y productos activos)
+     * Listado pÃºblico de productos (solo de tiendas visibles y productos activos)
      */
     public function index()
     {
         $products = Product::with(['category', 'store'])
-            // En admin el status es tinyint 0/1; aquÃƒÂ­ usamos 1 = activo
+            // En admin el status es tinyint 0/1; aquÃ­ usamos 1 = activo
             ->where('status', 1)
             ->whereHas('store', fn ($q) => $q->where('is_visible', true))
             ->latest()
@@ -23256,7 +23759,7 @@ class ProductController extends Controller
                     'status'     => (int) $p->status,
                     'category'   => $p->category?->name,
                     'store'      => $p->store?->name,
-                    // usar el campo correcto y convertirlo en URL pÃƒÂºblica
+                    // usar el campo correcto y convertirlo en URL pÃºblica
                     'image_url'  => $p->image_path ? Storage::url($p->image_path) : null,
                     'slug'       => $p->slug,
                     'created_at' => optional($p->created_at)->toISOString(),
@@ -23270,7 +23773,7 @@ class ProductController extends Controller
     }
 
     /**
-     * PÃƒÂ¡gina de creaciÃƒÂ³n pÃƒÂºblica (si la usas con Inertia).
+     * PÃ¡gina de creaciÃ³n pÃºblica (si la usas con Inertia).
      * Si no la usas, puedes ignorarla.
      */
     public function create()
@@ -23279,7 +23782,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Mostrar detalle pÃƒÂºblico
+     * Mostrar detalle pÃºblico
      */
     public function show(string $id)
     {
@@ -23305,7 +23808,7 @@ class ProductController extends Controller
         ]);
     }
 
-    // Si en pÃƒÂºblico no creas/actualizas, puedes dejar store/update/destroy vacÃƒÂ­os o eliminarlos.
+    // Si en pÃºblico no creas/actualizas, puedes dejar store/update/destroy vacÃ­os o eliminarlos.
     public function store(Request $request) {}
     public function edit(string $id) {}
     public function update(Request $request, string $id) {}
@@ -23340,7 +23843,7 @@ class StorefrontController extends Controller
         $store = auth()->user()->store ?? null;
 
         if (!$store) { 
-            return redirect()->route('dashboard')->with('error', 'Tu tienda no estÃƒÂ¡ activa.');
+            return redirect()->route('dashboard')->with('error', 'Tu tienda no estÃ¡ activa.');
         }
 
         $query = Product::where('store_id', $store->id)
@@ -23556,7 +24059,7 @@ class WebController extends Controller
 
     public function dashboard(): Response
     {
-        // AsegÃƒÂºrate de crear resources/js/Pages/Dashboard/Index.vue mÃƒÂ¡s adelante
+        // AsegÃºrate de crear resources/js/Pages/Dashboard/Index.vue mÃ¡s adelante
         return Inertia::render('Dashboard/Index', [
             'title' => 'Dashboard - Comercio Plus',
         ]);
@@ -23772,7 +24275,7 @@ class EnsureStoreExists
     {
         if (Auth::check()) {
             $hasStore = Store::where('user_id', Auth::id())->exists();
-            // Permitir acceder a la creaciÃƒÂ³n si no tiene tienda
+            // Permitir acceder a la creaciÃ³n si no tiene tienda
             if (!$hasStore && !$request->routeIs('store.create') && !$request->routeIs('store.store')) {
                 return redirect()->route('store.create');
             }
@@ -23808,12 +24311,12 @@ class EnsureUserHasStore
     {
         $user = Auth::user();
 
-        // Si no estÃƒÂ¡ logueado, que siga el flujo normal de auth.
+        // Si no estÃ¡ logueado, que siga el flujo normal de auth.
         if (!$user) {
             return $next($request);
         }
 
-        // Evitar bucle: permitir acceder/guardar la creaciÃƒÂ³n de tienda.
+        // Evitar bucle: permitir acceder/guardar la creaciÃ³n de tienda.
         if ($request->routeIs('store.create') || $request->routeIs('store.store')) {
             return $next($request);
         }
@@ -23918,6 +24421,7 @@ class ForceCorsHeaders
         ];
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Http/Middleware/ForceCorsHeaders.php -->
 
@@ -23995,7 +24499,7 @@ class HasStore
 {
     /**
      * Requiere que un comerciante tenga tienda (Store/PublicStore).
-     * Si no la tiene, lo envÃƒÂ­a a crearla.
+     * Si no la tiene, lo envÃ­a a crearla.
      */
     public function handle(Request $request, Closure $next)
     {
@@ -24005,7 +24509,7 @@ class HasStore
 
         $user = Auth::user();
 
-        // Si es comerciante y no tiene tienda (ni pÃƒÂºblica), lo mandamos a crear tienda
+        // Si es comerciante y no tiene tienda (ni pÃºblica), lo mandamos a crear tienda
         if ($user->esComerciante() && !$user->hasStore() && !$user->hasPublicStore()) {
             return redirect()
                 ->route('store.create')
@@ -24066,10 +24570,10 @@ class RedirectAfterLogin
     {
         $user = Auth::user();
         if (!$user) {
-            return $next($request); // No deberÃƒÂ­a pasar, pero por si acaso
+            return $next($request); // No deberÃ­a pasar, pero por si acaso
         }
 
-        // Evitar redirecciÃƒÂ³n infinita en rutas de dashboard/admin
+        // Evitar redirecciÃ³n infinita en rutas de dashboard/admin
         if ($request->routeIs('dashboard') || $request->routeIs('admin.*')) {
             return $next($request);
         }
@@ -24114,7 +24618,7 @@ class RedirectAfterLogin
             }
         }
 
-        // Usuario sin rol especÃƒÂ­fico Ã¢â€ â€™ dashboard genÃƒÂ©rico
+        // Usuario sin rol especÃ­fico â†’ dashboard genÃ©rico
         return redirect()->route('dashboard');
     }
 }
@@ -24240,7 +24744,7 @@ class RedirectMerchantWithoutStore
                 $hasStore = true;
             }
 
-            // 2) por relaciÃƒÂ³n user_id en stores
+            // 2) por relaciÃ³n user_id en stores
             if (!$hasStore) {
                 $hasStore = Store::where('user_id', $user->id)->exists();
             }
@@ -24522,7 +25026,7 @@ class StoreCategoryRequest extends FormRequest
     {
         return [
             'name.required' => 'El nombre es obligatorio.',
-            'name.unique'   => 'Ya existe una categorÃ­a con ese nombre en tu tienda.',
+            'name.unique'   => 'Ya existe una categoría con ese nombre en tu tienda.',
         ];
     }
 }
@@ -24597,7 +25101,7 @@ class StoreProductRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'category_id.exists' => 'La categorÃ­a seleccionada no pertenece a tu tienda.',
+            'category_id.exists' => 'La categoría seleccionada no pertenece a tu tienda.',
             'image.mimes' => 'La imagen debe ser JPG, JPEG, PNG o WEBP.',
             'image.max' => 'La imagen no debe superar los 4 MB.',
         ];
@@ -24692,7 +25196,7 @@ class UpdateCategoryRequest extends FormRequest
     {
         return [
             'name.required' => 'El nombre es obligatorio.',
-            'name.unique'   => 'Ya existe una categorÃ­a con ese nombre en tu tienda.',
+            'name.unique'   => 'Ya existe una categoría con ese nombre en tu tienda.',
         ];
     }
 }
@@ -24881,7 +25385,7 @@ class UpdateProductRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'category_id.exists' => 'La categorÃ­a seleccionada no pertenece a tu tienda.',
+            'category_id.exists' => 'La categoría seleccionada no pertenece a tu tienda.',
             'image.mimes' => 'La imagen debe ser JPG, JPEG, PNG o WEBP.',
             'image.max' => 'La imagen no debe superar los 4 MB.',
         ];
@@ -25180,7 +25684,7 @@ class UpdateProfileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Ã¢Å“â€¦ Permitimos que cualquier usuario autenticado use este request
+        // âœ… Permitimos que cualquier usuario autenticado use este request
         return true;
     }
 
@@ -25201,8 +25705,8 @@ class UpdateProfileRequest extends FormRequest
         return [
             'name.required'  => 'El nombre es obligatorio.',
             'email.required' => 'El correo es obligatorio.',
-            'email.email'    => 'Formato de correo invÃ¡lido.',
-            'email.unique'   => 'Este correo ya estÃ¡ en uso.',
+            'email.email'    => 'Formato de correo inválido.',
+            'email.unique'   => 'Este correo ya está en uso.',
             'avatar.image'   => 'El archivo debe ser una imagen.',
             'avatar.mimes'   => 'Formatos permitidos: jpg, jpeg, png, webp.',
             'avatar.max'     => 'La imagen no debe superar 2MB.',
@@ -25388,7 +25892,7 @@ class ActivityLog extends Model
     ];
 
     /**
-     * RelaciÃƒÂ³n con el usuario que realizÃƒÂ³ la actividad
+     * RelaciÃ³n con el usuario que realizÃ³ la actividad
      */
     public function user(): BelongsTo
     {
@@ -25407,7 +25911,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Scope para filtrar por acciÃƒÂ³n
+     * Scope para filtrar por acciÃ³n
      */
     public function scopeAction($query, $action)
     {
@@ -25451,7 +25955,7 @@ class ActivityLog extends Model
     }
 
     /**
-     * Obtener descripciÃƒÂ³n formateada de la actividad
+     * Obtener descripciÃ³n formateada de la actividad
      */
     public function getFormattedDescriptionAttribute()
     {
@@ -25459,18 +25963,18 @@ class ActivityLog extends Model
             return $this->description;
         }
 
-        // Generar descripciÃƒÂ³n automÃƒÂ¡tica basada en la acciÃƒÂ³n y modelo
+        // Generar descripciÃ³n automÃ¡tica basada en la acciÃ³n y modelo
         $modelName = $this->getModelName();
         $userName = $this->user_name ?: 'Usuario desconocido';
 
         return match ($this->action) {
-            'login' => "{$userName} iniciÃƒÂ³ sesiÃƒÂ³n",
-            'logout' => "{$userName} cerrÃƒÂ³ sesiÃƒÂ³n",
-            'create' => "{$userName} creÃƒÂ³ un nuevo {$modelName}",
-            'update' => "{$userName} actualizÃƒÂ³ un {$modelName}",
-            'delete' => "{$userName} eliminÃƒÂ³ un {$modelName}",
-            'view' => "{$userName} visualizÃƒÂ³ un {$modelName}",
-            default => "{$userName} realizÃƒÂ³ la acciÃƒÂ³n '{$this->action}' en {$modelName}",
+            'login' => "{$userName} iniciÃ³ sesiÃ³n",
+            'logout' => "{$userName} cerrÃ³ sesiÃ³n",
+            'create' => "{$userName} creÃ³ un nuevo {$modelName}",
+            'update' => "{$userName} actualizÃ³ un {$modelName}",
+            'delete' => "{$userName} eliminÃ³ un {$modelName}",
+            'view' => "{$userName} visualizÃ³ un {$modelName}",
+            default => "{$userName} realizÃ³ la acciÃ³n '{$this->action}' en {$modelName}",
         };
     }
 
@@ -25488,14 +25992,14 @@ class ActivityLog extends Model
             'App\Models\Product' => 'producto',
             'App\Models\Store' => 'tienda',
             'App\Models\Order' => 'pedido',
-            'App\Models\Category' => 'categorÃƒÂ­a',
+            'App\Models\Category' => 'categorÃ­a',
             'App\Models\Cart' => 'carrito',
             default => strtolower(class_basename($this->model_type)),
         };
     }
 
     /**
-     * Verificar si la actividad es crÃƒÂ­tica
+     * Verificar si la actividad es crÃ­tica
      */
     public function isCritical()
     {
@@ -25678,38 +26182,38 @@ class Channel extends Model
        'link',
     ];
 
-      public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+      public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -25723,7 +26227,7 @@ class Channel extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -25779,38 +26283,38 @@ class Claim extends Model
     }
 
     
-     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -25824,7 +26328,7 @@ class Claim extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -25833,6 +26337,100 @@ class Claim extends Model
 }
 ~~~~
 <!-- END_CODE_FILE: app/Models/Claim.php -->
+
+---
+
+### FILE: app/Models/CreditAccount.php
+
+<!-- BEGIN_CODE_FILE: app/Models/CreditAccount.php -->
+~~~~php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class CreditAccount extends Model
+{
+    protected $fillable = [
+        'store_id',
+        'customer_id',
+        'balance',
+        'credit_limit',
+        'status',
+    ];
+
+    protected $casts = [
+        'balance' => 'decimal:2',
+        'credit_limit' => 'decimal:2',
+    ];
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class)->orderByDesc('created_at');
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Models/CreditAccount.php -->
+
+---
+
+### FILE: app/Models/CreditTransaction.php
+
+<!-- BEGIN_CODE_FILE: app/Models/CreditTransaction.php -->
+~~~~php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class CreditTransaction extends Model
+{
+    public $timestamps = false;
+
+    protected $fillable = [
+        'credit_account_id',
+        'type',
+        'amount',
+        'balance_after',
+        'reference_type',
+        'reference_id',
+        'note',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'balance_after' => 'decimal:2',
+        'created_at' => 'datetime',
+    ];
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(CreditAccount::class, 'credit_account_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Models/CreditTransaction.php -->
 
 ---
 
@@ -25878,6 +26476,7 @@ class Customer extends Model
         return $this->belongsTo(User::class);
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Models/Customer.php -->
 
@@ -26025,38 +26624,38 @@ class Location extends Model
         return $this->hasMany(Sale::class);
     }
 
-     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -26070,7 +26669,7 @@ class Location extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -26129,38 +26728,38 @@ class Notification extends Model
     return $this->belongsTo(User::class);
 }
 
-      public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+      public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -26174,7 +26773,7 @@ class Notification extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -26223,6 +26822,7 @@ class Order extends Model
         'total_amount',
         'payment_method',
         'status',
+        'channel',
         'fulfillment_status',
         'payment_reference',
         'wompi_transaction_id',
@@ -26255,7 +26855,7 @@ class Order extends Model
     public const FULFILLMENT_CANCELLED = 'cancelled';
 
     /**
-     * RelaciÃ³n con el usuario
+     * Relación con el usuario
      */
     public function user()
     {
@@ -26289,7 +26889,7 @@ class Order extends Model
     }
 
     /**
-     * Scope para Ã³rdenes pagadas
+     * Scope para órdenes pagadas
      */
     public function scopePaid($query)
     {
@@ -26297,7 +26897,7 @@ class Order extends Model
     }
 
     /**
-     * Scope para Ã³rdenes pendientes
+     * Scope para órdenes pendientes
      */
     public function scopePending($query)
     {
@@ -26373,38 +26973,38 @@ class OrderMessage extends Model
         return $this->belongsTo(Order::class);
     }
 
-      public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+      public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -26418,7 +27018,7 @@ class OrderMessage extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -26488,6 +27088,7 @@ class OrderPickingEvent extends Model
         return $this->belongsTo(User::class);
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Models/OrderPickingEvent.php -->
 
@@ -26533,6 +27134,7 @@ class OrderPickingSession extends Model
         return $this->belongsTo(User::class);
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Models/OrderPickingSession.php -->
 
@@ -26643,38 +27245,38 @@ class OrderProduct extends Model
         return $this->hasMany(OrderPickingEvent::class);
     }
 
-    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -26688,7 +27290,7 @@ class OrderProduct extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -26780,26 +27382,68 @@ class Product extends Model
         return (int) $this->stock <= (int) $this->reorder_point;
     }
 
-    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 }
 ~~~~
 <!-- END_CODE_FILE: app/Models/Product.php -->
+
+---
+
+### FILE: app/Models/ProductAlert.php
+
+<!-- BEGIN_CODE_FILE: app/Models/ProductAlert.php -->
+~~~~php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class ProductAlert extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'product_id',
+        'target_price',
+        'is_triggered',
+        'triggered_at',
+    ];
+
+    protected $casts = [
+        'target_price' => 'decimal:2',
+        'is_triggered' => 'boolean',
+        'triggered_at' => 'datetime',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Models/ProductAlert.php -->
 
 ---
 
@@ -26845,6 +27489,7 @@ class ProductCode extends Model
         return $this->belongsTo(Store::class);
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Models/ProductCode.php -->
 
@@ -26898,38 +27543,38 @@ class Profile extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -26943,7 +27588,7 @@ class Profile extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -27190,38 +27835,38 @@ public function product()
 {
     return $this->belongsTo(Product::class);
 }
-   public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+   public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -27235,7 +27880,7 @@ public function product()
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -27292,38 +27937,38 @@ class Role extends SpatieRole
 
 
 
-    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -27337,7 +27982,7 @@ class Role extends SpatieRole
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -27415,38 +28060,38 @@ class Sale extends Model
          'sale_date',
     ];
 
-    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -27460,7 +28105,7 @@ class Sale extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -27468,6 +28113,8 @@ class Sale extends Model
     }
 
 }
+
+
 ~~~~
 <!-- END_CODE_FILE: app/Models/Sale.php -->
 
@@ -27610,38 +28257,38 @@ protected $allowIncluded = ['user'];
 
     protected $allowFilter = ['key', 'value', 'role', 'user_id'];
 
-    public function scopeIncluded( Builder $query) // Scope local que permite incluir relaciones dinÃƒÂ¡micamente
+    public function scopeIncluded( Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃƒÂ³ ninguna
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
             return $query; // Retorna la consulta sin modificar
         }
 
         $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
-        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃƒÂ³n
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
 
-        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃƒÂ³n pedida por el usuario
-            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃƒÂ³n no estÃƒÂ¡ permitida
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
                 unset($relations[$key]); // Se elimina del array para no ser incluida
             }
         }
 
-        return $query->with($relations); // Incluye solo las relaciones vÃƒÂ¡lidas en la consulta
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
     }
 
 
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -27655,7 +28302,7 @@ protected $allowIncluded = ['user'];
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -27701,7 +28348,8 @@ class Store extends Model
         'facebook',
         'instagram',
         'address',
-        'is_visible'
+        'is_visible',
+        'is_verified',
     ];
 
     public function user()
@@ -27827,6 +28475,48 @@ class StoreTaxSetting extends Model
 
 ---
 
+### FILE: app/Models/StoreVerification.php
+
+<!-- BEGIN_CODE_FILE: app/Models/StoreVerification.php -->
+~~~~php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class StoreVerification extends Model
+{
+    protected $fillable = [
+        'store_id',
+        'status',
+        'document_url',
+        'document_path',
+        'notes',
+        'reviewed_by',
+        'reviewed_at',
+    ];
+
+    protected $casts = [
+        'reviewed_at' => 'datetime',
+    ];
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+}
+~~~~
+<!-- END_CODE_FILE: app/Models/StoreVerification.php -->
+
+---
+
 ### FILE: app/Models/Tutorial.php
 
 <!-- BEGIN_CODE_FILE: app/Models/Tutorial.php -->
@@ -27849,16 +28539,16 @@ class Tutorial extends Model
 
     public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃƒÂ³ ninguno
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
             return $query; // Retorna la consulta sin modificar
         }
 
         $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
-        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃƒÂ³n Laravel
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
 
         foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
             if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
-                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃƒÂºsqueda parcial (LIKE '%valor%')
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
             }
         }
 
@@ -27872,7 +28562,7 @@ class Tutorial extends Model
             $perPage = intval(request('perPage'));
 
             if ($perPage) {
-                return $query->paginate($perPage); // Devuelve con paginaciÃƒÂ³n
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
             }
         }
 
@@ -28707,6 +29397,7 @@ class CloudinaryService
         ];
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: app/Services/CloudinaryService.php -->
 
@@ -28732,7 +29423,7 @@ class ColorPaletteService
         // 1) Primary = color dominante del logo (1er color de la paleta)
         $primary = $logoPalette[0] ?? '#FFA14F';
 
-        // 2) Background = color mÃƒÂ¡s claro de la portada
+        // 2) Background = color mÃ¡s claro de la portada
         $background = $this->pickLightest($coverPalette) ?? '#ffffff';
 
         // 3) Text color con contraste suficiente frente a background
@@ -29277,6 +29968,7 @@ class OrderBillingService
                 'date' => $date,
                 'payment_method' => (string) ($payload['payment_method'] ?? 'CARD'),
                 'status' => $status,
+                'channel' => (string) ($payload['channel'] ?? 'web'),
                 'currency' => (string) ($payload['currency'] ?? 'COP'),
                 'invoice_date' => now(),
             ]);
@@ -29387,10 +30079,10 @@ class PexelsApi
     }
 
     /**
-     * Busca imÃƒÂ¡genes en Pexels.
-     * - $query: tÃƒÂ©rminos (ej: "motorcycle parts", "motorcycle accessories", "helmets").
+     * Busca imÃ¡genes en Pexels.
+     * - $query: tÃ©rminos (ej: "motorcycle parts", "motorcycle accessories", "helmets").
      * - $limit: cantidad de resultados (1-80).
-     * - $ttl: segundos de cachÃƒÂ© (por defecto 600s = 10min).
+     * - $ttl: segundos de cachÃ© (por defecto 600s = 10min).
      */
     public function search(string $query = 'motorcycle parts', int $limit = 12, int $ttl = 600): array
     {
@@ -30335,7 +31027,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);
 
-        // Middleware para el grupo 'web', se aÃ±ade al final de la pila.
+        // Middleware para el grupo 'web', se añade al final de la pila.
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
@@ -30346,13 +31038,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'has.store' => \App\Http\Middleware\HasStore::class,
             'redirect.after.login' => \App\Http\Middleware\RedirectAfterLogin::class,
             'role.key' => \App\Http\Middleware\EnsureRole::class,
-            // AquÃ­ puedes aÃ±adir otros alias que necesites en el futuro.
+            // Aquí puedes añadir otros alias que necesites en el futuro.
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // ConfiguraciÃ³n para el manejo de excepciones.
-        // Puedes personalizar cÃ³mo se reportan o renderizan las excepciones aquÃ­.
+        // Configuración para el manejo de excepciones.
+        // Puedes personalizar cómo se reportan o renderizan las excepciones aquí.
     })->create();
+
+
+
 ~~~~
 <!-- END_CODE_FILE: bootstrap/app.php -->
 
@@ -30577,7 +31272,7 @@ export default defineConfig([
 ### FILE: comercio-plus-frontend/index.html
 
 <!-- BEGIN_CODE_FILE: comercio-plus-frontend/index.html -->
-~~~~html
+~~~~text
 <!doctype html>
 <html lang="en">
   <head>
@@ -34814,6 +35509,7 @@ const SimpleContentPage = lazy(() => import('@/pages/SimpleContentPage'))
 const Dashboard = lazy(() => import('./dashboard/page'))
 const DashboardCategoriesPage = lazy(() => import('./dashboard/categories/page'))
 const DashboardCustomers = lazy(() => import('./dashboard/customers/page'))
+const DashboardCreditPage = lazy(() => import('./dashboard/credit/page'))
 const DashboardInventoryPage = lazy(() => import('./dashboard/inventory/page'))
 const InventoryReceivePage = lazy(() => import('./dashboard/inventory/receive/page'))
 const ManageProducts = lazy(() => import('./dashboard/products/page'))
@@ -34930,6 +35626,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/customers" element={<DashboardCustomers />} />
+            <Route path="/dashboard/credit" element={<DashboardCreditPage />} />
             <Route path="/dashboard/store" element={<DashboardStore />} />
             <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
             <Route path="/dashboard/orders" element={<DashboardOrdersPage />} />
@@ -35659,8 +36356,410 @@ export default function DashboardCategoriesPage() {
     </div>
   )
 }
+
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/app/dashboard/categories/page.tsx -->
+
+---
+
+### FILE: comercio-plus-frontend/src/app/dashboard/credit/page.tsx
+
+<!-- BEGIN_CODE_FILE: comercio-plus-frontend/src/app/dashboard/credit/page.tsx -->
+~~~~tsx
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import API from '@/lib/api'
+import type { CreditAccountRow, CreditTransactionRow, PaginatedResponse } from '@/types/api'
+
+type CreditIndexResponse = {
+  status: string
+  data: PaginatedResponse<CreditAccountRow>
+  stats?: {
+    total_accounts?: number
+    total_balance?: number
+    total_overdue?: number
+  }
+}
+
+type CreditShowResponse = {
+  status: string
+  data: CreditAccountRow
+  transactions: CreditTransactionRow[]
+}
+
+const fmtCOP = (v: number) =>
+  new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(v)
+
+const toNumber = (value: number | string | null | undefined) => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export default function DashboardCreditPage() {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [accounts, setAccounts] = useState<CreditAccountRow[]>([])
+  const [stats, setStats] = useState({
+    total_accounts: 0,
+    total_balance: 0,
+    total_overdue: 0,
+  })
+  const [selectedAccount, setSelectedAccount] = useState<CreditAccountRow | null>(null)
+  const [transactions, setTransactions] = useState<CreditTransactionRow[]>([])
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
+  const [formMode, setFormMode] = useState<'charge' | 'payment' | null>(null)
+  const [amount, setAmount] = useState('')
+  const [note, setNote] = useState('')
+  const [formError, setFormError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const loadAccounts = useCallback(async (force = false) => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const params = force ? { _t: Date.now() } : undefined
+      const { data } = await API.get<CreditIndexResponse>('/merchant/credit', { params })
+      setAccounts(data?.data?.data || [])
+      setStats({
+        total_accounts: Number(data?.stats?.total_accounts || 0),
+        total_balance: Number(data?.stats?.total_balance || 0),
+        total_overdue: Number(data?.stats?.total_overdue || 0),
+      })
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Error al cargar cuentas de fiado.')
+      setAccounts([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loadAccountDetail = useCallback(async (id: number, force = false) => {
+    setDetailLoading(true)
+    setDetailError('')
+
+    try {
+      const params = force ? { _t: Date.now() } : undefined
+      const { data } = await API.get<CreditShowResponse>(`/merchant/credit/${id}`, { params })
+      setSelectedAccount(data?.data || null)
+      setTransactions(Array.isArray(data?.transactions) ? data.transactions : [])
+    } catch (err: any) {
+      setDetailError(err?.response?.data?.message || 'No se pudo cargar el detalle de la cuenta.')
+      setTransactions([])
+    } finally {
+      setDetailLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadAccounts()
+  }, [loadAccounts])
+
+  const selectedBalance = useMemo(
+    () => toNumber(selectedAccount?.balance),
+    [selectedAccount?.balance],
+  )
+
+  const openForm = (mode: 'charge' | 'payment') => {
+    setFormMode(mode)
+    setAmount('')
+    setNote('')
+    setFormError('')
+  }
+
+  const closeForm = () => {
+    setFormMode(null)
+    setAmount('')
+    setNote('')
+    setFormError('')
+  }
+
+  const submitForm = async () => {
+    if (!selectedAccount || !formMode) return
+
+    const parsed = Number(amount)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setFormError('Ingresa un monto válido.')
+      return
+    }
+
+    setSaving(true)
+    setFormError('')
+
+    try {
+      const endpoint = `/merchant/credit/${selectedAccount.id}/${formMode}`
+      await API.post(endpoint, {
+        amount: parsed,
+        note: note.trim() || undefined,
+      })
+
+      closeForm()
+      await Promise.all([loadAccountDetail(selectedAccount.id, true), loadAccounts(true)])
+    } catch (err: any) {
+      setFormError(err?.response?.data?.message || 'No se pudo guardar el movimiento.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-[13px] text-slate-500 dark:text-white/50">Dashboard</p>
+        <h1 className="font-display text-[32px] font-bold text-slate-950 dark:text-white">Fiado digital</h1>
+        <p className="text-[12px] text-slate-500 dark:text-white/40">Credito informal por cliente</p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-white/40">Cuentas</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats.total_accounts}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-white/40">Deuda total</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{fmtCOP(stats.total_balance)}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-white/40">Sobre limite</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats.total_overdue}</p>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center text-[13px] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/40">
+          Cargando cuentas de fiado...
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
+          {accounts.length === 0 ? (
+            <div className="px-4 py-12 text-center text-[13px] text-slate-500 dark:text-white/40">
+              Aun no hay cuentas de fiado creadas.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px]">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-white/5 dark:bg-white/5">
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Cliente</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Email</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Deuda actual</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Limite</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accounts.map((account) => {
+                    const isSelected = selectedAccount?.id === account.id
+                    return (
+                      <tr
+                        key={account.id}
+                        className={`border-b border-slate-100 last:border-b-0 dark:border-white/5 ${
+                          isSelected ? 'bg-orange-50/60 dark:bg-orange-500/10' : ''
+                        }`}
+                      >
+                        <td className="px-4 py-3 text-[13px] font-semibold text-slate-900 dark:text-white">
+                          {account.customer?.user?.name || 'Cliente'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-slate-600 dark:text-white/70">
+                          {account.customer?.user?.email || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-semibold text-slate-900 dark:text-white">
+                          {fmtCOP(toNumber(account.balance))}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-slate-700 dark:text-white/70">
+                          {fmtCOP(toNumber(account.credit_limit))}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => void loadAccountDetail(account.id, true)}
+                            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/20 dark:bg-transparent dark:text-white/80 dark:hover:bg-white/10"
+                          >
+                            Ver detalle
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedAccount && (
+        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-[18px] font-bold text-slate-900 dark:text-white">
+                {selectedAccount.customer?.user?.name || 'Cliente'}
+              </h2>
+              <p className="text-[12px] text-slate-500 dark:text-white/50">
+                Deuda actual: {fmtCOP(selectedBalance)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => openForm('charge')}
+                className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[12px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+              >
+                Registrar cargo
+              </button>
+              <button
+                type="button"
+                onClick={() => openForm('payment')}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+              >
+                Registrar pago
+              </button>
+            </div>
+          </div>
+
+          {formMode && (
+            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <p className="text-[13px] font-semibold text-slate-800 dark:text-white">
+                {formMode === 'charge' ? 'Nuevo cargo' : 'Nuevo pago'}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40">
+                    Monto COP
+                  </label>
+                  <input
+                    type="number"
+                    min={0.01}
+                    step="0.01"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 outline-none focus:border-orange-400 dark:border-white/20 dark:bg-white/5 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40">
+                    Nota
+                  </label>
+                  <textarea
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 outline-none focus:border-orange-400 dark:border-white/20 dark:bg-white/5 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {formError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                  {formError}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void submitForm()}
+                  disabled={saving}
+                  className="rounded-lg bg-orange-500 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+                >
+                  {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  disabled={saving}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/20 dark:bg-transparent dark:text-white/70 dark:hover:bg-white/10"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {detailLoading && (
+            <p className="text-[13px] text-slate-500 dark:text-white/40">Cargando transacciones...</p>
+          )}
+
+          {!detailLoading && detailError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+              {detailError}
+            </div>
+          )}
+
+          {!detailLoading && !detailError && (
+            <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
+              {transactions.length === 0 ? (
+                <div className="px-4 py-6 text-[13px] text-slate-500 dark:text-white/40">
+                  Esta cuenta aun no tiene transacciones.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[620px]">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-white/5 dark:bg-white/5">
+                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Fecha</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Tipo</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Monto</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Saldo despues</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Nota</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.map((transaction) => (
+                        <tr key={transaction.id} className="border-b border-slate-100 last:border-b-0 dark:border-white/5">
+                          <td className="px-4 py-2.5 text-[12px] text-slate-600 dark:text-white/70">
+                            {new Date(transaction.created_at).toLocaleString('es-CO')}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                                transaction.type === 'charge'
+                                  ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                                  : transaction.type === 'payment'
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                    : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-white/70'
+                              }`}
+                            >
+                              {transaction.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-[12px] font-semibold text-slate-900 dark:text-white">
+                            {fmtCOP(toNumber(transaction.amount))}
+                          </td>
+                          <td className="px-4 py-2.5 text-[12px] font-semibold text-slate-900 dark:text-white">
+                            {fmtCOP(toNumber(transaction.balance_after))}
+                          </td>
+                          <td className="px-4 py-2.5 text-[12px] text-slate-600 dark:text-white/70">
+                            {transaction.note || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+~~~~
+<!-- END_CODE_FILE: comercio-plus-frontend/src/app/dashboard/credit/page.tsx -->
 
 ---
 
@@ -36774,6 +37873,8 @@ export default function DashboardInventoryPage() {
     </div>
   )
 }
+
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/app/dashboard/inventory/page.tsx -->
 
@@ -37077,6 +38178,7 @@ export default function InventoryReceivePage() {
     </div>
   )
 }
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/app/dashboard/inventory/receive/page.tsx -->
 
@@ -37086,7 +38188,7 @@ export default function InventoryReceivePage() {
 
 <!-- BEGIN_CODE_FILE: comercio-plus-frontend/src/app/dashboard/orders/page.tsx -->
 ~~~~tsx
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '@/lib/api'
 import GlassCard from '@/components/ui/GlassCard'
@@ -37395,7 +38497,7 @@ export default function DashboardOrdersPage() {
 
   const PER_PAGE = 20
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setLoadError('')
 
@@ -37409,11 +38511,11 @@ export default function DashboardOrdersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     void load()
-  }, [statusFilter])
+  }, [load])
 
   useEffect(() => {
     setPage(1)
@@ -37534,7 +38636,7 @@ export default function DashboardOrdersPage() {
             disabled={!orders.length}
             className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-[12px] font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
           >
-            ðŸ“Š Exportar
+            📊 Exportar
           </button>
         </div>
       </div>
@@ -38555,7 +39657,7 @@ export default function OrderPickingPage() {
           {feedback.detail && <p className="mt-1 text-xs opacity-90">{feedback.detail}</p>}
           {(feedback.technicalCode || feedback.scannedCode) && (
             <p className="mt-2 font-mono text-[11px] opacity-70">
-              {[feedback.technicalCode, feedback.scannedCode].filter(Boolean).join(' Â· ')}
+              {[feedback.technicalCode, feedback.scannedCode].filter(Boolean).join(' · ')}
             </p>
           )}
 
@@ -38759,7 +39861,7 @@ export default function OrderPickingPage() {
                               : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
                         }`}
                       >
-                        {item.type === 'ok' ? 'âœ“' : item.type === 'manual' ? 'M' : '!'}
+                        {item.type === 'ok' ? '✓' : item.type === 'manual' ? 'M' : '!'}
                       </span>
                       <span className="font-mono text-slate-700 dark:text-white/70">{item.code || '--'}</span>
                       <span className="flex-1 text-slate-600 dark:text-white/60">{item.message}</span>
@@ -39003,7 +40105,7 @@ export default function OrderPickingPage() {
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '@/lib/api'
-import { clearSession } from '@/services/auth-session'
+import { clearSession, getStoredUserRaw } from '@/services/auth-session'
 import GlassCard from '@/components/ui/GlassCard'
 import Button, { buttonVariants } from '@/components/ui/button'
 import Badge from '@/components/ui/Badge'
@@ -39150,7 +40252,7 @@ export default function Dashboard() {
 
   const user = useMemo(() => {
     try {
-      const userData = localStorage.getItem('user')
+      const userData = getStoredUserRaw()
       return userData ? JSON.parse(userData) : null
     } catch {
       return null
@@ -39702,7 +40804,7 @@ export default function Dashboard() {
 
 <!-- BEGIN_CODE_FILE: comercio-plus-frontend/src/app/dashboard/products/page.tsx -->
 ~~~~tsx
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import API from '@/lib/api'
 import Button, { buttonVariants } from '@/components/ui/button'
@@ -39909,11 +41011,11 @@ export default function ManageProducts() {
     navigate('/dashboard/products')
   }
 
-  const scrollToForm = () => {
+  const scrollToForm = useCallback(() => {
     window.setTimeout(() => {
       formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 60)
-  }
+  }, [])
 
   const openCreate = () => {
     clearForm()
@@ -39923,7 +41025,7 @@ export default function ManageProducts() {
     scrollToForm()
   }
 
-  const applyProductToForm = (item: Product) => {
+  const applyProductToForm = useCallback((item: Product) => {
     const primaryCode = getPrimaryProductCode(item)
     setForm({
       id: item.id,
@@ -39943,18 +41045,18 @@ export default function ManageProducts() {
     setScanCodeInput('')
     setScanConsecutiveFailures(0)
     setScanFeedback(null)
-  }
+  }, [])
 
-  const openEdit = (item: Product, withNavigate = true) => {
+  const openEdit = useCallback((item: Product, withNavigate = true) => {
     applyProductToForm(item)
     setShowForm(true)
     if (withNavigate) {
       navigate(`/dashboard/products/${item.id}/edit`)
     }
     scrollToForm()
-  }
+  }, [applyProductToForm, navigate, scrollToForm])
 
-  const ensureMotorcycleCategories = async (initialCategories: Category[]) => {
+  const ensureMotorcycleCategories = useCallback(async (initialCategories: Category[]) => {
     if (!storeId || categorySeedRef.current) return initialCategories
 
     const existingByName = new Set(initialCategories.map((item) => normalizeCategoryLabel(item.name || '')))
@@ -39981,9 +41083,9 @@ export default function ManageProducts() {
     } finally {
       categorySeedRef.current = false
     }
-  }
+  }, [storeId])
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setCategoriesLoading(true)
     setCategoriesError('')
 
@@ -40007,7 +41109,7 @@ export default function ManageProducts() {
     } finally {
       setCategoriesLoading(false)
     }
-  }
+  }, [ensureMotorcycleCategories])
 
   const fetchStore = async () => {
     try {
@@ -40031,7 +41133,7 @@ export default function ManageProducts() {
     }
   }
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!storeId) {
       setProducts([])
       return
@@ -40072,7 +41174,7 @@ export default function ManageProducts() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [storeId])
 
   const onImage = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null
@@ -40354,9 +41456,9 @@ export default function ManageProducts() {
 
   useEffect(() => {
     if (!storeId) return
-    fetchCategories()
-    fetchProducts()
-  }, [storeId])
+    void fetchCategories()
+    void fetchProducts()
+  }, [fetchCategories, fetchProducts, storeId])
 
   useEffect(() => {
     if (!toast) return
@@ -40408,7 +41510,7 @@ export default function ManageProducts() {
     if (location.pathname === '/dashboard/products') {
       setShowForm(false)
     }
-  }, [location.pathname, params.id, products])
+  }, [location.pathname, openEdit, params.id, products, scrollToForm])
 
   useEffect(() => {
     if (!showForm || entryMethod !== 'keyboard') return
@@ -40451,7 +41553,7 @@ export default function ManageProducts() {
   const totalProducts = products.length
   const activeProducts = products.filter((item) => normalizeStatus(item.status) === 'active').length
   const outOfStockProducts = products.filter((item) => toNumber(item.stock) === 0).length
-  const catalogValue = products.reduce((sum, item) => sum + toNumber(item.price) * toNumber(item.stock), 0)
+  const catalogValue = products.reduce((sum, item) => sum + toNumber(item.price), 0)
   const keyboardScanState: ScanState =
     scanFeedback?.type === 'error'
       ? 'error'
@@ -40805,7 +41907,7 @@ export default function ManageProducts() {
               value={filters.search}
               onChange={(event) => setFilters({ search: event.target.value })}
               className="h-10 w-full rounded-xl border border-[#D1D5DB] bg-white px-3 text-[13px] text-[#0F172A] outline-none transition focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/20"
-              placeholder="ðŸ” Buscar por nombre, categoria, codigo o ID"
+              placeholder="🔍 Buscar por nombre, categoria, codigo o ID"
             />
           </div>
 
@@ -40889,7 +41991,7 @@ export default function ManageProducts() {
                                 'h-8 rounded-lg border border-sky-200 bg-sky-50 px-3 text-[11px] font-semibold text-sky-700 shadow-none hover:bg-sky-100',
                               )}
                             >
-                              âœï¸
+                              ✏️
                             </button>
                             <button
                               type="button"
@@ -40899,7 +42001,7 @@ export default function ManageProducts() {
                                 'h-8 rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold text-rose-700 shadow-none hover:bg-rose-100',
                               )}
                             >
-                              ðŸ—‘ï¸
+                              🗑️
                             </button>
                           </div>
                         </td>
@@ -41257,7 +42359,7 @@ export default function DashboardReportsPage() {
   }
 
   const summary = data?.summary
-  const salesRows = data?.sales || []
+  const salesRows = useMemo(() => data?.sales || [], [data?.sales])
   const topProducts = data?.topProducts || []
 
   const hasReportData = Boolean(summary && (summary.ordersCount > 0 || salesRows.length > 0 || topProducts.length > 0))
@@ -42056,6 +43158,8 @@ export default function DashboardSettingsPage() {
     </div>
   )
 }
+
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/app/dashboard/settings/page.tsx -->
 
@@ -42788,8 +43892,10 @@ export default function CreateStore() {
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import API from '@/services/api'
+import { getStoredToken, getStoredUserRaw } from '@/services/auth-session'
 import type { Product, Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
+import PriceAlertButton from '@/components/PriceAlertButton'
 import { useCart } from '@/context/CartContext'
 import { extractList } from '@/lib/api-response'
 import { formatPrice, resolveMediaUrl } from '@/lib/format'
@@ -42806,6 +43912,13 @@ import {
 type StoreMedia = Store & {
   logo?: string
   cover?: string
+}
+
+function sanitizeWhatsApp(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('57') && digits.length >= 12) return digits
+  if (digits.startsWith('3') && digits.length === 10) return `57${digits}`
+  return digits
 }
 
 export default function StoreDetail() {
@@ -42868,12 +43981,12 @@ export default function StoreDetail() {
   useEffect(() => {
     const registerVisit = async () => {
       if (!store?.id) return
-      const token = localStorage.getItem('token')
+      const token = getStoredToken()
       if (!token) return
 
       let role = ''
       try {
-        const userRaw = localStorage.getItem('user')
+        const userRaw = getStoredUserRaw()
         role = userRaw ? JSON.parse(userRaw)?.role : ''
       } catch {
         role = ''
@@ -42893,6 +44006,10 @@ export default function StoreDetail() {
   const logo = resolveMediaUrl(store?.logo_url || store?.logo_path || store?.logo)
   const cover = resolveMediaUrl(store?.cover_url || store?.cover_path || store?.background_url || store?.cover)
   const storeId = store?.id || null
+  const sanitizedWhatsApp = sanitizeWhatsApp(String(store?.whatsapp || ''))
+  const whatsappUrl = sanitizedWhatsApp
+    ? `https://wa.me/${sanitizedWhatsApp}?text=${encodeURIComponent('Hola, vi tu tienda en ComercioPlus y me gustaria conocer tus productos.')}`
+    : ''
   const adaptiveTheme = getThemeClassesByBrightness(headerTheme)
 
   useEffect(() => {
@@ -42987,9 +44104,34 @@ export default function StoreDetail() {
               <LogoImage src={logo} alt={store.name} className="h-full w-full rounded-none border-0 bg-white p-2" />
             </div>
             <div className="pb-4">
-              <p className="mt-1 max-w-3xl text-[16px] text-[#4B5563]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-[28px] font-bold text-[#1A1A2E]">{store.name}</h1>
+                {store.is_verified && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                    ✓ Verificada
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 max-w-3xl text-[16px] text-[#4B5563] dark:text-white/50">
                 {store.description || 'Tienda verificada en ComercioPlus'}
               </p>
+              <div className="mt-3 space-y-1">
+                {store.whatsapp && <p className="text-[13px] text-slate-600 dark:text-white/50">WhatsApp: {store.whatsapp}</p>}
+                {store.support_email && <p className="text-[13px] text-slate-600 dark:text-white/50">Email: {store.support_email}</p>}
+                {store.address && <p className="text-[13px] text-slate-600 dark:text-white/50">Direccion: {store.address}</p>}
+                {store.instagram && <p className="text-[13px] text-slate-600 dark:text-white/50">Instagram: {store.instagram}</p>}
+                {store.facebook && <p className="text-[13px] text-slate-600 dark:text-white/50">Facebook: {store.facebook}</p>}
+              </div>
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  WhatsApp
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -43029,6 +44171,7 @@ export default function StoreDetail() {
                   <div className="space-y-2 p-5">
                     <h3 className="text-[16px] font-semibold text-[#1A1A2E]">{product.name}</h3>
                     <p className="text-[20px] font-bold text-[#FF6B35]">${formatPrice(product.price)}</p>
+                    <PriceAlertButton productId={Number(product.id)} currentPrice={Number(product.price || 0)} />
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}
@@ -43701,6 +44844,7 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard/products', icon: 'package', iconBg: 'bg-orange-500/20', label: 'Productos' },
       { href: '/dashboard/orders', icon: 'file-text', iconBg: 'bg-emerald-500/20', label: 'Pedidos' },
       { href: '/dashboard/customers', icon: 'users', iconBg: 'bg-violet-500/20', label: 'Clientes' },
+      { href: '/dashboard/credit', icon: 'credit-card', iconBg: 'bg-amber-500/20', label: 'Fiado' },
     ],
   },
   {
@@ -44324,6 +45468,7 @@ export default function Footer() {
     </footer>
   )
 }
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/components/Footer.tsx -->
 
@@ -44429,7 +45574,7 @@ const Header: FC<HeaderProps> = ({
             {showAuth ? (
               <Link to="/login">
                 <Button variant="outline" size="sm">
-                  Iniciar sesiÃ³n
+                  Iniciar sesión
                 </Button>
               </Link>
             ) : null}
@@ -46142,8 +47287,146 @@ export default function Navbar() {
     </>
   )
 }
+
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/components/Navbar.tsx -->
+
+---
+
+### FILE: comercio-plus-frontend/src/components/PriceAlertButton.tsx
+
+<!-- BEGIN_CODE_FILE: comercio-plus-frontend/src/components/PriceAlertButton.tsx -->
+~~~~tsx
+import { useEffect, useMemo, useState } from 'react'
+import API from '@/lib/api'
+
+interface PriceAlertButtonProps {
+  productId: number
+  currentPrice: number
+}
+
+type MineResponse = {
+  following?: boolean
+}
+
+const readToken = () => localStorage.getItem('token') || sessionStorage.getItem('token')
+
+export default function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonProps) {
+  const [following, setFollowing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [targetPrice, setTargetPrice] = useState<string>(String(Math.max(1, Math.floor(currentPrice * 0.9))))
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const token = useMemo(() => readToken(), [])
+
+  useEffect(() => {
+    const check = async () => {
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const { data } = await API.get<MineResponse>(`/products/${productId}/alerts/mine`, {
+          params: { _t: Date.now() },
+        })
+        setFollowing(Boolean(data?.following))
+      } catch {
+        setFollowing(false)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void check()
+  }, [productId, token])
+
+  const handleCreate = async () => {
+    const parsed = Number(targetPrice)
+    if (!Number.isFinite(parsed) || parsed <= 0) return
+
+    setSaving(true)
+    try {
+      await API.post(`/products/${productId}/alerts`, { target_price: parsed })
+      setFollowing(true)
+      setShowForm(false)
+    } catch {
+      // Puede fallar si el usuario no esta autenticado.
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setSaving(true)
+    try {
+      await API.delete(`/products/${productId}/alerts`)
+      setFollowing(false)
+    } catch {
+      // No-op
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading || !token) return null
+
+  if (following) {
+    return (
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={saving}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[12px] font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+      >
+        🔔 Siguiendo precio
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {showForm ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="number"
+            value={targetPrice}
+            onChange={(event) => setTargetPrice(event.target.value)}
+            min={1}
+            placeholder="Precio objetivo COP"
+            className="w-36 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[13px] text-slate-900 focus:border-orange-400 focus:outline-none dark:border-white/20 dark:bg-white/5 dark:text-white"
+          />
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={saving}
+            className="rounded-lg bg-orange-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+          >
+            Guardar
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowForm(false)}
+            className="text-[12px] text-slate-500 hover:text-slate-700 dark:text-white/60 dark:hover:text-white/80"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:border-orange-300 hover:text-orange-600 dark:border-white/20 dark:text-white/60"
+        >
+          🔔 Seguir precio
+        </button>
+      )}
+    </div>
+  )
+}
+~~~~
+<!-- END_CODE_FILE: comercio-plus-frontend/src/components/PriceAlertButton.tsx -->
 
 ---
 
@@ -46330,6 +47613,7 @@ export default function ProductMethodSelector({ active, onChange, disabled = fal
     </div>
   )
 }
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/components/products/create/ProductMethodSelector.tsx -->
 
@@ -46448,6 +47732,7 @@ export default function ProductScannerKeyboardPanel({
     </div>
   )
 }
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/components/products/create/ProductScannerKeyboardPanel.tsx -->
 
@@ -46492,7 +47777,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
     return typeof window !== 'undefined' && 'BarcodeDetector' in window
   }, [])
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (detectTimerRef.current) {
       window.clearInterval(detectTimerRef.current)
       detectTimerRef.current = null
@@ -46505,7 +47790,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
 
     detectorRef.current = null
     detectingRef.current = false
-  }
+  }, [])
 
   const buildCameraErrorMessage = (error: unknown): string => {
     const fallback = 'No pude abrir la camara. Verifica permisos y vuelve a intentar.'
@@ -46527,7 +47812,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
     return fallback
   }
 
-  const applyDetectedCode = (value: string) => {
+  const applyDetectedCode = useCallback((value: string) => {
     const normalized = value.trim()
     if (!normalized) return
 
@@ -46540,9 +47825,9 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
 
     onDetected(normalized)
     onClose()
-  }
+  }, [onClose, onDetected])
 
-  const startDetectionLoop = () => {
+  const startDetectionLoop = useCallback(() => {
     if (!videoRef.current || !detectorRef.current || detectTimerRef.current) return
 
     detectTimerRef.current = window.setInterval(async () => {
@@ -46564,7 +47849,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
         detectingRef.current = false
       }
     }, DETECTION_INTERVAL_MS)
-  }
+  }, [applyDetectedCode])
 
   const openCamera = useCallback(async () => {
     if (!navigator?.mediaDevices?.getUserMedia) {
@@ -46616,7 +47901,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
       setCameraState('error')
       setCameraMessage(buildCameraErrorMessage(error))
     }
-  }, [canUseBarcodeDetector])
+  }, [canUseBarcodeDetector, startDetectionLoop])
 
   const handleRetryCamera = () => {
     stopCamera()
@@ -46646,7 +47931,7 @@ export default function ProductScannerCameraModal({ open, onClose, onDetected }:
       document.body.style.overflow = ''
       previous?.focus()
     }
-  }, [onClose, open, openCamera, retryNonce])
+  }, [open, openCamera, retryNonce, stopCamera])
 
   if (!open) return null
 
@@ -47348,7 +48633,7 @@ type StoreHeaderPreviewProps = {
   badgeLabel?: string
 }
 
-const placeholders = ['ðŸª–', 'ðŸ”„', 'ðŸ§¤', 'â›“ï¸']
+const placeholders = ['🪖', '🔄', '🧤', '⛓️']
 
 export default function StoreHeaderPreview({
   name,
@@ -47359,7 +48644,7 @@ export default function StoreHeaderPreview({
   badgeLabel = 'Vista previa de cabecera',
 }: StoreHeaderPreviewProps) {
   const title = name?.trim() || 'Nombre de tu tienda'
-  const subtitle = category?.trim() || 'Categoria Â· â˜… 4.8'
+  const subtitle = category?.trim() || 'Categoria · ★ 4.8'
 
   return (
     <div className={`overflow-hidden rounded-2xl border border-brand-200 bg-white shadow-premium ${className}`.trim()}>
@@ -47953,6 +49238,7 @@ export const ROUTES = {
   reports: '/dashboard/reports',
   settings: '/dashboard/settings',
 } as const
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/lib/routes.ts -->
 
@@ -48042,7 +49328,7 @@ export default function Cart() {
             <div className="mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full bg-slate-100">
               <Icon name="cart" size={48} className="text-slate-400" />
             </div>
-            <h2 className="mb-4 text-3xl font-bold text-slate-900">Tu carrito estÃ¡ vacÃ­o</h2>
+            <h2 className="mb-4 text-3xl font-bold text-slate-900">Tu carrito está vacío</h2>
             <p className="mb-8 text-lg text-slate-600">
               Agrega productos para empezar a comprar
             </p>
@@ -48168,7 +49454,7 @@ export default function Cart() {
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>EnvÃ­o</span>
+                  <span>Envío</span>
                   <span className="font-semibold text-green-600">Gratis</span>
                 </div>
                 <div className="border-t-2 border-slate-100 pt-4">
@@ -48181,7 +49467,7 @@ export default function Cart() {
                 </div>
               </div>
 
-              {/* BotÃ³n checkout */}
+              {/* Botón checkout */}
               <Link
                 to="/checkout"
                 className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-comercioplus-600 py-4 font-bold text-white transition-all hover:bg-comercioplus-700 hover:shadow-lg hover:shadow-comercioplus-600/25"
@@ -48206,11 +49492,11 @@ export default function Cart() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Icon name="truck" size={20} className="text-blue-600" />
-                  <span className="text-sm text-slate-700">EnvÃ­o rÃ¡pido</span>
+                  <span className="text-sm text-slate-700">Envío rápido</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Icon name="refresh" size={20} className="text-comercioplus-600" />
-                  <span className="text-sm text-slate-700">Devoluciones fÃ¡ciles</span>
+                  <span className="text-sm text-slate-700">Devoluciones fáciles</span>
                 </div>
               </div>
             </div>
@@ -48229,14 +49515,15 @@ export default function Cart() {
 
 <!-- BEGIN_CODE_FILE: comercio-plus-frontend/src/pages/Checkout.tsx -->
 ~~~~tsx
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
 import { useCart } from '@/context/CartContext'
 import API from '@/services/api'
 import { getStoredToken } from '@/services/auth-session'
 
 type PaymentMethod = 'PSE' | 'NEQUI' | 'BANCOLOMBIA' | 'CARD'
+type OrderChannel = 'web' | 'whatsapp' | 'local'
 
 interface CheckoutForm {
   email: string
@@ -48252,8 +49539,12 @@ type CheckoutNotice = {
   message: string
 }
 
+const isOrderChannel = (value: string | null): value is OrderChannel =>
+  value === 'web' || value === 'whatsapp' || value === 'local'
+
 export default function Checkout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { items, totalPrice } = useCart()
   const token = getStoredToken()
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
@@ -48267,6 +49558,28 @@ export default function Checkout() {
     city: '',
     notes: '',
   })
+  const channel = useMemo<OrderChannel>(() => {
+    const fromQuery = new URLSearchParams(location.search).get('channel')
+    if (isOrderChannel(fromQuery)) return fromQuery
+
+    if (typeof window !== 'undefined') {
+      const fromStorage = sessionStorage.getItem('checkout_channel')
+      if (isOrderChannel(fromStorage)) return fromStorage
+    }
+
+    return 'web'
+  }, [location.search])
+
+  useEffect(() => {
+    const fromQuery = new URLSearchParams(location.search).get('channel')
+    if (!isOrderChannel(fromQuery)) return
+
+    try {
+      sessionStorage.setItem('checkout_channel', fromQuery)
+    } catch {
+      // noop
+    }
+  }, [location.search])
 
   useEffect(() => {
     if (items.length === 0) {
@@ -48275,9 +49588,9 @@ export default function Checkout() {
     }
 
     if (!token) {
-      navigate(`/login?next=${encodeURIComponent('/checkout')}`, { replace: true })
+      navigate(`/login?next=${encodeURIComponent(`/checkout${location.search}`)}`, { replace: true })
     }
-  }, [items.length, navigate, token])
+  }, [items.length, location.search, navigate, token])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({
@@ -48312,6 +49625,7 @@ export default function Checkout() {
         customer: formData,
         totalAmount: totalPrice,
         paymentMethod: selectedMethod,
+        channel,
       })
 
       const orderId = Number(orderResponse?.data?.orderId || 0)
@@ -48685,7 +49999,6 @@ export default function CheckoutSuccess() {
     }
 
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId])
 
   return (
@@ -48807,7 +50120,7 @@ export default function CheckoutSuccess() {
 
 <!-- BEGIN_CODE_FILE: comercio-plus-frontend/src/pages/DashboardStore.tsx -->
 ~~~~tsx
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import Badge from '@/components/Badge'
 import Button from '@/components/Button'
@@ -48821,6 +50134,7 @@ import API from '@/lib/api'
 import { getApiMeta, getApiPayload } from '@/lib/apiPayload'
 import { resolveMediaUrl } from '@/lib/format'
 import { uploadStoreCover, uploadStoreLogo } from '@/services/uploads'
+import type { StoreVerification } from '@/types/api'
 import CoverImage from '@/ui/images/CoverImage'
 import LogoImage from '@/ui/images/LogoImage'
 import { getGlobalIconVariant, setGlobalIconVariant, type IconVariant } from '@/ui/icons'
@@ -48835,6 +50149,7 @@ import {
 
 interface StoreData {
   id: number
+  slug: string
   name: string
   description: string
   email: string
@@ -48879,6 +50194,7 @@ interface ToastState {
 
 const fallbackStore: StoreData = {
   id: 0,
+  slug: '',
   name: 'Accesorios Biker Colombia',
   description: 'Accesorios, cascos y repuestos para motos en toda Colombia.',
   email: 'ventas@bikercolombia.com',
@@ -49041,6 +50357,12 @@ export default function DashboardStore() {
   const [toast, setToast] = useState<ToastState | null>(null)
   const [headerTheme, setHeaderTheme] = useState<ImageBrightness>('dark')
   const [iconVariant, setIconVariantState] = useState<IconVariant>(() => getGlobalIconVariant())
+  const [verif, setVerif] = useState<StoreVerification | null>(null)
+  const [verifLoading, setVerifLoading] = useState(false)
+  const [verifUploading, setVerifUploading] = useState(false)
+  const [verifFile, setVerifFile] = useState<File | null>(null)
+  const [verifError, setVerifError] = useState('')
+  const [storeVerified, setStoreVerified] = useState(false)
 
   const stats = {
     revenue: 24600000,
@@ -49055,7 +50377,7 @@ export default function DashboardStore() {
     setToast({ id: Date.now(), message, variant })
   }
 
-  const resolveStoreId = (): number | null => {
+  const resolveStoreId = useCallback((): number | null => {
     const fromOutlet = parseStoreId(outlet?.store?.id)
     if (fromOutlet) return fromOutlet
 
@@ -49069,7 +50391,7 @@ export default function DashboardStore() {
     }
 
     return null
-  }
+  }, [outlet?.store?.id])
 
   const loadTaxSettings = async (resolvedStoreId: number) => {
     setTaxLoading(true)
@@ -49091,6 +50413,26 @@ export default function DashboardStore() {
     }
   }
 
+  const loadVerification = useCallback(async (force = false) => {
+    setVerifLoading(true)
+    setVerifError('')
+
+    try {
+      const params = force ? { _t: Date.now() } : undefined
+      const response = await API.get('/merchant/store/verification', { params })
+      const responseData = response?.data || {}
+      const payload = getApiPayload<any>(response, null)
+      setVerif(payload as StoreVerification | null)
+      setStoreVerified(Boolean(responseData?.store_is_verified || payload?.status === 'approved'))
+    } catch (error: any) {
+      setVerif(null)
+      setStoreVerified(false)
+      setVerifError(error?.response?.data?.message || error?.message || 'No se pudo cargar la verificacion de la tienda.')
+    } finally {
+      setVerifLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     const loadStore = async () => {
       const initialStoreId = resolveStoreId()
@@ -49106,6 +50448,7 @@ export default function DashboardStore() {
         if (data) {
           const mapped: StoreData = {
             id: data.id || 0,
+            slug: data.slug || '',
             name: data.name || '',
             description: data.description || '',
             email: data.support_email || '',
@@ -49150,7 +50493,7 @@ export default function DashboardStore() {
     }
 
     loadStore()
-  }, [])
+  }, [resolveStoreId])
 
   useEffect(() => {
     if (!storeId) {
@@ -49161,6 +50504,17 @@ export default function DashboardStore() {
 
     loadTaxSettings(storeId)
   }, [storeId])
+
+  useEffect(() => {
+    if (!storeId) {
+      setVerif(null)
+      setStoreVerified(false)
+      setVerifError('')
+      return
+    }
+
+    void loadVerification()
+  }, [loadVerification, storeId])
 
   useEffect(() => {
     setTaxPreview(calculateTaxPreview(taxForm))
@@ -49203,6 +50557,13 @@ export default function DashboardStore() {
   }, [storeData.cover, storeData.id, storeId])
 
   const adaptiveTheme = getThemeClassesByBrightness(headerTheme)
+  const storeUrl =
+    storeData.slug && typeof window !== 'undefined'
+      ? `${window.location.origin}/stores/${storeData.slug}/products`
+      : ''
+  const qrImageUrl = storeUrl
+    ? `https://chart.googleapis.com/chart?cht=qr&chs=256x256&chl=${encodeURIComponent(storeUrl)}&chco=1A1F2E&chf=bg,s,FDFAF7`
+    : ''
 
   const handleEdit = () => setIsEditing(true)
 
@@ -49274,6 +50635,7 @@ export default function DashboardStore() {
       const merged: StoreData = {
         ...storeData,
         id: responseData.id || storeData.id,
+        slug: responseData.slug || storeData.slug || '',
         status: storeData.isVisible ? 'active' : 'inactive',
         logo: resolveMediaUrl(responseData.logo_url || responseData.logo_path || responseData.logo) || logoUrl || storeData.logo,
         cover: resolveMediaUrl(responseData.cover_url || responseData.cover_path || responseData.background_url || responseData.cover) || coverUrl || storeData.cover,
@@ -49363,6 +50725,72 @@ export default function DashboardStore() {
 
     setStoreData((prev) => ({ ...prev, [field]: '' }))
     return true
+  }
+
+  const downloadQR = async () => {
+    if (!qrImageUrl || !storeData.slug) return
+
+    try {
+      const response = await fetch(qrImageUrl)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.download = `qr-${storeData.slug}.png`
+      link.href = url
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.open(qrImageUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const verificationStatus: 'pending' | 'approved' | 'rejected' | 'none' = storeVerified
+    ? 'approved'
+    : verif?.status || 'none'
+
+  const verificationLabel =
+    verificationStatus === 'approved'
+      ? 'Verificada ✓'
+      : verificationStatus === 'pending'
+        ? 'En revision'
+        : verificationStatus === 'rejected'
+          ? 'Rechazada'
+          : 'Sin verificar'
+
+  const verificationBadgeClass =
+    verificationStatus === 'approved'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+      : verificationStatus === 'pending'
+        ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+        : verificationStatus === 'rejected'
+          ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+          : 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-white/70'
+
+  const submitVerification = async () => {
+    if (!verifFile) {
+      setVerifError('Selecciona un documento antes de enviarlo.')
+      return
+    }
+
+    setVerifUploading(true)
+    setVerifError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('document', verifFile)
+      await API.post('/merchant/store/verification', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setVerifFile(null)
+      await loadVerification(true)
+      showToast('Solicitud de verificacion enviada.', 'success')
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'No se pudo enviar la solicitud de verificacion.'
+      setVerifError(message)
+      showToast(message, 'error')
+    } finally {
+      setVerifUploading(false)
+    }
   }
 
   return (
@@ -49598,6 +51026,86 @@ export default function DashboardStore() {
               <p className="mt-3 text-caption text-slate-500">
                 El preview se actualiza en tiempo real al cambiar nombre, logo o portada.
               </p>
+            </Card>
+
+            <Card variant="glass" padding="md" className="bg-white/90 backdrop-blur-sm">
+              <h3 className="mb-4 text-h3">QR de tu tienda</h3>
+              {storeData.slug ? (
+                <>
+                  <div className="mb-3 flex justify-center rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <img
+                      src={qrImageUrl}
+                      alt={`QR tienda ${storeData.name}`}
+                      width={256}
+                      height={256}
+                      className="h-56 w-56 max-w-full rounded-lg bg-[#FDFAF7]"
+                    />
+                  </div>
+                  <p className="mb-3 break-all text-caption text-slate-500">{storeUrl}</p>
+                  <Button variant="primary" onClick={downloadQR} fullWidth>
+                    Descargar QR
+                  </Button>
+                </>
+              ) : (
+                <p className="text-caption text-slate-500">
+                  Guarda o crea tu tienda para generar el QR publico.
+                </p>
+              )}
+            </Card>
+
+            <Card variant="glass" padding="md" className="bg-white/90 backdrop-blur-sm">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h3 className="text-h3">Verificacion de tienda</h3>
+                {verifLoading && <span className="text-caption text-slate-500">Cargando...</span>}
+              </div>
+
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${verificationBadgeClass}`}>
+                {verificationLabel}
+              </span>
+
+              {verif?.document_url && (
+                <p className="mt-3 text-caption text-slate-500">
+                  Documento actual:{' '}
+                  <a
+                    href={verif.document_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-slate-700 underline hover:text-slate-900 dark:text-white/80"
+                  >
+                    Ver soporte
+                  </a>
+                </p>
+              )}
+
+              {verifError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                  {verifError}
+                </div>
+              )}
+
+              {verificationStatus !== 'approved' && (
+                <div className="mt-4 space-y-3">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null
+                      setVerifFile(file)
+                      setVerifError('')
+                    }}
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-[12px] file:font-semibold file:text-slate-700 dark:border-white/20 dark:bg-white/5 dark:text-white/80 dark:file:bg-white/10 dark:file:text-white/80"
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={() => void submitVerification()}
+                    disabled={verifUploading || !verifFile}
+                    loading={verifUploading}
+                    fullWidth
+                  >
+                    Enviar documento
+                  </Button>
+                </div>
+              )}
             </Card>
 
             <Card variant="premium" padding="lg">
@@ -49864,7 +51372,7 @@ export default function Home() {
       setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length)
     }, 8000)
     return () => clearInterval(interval)
-  }, [])
+  }, [backgroundImages.length])
 
   useEffect(() => {
     const loadStores = async () => {
@@ -50500,7 +52008,7 @@ export default function SimpleContentPage({ title, description }: SimpleContentP
 
 <!-- BEGIN_CODE_FILE: comercio-plus-frontend/src/pages/StoreProducts.tsx -->
 ~~~~tsx
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import API from '@/lib/api'
 import { extractList } from '@/lib/api-response'
@@ -50522,7 +52030,7 @@ import type { Product, Store } from '@/types/api'
 type StoreWithMeta = Store & {
   products_count?: number
   followers_count?: number
-  verified?: boolean
+  is_verified?: boolean
 }
 
 const slugify = (value: string) =>
@@ -50533,9 +52041,16 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+function sanitizeWhatsApp(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('57') && digits.length >= 12) return digits
+  if (digits.startsWith('3') && digits.length === 10) return `57${digits}`
+  return digits
+}
+
 export default function StoreProducts() {
   const { storeSlug = '' } = useParams()
-  const { addToCart } = useCart()
+  const { addToCart, items } = useCart()
 
   const [store, setStore] = useState<StoreWithMeta | null>(null)
   const [products, setProducts] = useState<Product[]>([])
@@ -50636,6 +52151,32 @@ export default function StoreProducts() {
     }
   }, [products, sortBy])
 
+  const storePublicUrl = useMemo(() => {
+    if (typeof window === 'undefined') return ''
+    const resolvedSlug = store?.slug || storeSlug
+    return `${window.location.origin}/stores/${resolvedSlug}/products`
+  }, [store?.slug, storeSlug])
+
+  const buildWhatsAppMessage = useCallback(() => {
+    if (items.length === 0) {
+      return encodeURIComponent(storePublicUrl || 'Hola, vi tu tienda en ComercioPlus y me gustaria conocer tus productos.')
+    }
+
+    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const lines = items
+      .map((item) => `- ${item.name} x${item.quantity} = $${(item.price * item.quantity).toLocaleString('es-CO')}`)
+      .join('\n')
+
+    const message = `Hola, me interesa hacer un pedido:\n\n${lines}\n\nTotal: $${total.toLocaleString('es-CO')}`
+    return encodeURIComponent(message)
+  }, [items, storePublicUrl])
+
+  const sanitizedWhatsApp = useMemo(() => sanitizeWhatsApp(String(store?.whatsapp || '')), [store?.whatsapp])
+  const whatsappUrl = useMemo(() => {
+    if (!sanitizedWhatsApp) return ''
+    return `https://wa.me/${sanitizedWhatsApp}?text=${buildWhatsAppMessage()}`
+  }, [buildWhatsAppMessage, sanitizedWhatsApp])
+
   const handleAddToCart = (product: Product) => {
     if (!product?.id) return
 
@@ -50649,6 +52190,14 @@ export default function StoreProducts() {
     })
 
     setAddedNoticeProductId(String(product.id))
+  }
+
+  const handleWhatsAppClick = () => {
+    try {
+      sessionStorage.setItem('checkout_channel', 'whatsapp')
+    } catch {
+      // noop
+    }
   }
 
   const logo = resolveMediaUrl(store?.logo_url || store?.logo_path || store?.logo)
@@ -50743,7 +52292,7 @@ export default function StoreProducts() {
                     <Icon name="store" size={56} className="text-white" />
                   </div>
                 )}
-                {(store.verified ?? store.is_visible ?? true) && (
+                {store.is_verified && (
                   <div className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 shadow-lg">
                     <Icon name="check" size={20} className="text-white" />
                   </div>
@@ -50753,7 +52302,14 @@ export default function StoreProducts() {
               <div className="flex-1">
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h1 className="mb-2 text-3xl font-bold text-slate-900">{store.name}</h1>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h1 className="text-3xl font-bold text-slate-900">{store.name}</h1>
+                      {store.is_verified && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                          ✓ Verificada
+                        </span>
+                      )}
+                    </div>
                     <p className="mb-4 text-slate-600">
                       {store.description || 'Tienda especializada en productos de alta calidad'}
                     </p>
@@ -50799,10 +52355,18 @@ export default function StoreProducts() {
                       )}
                     </button>
 
-                    <button className="rounded-xl border-2 border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 transition-all hover:bg-slate-50">
-                      <Icon name="message" size={20} className="mr-2 inline" />
-                      Contactar
-                    </button>
+                    {sanitizedWhatsApp && (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={handleWhatsAppClick}
+                        className="rounded-xl border-2 border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 transition-all hover:bg-slate-50"
+                      >
+                        <Icon name="message" size={20} className="mr-2 inline" />
+                        {items.length > 0 ? 'Pedir por WhatsApp' : 'Ver catalogo en WhatsApp'}
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -50845,7 +52409,7 @@ export default function StoreProducts() {
                   onAddToCart={() => handleAddToCart(product)}
                 />
                 {addedNoticeProductId === String(product.id) ? (
-                  <p className="mt-2 text-center text-xs font-semibold text-emerald-700">Agregado al carrito âœ…</p>
+                  <p className="mt-2 text-center text-xs font-semibold text-emerald-700">Agregado al carrito ✅</p>
                 ) : null}
               </div>
             ))}
@@ -51590,6 +53154,7 @@ export async function lookupMerchantProductCode(payload: ProductCodeLookupPayloa
   const { data } = await API.post('/merchant/products/lookup-code', payload)
   return data as ProductCodeLookupResponse
 }
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/services/productCodeLookup.ts -->
 
@@ -51681,6 +53246,7 @@ export const uploadProductImage = (file: File) => uploadImage('/uploads/products
 export const uploadStoreLogo = (file: File) => uploadImage('/uploads/stores/logo', file)
 export const uploadStoreCover = (file: File) => uploadImage('/uploads/stores/cover', file)
 export const uploadProfilePhoto = (file: File) => uploadImage('/uploads/profiles/photo', file)
+
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/services/uploads.ts -->
 
@@ -51701,6 +53267,7 @@ export interface Store {
   name: string
   slug?: string
   description?: string
+  is_verified?: boolean
   whatsapp?: string
   support_email?: string
   facebook?: string
@@ -51780,6 +53347,43 @@ export interface MerchantCustomersStats {
   new_this_month: number
   with_orders: number
   total_revenue: number
+}
+
+export interface CreditAccountRow {
+  id: number
+  store_id: number
+  customer_id: number
+  balance: number | string
+  credit_limit: number | string
+  status: 'active' | 'suspended'
+  customer: {
+    id: number
+    user: {
+      id: number
+      name: string
+      email: string
+      phone?: string | null
+    }
+  }
+}
+
+export interface CreditTransactionRow {
+  id: number
+  credit_account_id: number
+  type: 'charge' | 'payment' | 'adjustment'
+  amount: number | string
+  balance_after: number | string
+  note?: string | null
+  created_at: string
+}
+
+export interface StoreVerification {
+  id: number
+  store_id: number
+  status: 'pending' | 'approved' | 'rejected'
+  document_url?: string | null
+  notes?: string | null
+  reviewed_at?: string | null
 }
 ~~~~
 <!-- END_CODE_FILE: comercio-plus-frontend/src/types/api.ts -->
@@ -53822,7 +55426,7 @@ export default defineConfig(({ mode }) => {
                     "homepage": "https://github.com/Nyholm"
                 },
                 {
-                    "name": "MÃ¡rk SÃ¡gi-KazÃ¡r",
+                    "name": "Márk Sági-Kazár",
                     "email": "mark.sagikazar@gmail.com",
                     "homepage": "https://github.com/sagikazarmark"
                 },
@@ -54017,7 +55621,7 @@ export default defineConfig(({ mode }) => {
                     "homepage": "https://github.com/Nyholm"
                 },
                 {
-                    "name": "MÃ¡rk SÃ¡gi-KazÃ¡r",
+                    "name": "Márk Sági-Kazár",
                     "email": "mark.sagikazar@gmail.com",
                     "homepage": "https://github.com/sagikazarmark"
                 },
@@ -54027,7 +55631,7 @@ export default defineConfig(({ mode }) => {
                     "homepage": "https://github.com/Tobion"
                 },
                 {
-                    "name": "MÃ¡rk SÃ¡gi-KazÃ¡r",
+                    "name": "Márk Sági-Kazár",
                     "email": "mark.sagikazar@gmail.com",
                     "homepage": "https://sagikazarmark.hu"
                 }
@@ -55578,7 +57182,7 @@ export default defineConfig(({ mode }) => {
                     "homepage": "https://nette.org/contributors"
                 }
             ],
-            "description": "ðŸ“ Nette Schema: validating data structures against a given Schema.",
+            "description": "📐 Nette Schema: validating data structures against a given Schema.",
             "homepage": "https://nette.org",
             "keywords": [
                 "config",
@@ -55655,7 +57259,7 @@ export default defineConfig(({ mode }) => {
                     "homepage": "https://nette.org/contributors"
                 }
             ],
-            "description": "ðŸ›   Nette Utils: lightweight utilities for string & array manipulation, image handling, safe JSON encoding/decoding, validation, slug or strong password generating etc.",
+            "description": "🛠  Nette Utils: lightweight utilities for string & array manipulation, image handling, safe JSON encoding/decoding, validation, slug or strong password generating etc.",
             "homepage": "https://nette.org",
             "keywords": [
                 "array",
@@ -56883,7 +58487,7 @@ export default defineConfig(({ mode }) => {
                     "email": "fabien@symfony.com"
                 },
                 {
-                    "name": "Jean-FranÃ§ois Simon",
+                    "name": "Jean-François Simon",
                     "email": "jeanfrancois.simon@sensiolabs.com"
                 },
                 {
@@ -58378,7 +59982,7 @@ export default defineConfig(({ mode }) => {
             ],
             "authors": [
                 {
-                    "name": "GrÃ©goire Pineau",
+                    "name": "Grégoire Pineau",
                     "email": "lyrixx@lyrixx.info"
                 },
                 {
@@ -58963,7 +60567,7 @@ export default defineConfig(({ mode }) => {
             ],
             "authors": [
                 {
-                    "name": "GrÃ©goire Pineau",
+                    "name": "Grégoire Pineau",
                     "email": "lyrixx@lyrixx.info"
                 },
                 {
@@ -59355,7 +60959,7 @@ export default defineConfig(({ mode }) => {
             ],
             "authors": [
                 {
-                    "name": "FranÃ§ois Zaninotto"
+                    "name": "François Zaninotto"
                 }
             ],
             "description": "Faker is a PHP library that generates fake data for you.",
@@ -59658,7 +61262,7 @@ export default defineConfig(({ mode }) => {
             ],
             "authors": [
                 {
-                    "name": "PÃ¡draic Brady",
+                    "name": "Pádraic Brady",
                     "email": "padraic.brady@gmail.com",
                     "homepage": "https://github.com/padraic",
                     "role": "Author"
@@ -62505,6 +64109,7 @@ return [
     'url' => env('CLOUDINARY_URL', ''),
     'timeout' => (int) env('CLOUDINARY_TIMEOUT', 45),
 ];
+
 ~~~~
 <!-- END_CODE_FILE: config/cloudinary.php -->
 
@@ -63564,7 +65169,7 @@ return [
     | Sanctum Guards
     |--------------------------------------------------------------------------
     |
-    | API pura, sin sesiÃ³n web.
+    | API pura, sin sesión web.
     |
     */
     'guard' => [],
@@ -63574,7 +65179,7 @@ return [
     | Expiration Minutes
     |--------------------------------------------------------------------------
     |
-    | Tokens sin expiraciÃ³n automÃ¡tica (controlados manualmente).
+    | Tokens sin expiración automática (controlados manualmente).
     |
     */
     'expiration' => null,
@@ -64067,6 +65672,7 @@ class OrderFactory extends Factory
         ];
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: database/factories/OrderFactory.php -->
 
@@ -64094,33 +65700,33 @@ class ProductFactory extends Factory
     {
         $productNames = [
             'Casco de moto integral', 'Chaqueta de cuero para moto', 'Guantes de moto de verano', 'Botas de moto impermeables',
-            'Filtro de aceite para moto', 'Pastillas de freno delanteras', 'Kit de arrastre para moto', 'NeumÃƒÂ¡tico trasero para moto',
-            'Aceite de motor 4T 10W-40', 'BujÃƒÂ­a de iridio para moto', 'BaterÃƒÂ­a de gel para moto', 'Manillar de moto deportivo',
-            'Espejos retrovisores para moto', 'Intermitentes LED para moto', 'Faro delantero halÃƒÂ³geno', 'Soporte para mÃƒÂ³vil en moto',
-            'Alarma para moto con GPS', 'Candado de disco con alarma', 'Funda para moto exterior', 'BaÃƒÂºl para moto de 48 litros'
+            'Filtro de aceite para moto', 'Pastillas de freno delanteras', 'Kit de arrastre para moto', 'NeumÃ¡tico trasero para moto',
+            'Aceite de motor 4T 10W-40', 'BujÃ­a de iridio para moto', 'BaterÃ­a de gel para moto', 'Manillar de moto deportivo',
+            'Espejos retrovisores para moto', 'Intermitentes LED para moto', 'Faro delantero halÃ³geno', 'Soporte para mÃ³vil en moto',
+            'Alarma para moto con GPS', 'Candado de disco con alarma', 'Funda para moto exterior', 'BaÃºl para moto de 48 litros'
         ];
 
         $productDescriptions = [
-            'Casco de moto integral con certificaciÃƒÂ³n ECE 22.05, interior desmontable y lavable.',
+            'Casco de moto integral con certificaciÃ³n ECE 22.05, interior desmontable y lavable.',
             'Chaqueta de cuero bovino de alta resistencia, con protecciones en hombros y codos.',
             'Guantes de moto de verano con tejido transpirable y protecciones en los nudillos.',
             'Botas de moto impermeables con membrana Gore-Tex y suela antideslizante.',
             'Filtro de aceite de alto rendimiento para motores de 4 tiempos.',
             'Pastillas de freno delanteras sinterizadas para una frenada potente y progresiva.',
-            'Kit de arrastre completo con cadena, corona y piÃƒÂ±ÃƒÂ³n de acero de alta calidad.',
-            'NeumÃƒÂ¡tico trasero deportivo para moto, con excelente agarre en seco y mojado.',
-            'Aceite de motor sintÃƒÂ©tico 4T 10W-40 para un rendimiento ÃƒÂ³ptimo del motor.',
-            'BujÃƒÂ­a de iridio de larga duraciÃƒÂ³n para una mejor combustiÃƒÂ³n y arranque.',
-            'BaterÃƒÂ­a de gel sin mantenimiento, con mayor potencia de arranque.',
-            'Manillar de moto deportivo de aluminio, mÃƒÂ¡s ligero y resistente que el original.',
-            'Juego de espejos retrovisores homologados para moto, con diseÃƒÂ±o aerodinÃƒÂ¡mico.',
+            'Kit de arrastre completo con cadena, corona y piÃ±Ã³n de acero de alta calidad.',
+            'NeumÃ¡tico trasero deportivo para moto, con excelente agarre en seco y mojado.',
+            'Aceite de motor sintÃ©tico 4T 10W-40 para un rendimiento Ã³ptimo del motor.',
+            'BujÃ­a de iridio de larga duraciÃ³n para una mejor combustiÃ³n y arranque.',
+            'BaterÃ­a de gel sin mantenimiento, con mayor potencia de arranque.',
+            'Manillar de moto deportivo de aluminio, mÃ¡s ligero y resistente que el original.',
+            'Juego de espejos retrovisores homologados para moto, con diseÃ±o aerodinÃ¡mico.',
             'Juego de 4 intermitentes LED para moto, con mayor visibilidad y menor consumo.',
-            'Faro delantero halÃƒÂ³geno H4 para una mejor iluminaciÃƒÂ³n de la carretera.',
-            'Soporte universal para mÃƒÂ³vil en moto, con fijaciÃƒÂ³n al manillar o al espejo.',
-            'Alarma para moto con localizador GPS y aviso al mÃƒÂ³vil en caso de robo.',
+            'Faro delantero halÃ³geno H4 para una mejor iluminaciÃ³n de la carretera.',
+            'Soporte universal para mÃ³vil en moto, con fijaciÃ³n al manillar o al espejo.',
+            'Alarma para moto con localizador GPS y aviso al mÃ³vil en caso de robo.',
             'Candado de disco con alarma de 120 dB para disuadir a los ladrones.',
-            'Funda para moto de exterior, impermeable y con protecciÃƒÂ³n UV.',
-            'BaÃƒÂºl para moto con capacidad para dos cascos integrales y respaldo para el pasajero.'
+            'Funda para moto de exterior, impermeable y con protecciÃ³n UV.',
+            'BaÃºl para moto con capacidad para dos cascos integrales y respaldo para el pasajero.'
         ];
 
         $store = Store::factory()->create();
@@ -64513,10 +66119,10 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
 
-            // BÃƒÂ¡sicos
+            // BÃ¡sicos
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable(); // verificaciÃƒÂ³n de correo
+            $table->timestamp('email_verified_at')->nullable(); // verificaciÃ³n de correo
             $table->string('password');
 
             // Perfil
@@ -64528,7 +66134,7 @@ return new class extends Migration
             // Rol (opcional) - si borran el rol, queda null
             $table->foreignId('role_id')->nullable()->constrained('roles')->nullOnDelete();
 
-            // Tokens de sesiÃƒÂ³n Ã¢â‚¬Å“recuÃƒÂ©rdameÃ¢â‚¬Â
+            // Tokens de sesiÃ³n â€œrecuÃ©rdameâ€
             $table->rememberToken();
 
             $table->timestamps();
@@ -64564,37 +66170,37 @@ return new class extends Migration
      * Run the migrations.
      *
      * Esta migration extiende la tabla categories para soportar:
-     * - slug ÃƒÂºnico para URLs/consistencia
-     * - popularity (score) y sales_count para identificar categorÃƒÂ­as populares
-     * - is_popular boolean para marcar manualmente una categorÃƒÂ­a como destacada
-     * - ÃƒÂ­ndices ÃƒÂºtiles para bÃƒÂºsquedas y ordenamiento
+     * - slug Ãºnico para URLs/consistencia
+     * - popularity (score) y sales_count para identificar categorÃ­as populares
+     * - is_popular boolean para marcar manualmente una categorÃ­a como destacada
+     * - Ã­ndices Ãºtiles para bÃºsquedas y ordenamiento
      *
-     * Con estos campos podrÃƒÂ¡s, desde el controlador de creaciÃƒÂ³n de productos,
+     * Con estos campos podrÃ¡s, desde el controlador de creaciÃ³n de productos,
      * hacer queries como: Category::orderByDesc('popularity')->limit(8)->get()
      * o Category::where('is_popular', true)->get() para llenar el <select>
-     * con las categorÃƒÂ­as mÃƒÂ¡s populares.
+     * con las categorÃ­as mÃ¡s populares.
      */
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
 
-            // Nombre visible de la categorÃƒÂ­a (ej: Lubricantes, Frenos...)
+            // Nombre visible de la categorÃ­a (ej: Lubricantes, Frenos...)
             $table->string('name')->index();
 
-            // Slug para url amigables y bÃƒÂºsquedas rÃƒÂ¡pidas (ÃƒÂºnico)
+            // Slug para url amigables y bÃºsquedas rÃ¡pidas (Ãºnico)
             $table->string('slug')->unique();
 
-            // Contador de ventas relacionadas (puedes actualizarlo desde lÃƒÂ³gica de ÃƒÂ³rdenes)
+            // Contador de ventas relacionadas (puedes actualizarlo desde lÃ³gica de Ã³rdenes)
             $table->unsignedBigInteger('sales_count')->default(0);
 
-            // PuntuaciÃƒÂ³n de popularidad (puede combinar ventas, views, conversiones...)
+            // PuntuaciÃ³n de popularidad (puede combinar ventas, views, conversiones...)
             $table->unsignedInteger('popularity')->default(0)->comment('Score de popularidad para ordenar categorieas');
 
-            // Marca manual para destacar categorÃƒÂ­as en UI
+            // Marca manual para destacar categorÃ­as en UI
             $table->boolean('is_popular')->default(false)->index();
 
-            // Texto opcional con descripciÃƒÂ³n corta (ÃƒÂºtil para tooltips)
+            // Texto opcional con descripciÃ³n corta (Ãºtil para tooltips)
             $table->string('short_description')->nullable();
 
             // Orden manual para listados si se requiere prioridad personalizada
@@ -64603,7 +66209,7 @@ return new class extends Migration
             // Timestamps
             $table->timestamps();
 
-            // ÃƒÂndices compuestos si buscas por popularidad y orden
+            // Ãndices compuestos si buscas por popularidad y orden
             $table->index(['popularity', 'sales_count']);
         });
     }
@@ -64727,7 +66333,7 @@ return new class extends Migration
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('type')->default('general'); // <-- CORRECCIÃƒâ€œN
+            $table->string('type')->default('general'); // <-- CORRECCIÃ“N
             $table->text('message');
             $table->boolean('read')->default(false);
             $table->timestamps();
@@ -64769,7 +66375,7 @@ return new class extends Migration
             $table->string('key');        // Ej: 'theme', 'notifications'
             $table->text('value');        // Ej: 'dark', 'enabled'
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
-            $table->enum('role', ['admin', 'user', 'all'])->default('all'); // Para quÃƒÂ© rol aplica
+            $table->enum('role', ['admin', 'user', 'all'])->default('all'); // Para quÃ© rol aplica
             $table->timestamps();
         });
     }
@@ -65132,7 +66738,7 @@ return new class extends Migration
         Schema::create('claims', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('title'); // <-- CORRECCIÃƒâ€œN
+            $table->string('title'); // <-- CORRECCIÃ“N
             $table->text('description');
             $table->string('status')->default('pendiente');
             $table->timestamps();
@@ -65401,9 +67007,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1) AsegÃƒÂºrate de no petar si aÃƒÂºn no existe 'stores'
+        // 1) AsegÃºrate de no petar si aÃºn no existe 'stores'
         if (!Schema::hasTable('stores') || !Schema::hasTable('orders')) {
-            return; // o lanza excepciÃƒÂ³n si prefieres
+            return; // o lanza excepciÃ³n si prefieres
         }
 
         Schema::table('orders', function (Blueprint $table) {
@@ -65411,8 +67017,8 @@ return new class extends Migration
             if (!Schema::hasColumn('orders', 'store_id')) {
                 $table->foreignId('store_id')->constrained('stores')->cascadeOnDelete();
             } else {
-                // Si existe store_id pero sin FK, intentamos aÃƒÂ±adir FK
-                // Laravel no tiene helper "if FK exists", asÃƒÂ­ que si llega a fallar, se maneja en down()
+                // Si existe store_id pero sin FK, intentamos aÃ±adir FK
+                // Laravel no tiene helper "if FK exists", asÃ­ que si llega a fallar, se maneja en down()
                 try {
                     $table->foreign('store_id')->references('id')->on('stores')->cascadeOnDelete();
                 } catch (\Throwable $e) { /* ignora si ya existe */ }
@@ -65992,12 +67598,12 @@ return new class extends Migration
                 }
             });
 
-            // Copiar datos antiguos de "avatar" hacia "avatar_path" (si existÃƒÂ­an)
+            // Copiar datos antiguos de "avatar" hacia "avatar_path" (si existÃ­an)
             try {
                 DB::statement('UPDATE users SET avatar = avatar WHERE avatar IS NOT NULL');
             } catch (\Throwable $e) {
-                // Si falla por cualquier motivo, no rompemos la migraciÃƒÂ³n.
-                // (Opcionalmente podrÃƒÂ­as loguear el error)
+                // Si falla por cualquier motivo, no rompemos la migraciÃ³n.
+                // (Opcionalmente podrÃ­as loguear el error)
             }
         }
     }
@@ -66043,7 +67649,7 @@ return new class extends Migration
     {
         Schema::table('stores', function (Blueprint $table) {
             // No necesitamos agregar cover_path y cover_url porque ya existen como background_path y background_url
-            // Esta migraciÃƒÂ³n se puede usar para otros fines si es necesario
+            // Esta migraciÃ³n se puede usar para otros fines si es necesario
         });
     }
 
@@ -66144,19 +67750,19 @@ return new class extends Migration
             $table->string('action'); // login, logout, create, update, delete, etc.
             $table->string('model_type')->nullable(); // App\Models\User, App\Models\Product, etc.
             $table->unsignedBigInteger('model_id')->nullable(); // ID del modelo afectado
-            $table->unsignedBigInteger('user_id')->nullable(); // Usuario que realizÃƒÂ³ la acciÃƒÂ³n
-            $table->string('user_name')->nullable(); // Nombre del usuario para logs histÃƒÂ³ricos
+            $table->unsignedBigInteger('user_id')->nullable(); // Usuario que realizÃ³ la acciÃ³n
+            $table->string('user_name')->nullable(); // Nombre del usuario para logs histÃ³ricos
             $table->json('old_values')->nullable(); // Valores anteriores (para updates)
             $table->json('new_values')->nullable(); // Valores nuevos (para updates/creates)
             $table->string('ip_address')->nullable(); // IP del usuario
             $table->text('user_agent')->nullable(); // User agent del navegador
-            $table->string('url')->nullable(); // URL donde ocurriÃƒÂ³ la acciÃƒÂ³n
+            $table->string('url')->nullable(); // URL donde ocurriÃ³ la acciÃ³n
             $table->string('method')->nullable(); // GET, POST, PUT, DELETE
-            $table->text('description')->nullable(); // DescripciÃƒÂ³n legible de la actividad
-            $table->json('metadata')->nullable(); // InformaciÃƒÂ³n adicional
+            $table->text('description')->nullable(); // DescripciÃ³n legible de la actividad
+            $table->json('metadata')->nullable(); // InformaciÃ³n adicional
             $table->timestamps();
 
-            // ÃƒÂndices para mejor performance
+            // Ãndices para mejor performance
             $table->index(['user_id', 'created_at']);
             $table->index(['model_type', 'model_id']);
             $table->index(['action', 'created_at']);
@@ -66512,11 +68118,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // Quita el ÃƒÂ­ndice ÃƒÂºnico actual sobre 'slug'
-            // AsegÃƒÂºrate que el nombre coincide con el de tu BD: 'products_slug_unique'
+            // Quita el Ã­ndice Ãºnico actual sobre 'slug'
+            // AsegÃºrate que el nombre coincide con el de tu BD: 'products_slug_unique'
             $table->dropUnique('products_slug_unique');
 
-            // Crea ÃƒÂ­ndice ÃƒÂºnico compuesto por tienda + slug
+            // Crea Ã­ndice Ãºnico compuesto por tienda + slug
             $table->unique(['store_id', 'slug'], 'products_store_id_slug_unique');
         });
     }
@@ -66524,7 +68130,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // Revierte al ÃƒÂ­ndice ÃƒÂºnico simple en 'slug'
+            // Revierte al Ã­ndice Ãºnico simple en 'slug'
             $table->dropUnique('products_store_id_slug_unique');
             $table->unique('slug', 'products_slug_unique');
         });
@@ -66893,6 +68499,7 @@ return new class extends Migration
         Schema::dropIfExists('customers');
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_13_170000_create_customers_table.php -->
 
@@ -66960,6 +68567,7 @@ return new class extends Migration
         });
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_15_000001_add_wompi_fields_to_orders_table.php -->
 
@@ -67399,6 +69007,7 @@ return new class extends Migration
         });
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_21_000009_add_products_store_created_at_index.php -->
 
@@ -67445,6 +69054,7 @@ return new class extends Migration
         });
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_22_000010_add_fulfillment_status_to_orders_table.php -->
 
@@ -67506,6 +69116,7 @@ return new class extends Migration
         });
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_22_000011_add_picking_fields_to_order_products_table.php -->
 
@@ -67548,6 +69159,7 @@ return new class extends Migration
         Schema::dropIfExists('product_codes');
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_22_000012_create_product_codes_table.php -->
 
@@ -67604,6 +69216,7 @@ return new class extends Migration
         Schema::dropIfExists('order_picking_events');
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_22_000013_create_order_picking_events_table.php -->
 
@@ -67647,6 +69260,7 @@ return new class extends Migration
         Schema::dropIfExists('order_picking_sessions');
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_22_000014_create_order_picking_sessions_table.php -->
 
@@ -67708,6 +69322,7 @@ return new class extends Migration
         });
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations/2026_02_22_000015_add_receive_fields_to_inventory_movements_table.php -->
 
@@ -67753,6 +69368,223 @@ return new class extends Migration
 
 ---
 
+### FILE: database/migrations/2026_02_27_000001_add_channel_to_orders_table.php
+
+<!-- BEGIN_CODE_FILE: database/migrations/2026_02_27_000001_add_channel_to_orders_table.php -->
+~~~~php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('orders', function (Blueprint $table) {
+            $table->enum('channel', ['web', 'whatsapp', 'local'])
+                  ->default('web')
+                  ->after('status');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropColumn('channel');
+        });
+    }
+};
+~~~~
+<!-- END_CODE_FILE: database/migrations/2026_02_27_000001_add_channel_to_orders_table.php -->
+
+---
+
+### FILE: database/migrations/2026_02_27_100001_create_credit_accounts_table.php
+
+<!-- BEGIN_CODE_FILE: database/migrations/2026_02_27_100001_create_credit_accounts_table.php -->
+~~~~php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('credit_accounts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('store_id')->constrained('stores')->cascadeOnDelete();
+            $table->foreignId('customer_id')->constrained('customers')->cascadeOnDelete();
+            $table->decimal('balance', 12, 2)->default(0);
+            $table->decimal('credit_limit', 12, 2)->default(0);
+            $table->enum('status', ['active', 'suspended'])->default('active');
+            $table->timestamps();
+            $table->unique(['store_id', 'customer_id']);
+            $table->index(['store_id', 'status']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('credit_accounts');
+    }
+};
+~~~~
+<!-- END_CODE_FILE: database/migrations/2026_02_27_100001_create_credit_accounts_table.php -->
+
+---
+
+### FILE: database/migrations/2026_02_27_100002_create_credit_transactions_table.php
+
+<!-- BEGIN_CODE_FILE: database/migrations/2026_02_27_100002_create_credit_transactions_table.php -->
+~~~~php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('credit_transactions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('credit_account_id')->constrained('credit_accounts')->cascadeOnDelete();
+            $table->enum('type', ['charge', 'payment', 'adjustment']);
+            $table->decimal('amount', 12, 2);
+            $table->decimal('balance_after', 12, 2);
+            $table->string('reference_type', 50)->nullable();
+            $table->unsignedBigInteger('reference_id')->nullable();
+            $table->text('note')->nullable();
+            $table->foreignId('created_by')->constrained('users');
+            $table->timestamp('created_at')->useCurrent();
+            $table->index(['credit_account_id', 'created_at']);
+            $table->index(['reference_type', 'reference_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('credit_transactions');
+    }
+};
+~~~~
+<!-- END_CODE_FILE: database/migrations/2026_02_27_100002_create_credit_transactions_table.php -->
+
+---
+
+### FILE: database/migrations/2026_02_27_100003_add_is_verified_to_stores_table.php
+
+<!-- BEGIN_CODE_FILE: database/migrations/2026_02_27_100003_add_is_verified_to_stores_table.php -->
+~~~~php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('stores', function (Blueprint $table) {
+            $table->boolean('is_verified')->default(false)->after('is_visible');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('stores', function (Blueprint $table) {
+            $table->dropColumn('is_verified');
+        });
+    }
+};
+~~~~
+<!-- END_CODE_FILE: database/migrations/2026_02_27_100003_add_is_verified_to_stores_table.php -->
+
+---
+
+### FILE: database/migrations/2026_02_27_100004_create_store_verifications_table.php
+
+<!-- BEGIN_CODE_FILE: database/migrations/2026_02_27_100004_create_store_verifications_table.php -->
+~~~~php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('store_verifications', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('store_id')->unique()->constrained('stores')->cascadeOnDelete();
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('document_url', 2048)->nullable();
+            $table->string('document_path', 512)->nullable();
+            $table->text('notes')->nullable();
+            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->timestamps();
+            $table->index('status');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('store_verifications');
+    }
+};
+~~~~
+<!-- END_CODE_FILE: database/migrations/2026_02_27_100004_create_store_verifications_table.php -->
+
+---
+
+### FILE: database/migrations/2026_02_27_100005_create_product_alerts_table.php
+
+<!-- BEGIN_CODE_FILE: database/migrations/2026_02_27_100005_create_product_alerts_table.php -->
+~~~~php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('product_alerts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->decimal('target_price', 10, 2);
+            $table->boolean('is_triggered')->default(false);
+            $table->timestamp('triggered_at')->nullable();
+            $table->timestamps();
+            $table->unique(['user_id', 'product_id']);
+            $table->index(['product_id', 'is_triggered']);
+            $table->index('is_triggered');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('product_alerts');
+    }
+};
+~~~~
+<!-- END_CODE_FILE: database/migrations/2026_02_27_100005_create_product_alerts_table.php -->
+
+---
+
 ### FILE: database/migrations_archive/duplicadas/2025_01_16_create_orders_table.php
 
 <!-- BEGIN_CODE_FILE: database/migrations_archive/duplicadas/2025_01_16_create_orders_table.php -->
@@ -67784,7 +69616,7 @@ return new class extends Migration
             $table->string('customer_address')->nullable();
             $table->string('customer_city')->nullable();
             
-            // InformaciÃ³n de pago
+            // Información de pago
             $table->decimal('total_amount', 12, 2);
             $table->enum('payment_method', ['PSE', 'NEQUI', 'BANCOLOMBIA', 'CARD']);
             
@@ -67808,7 +69640,7 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Ãndices
+            // Índices
             $table->index('payment_reference');
             $table->index('wompi_transaction_id');
             $table->index('status');
@@ -67862,6 +69694,7 @@ return new class extends Migration
         Schema::dropIfExists('categories');
     }
 };
+
 ~~~~
 <!-- END_CODE_FILE: database/migrations_archive/fase4b_20260206/2024_01_01_000003_create_categories_table.php -->
 
@@ -67897,7 +69730,7 @@ return new class extends Migration
             $table->boolean('is_visible')->default(1);
             $table->timestamps();
 
-            // RelaciÃƒÂ³n con usuarios
+            // RelaciÃ³n con usuarios
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
@@ -68065,19 +69898,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * AÃƒÂ±ade campos necesarios para soportar la lÃƒÂ³gica de categorÃƒÂ­as populares:
-     * - slug (ÃƒÂºnico)
+     * AÃ±ade campos necesarios para soportar la lÃ³gica de categorÃ­as populares:
+     * - slug (Ãºnico)
      * - sales_count (contador de ventas)
      * - popularity (score para ordenar)
      * - is_popular (marcado manual)
-     * - short_description (descripciÃƒÂ³n corta)
+     * - short_description (descripciÃ³n corta)
      *
-     * Nota: si tu tabla ya tiene 'slug' (u otros), puedes comentar la lÃƒÂ­nea correspondiente.
+     * Nota: si tu tabla ya tiene 'slug' (u otros), puedes comentar la lÃ­nea correspondiente.
      */
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // AÃƒÂ±adimos columnas sÃƒÂ³lo si no existen (protecciÃƒÂ³n si vuelves a ejecutar)
+            // AÃ±adimos columnas sÃ³lo si no existen (protecciÃ³n si vuelves a ejecutar)
             if (!Schema::hasColumn('categories', 'slug')) {
                 $table->string('slug')->unique()->after('name');
             }
@@ -68098,8 +69931,8 @@ return new class extends Migration
                 $table->string('short_description')->nullable()->after('is_popular');
             }
 
-            // ÃƒÂndice compuesto opcional para consultas por popularidad
-            // Evitamos crear ÃƒÂ­ndice duplicado si ya existe
+            // Ãndice compuesto opcional para consultas por popularidad
+            // Evitamos crear Ã­ndice duplicado si ya existe
             try {
                 $sm = Schema::getConnection()->getDoctrineSchemaManager();
                 $indexes = array_map(fn($i) => $i->getName(), $sm->listTableIndexes('categories'));
@@ -68119,13 +69952,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // Eliminamos los ÃƒÂ­ndices antes de columnas si existen
+            // Eliminamos los Ã­ndices antes de columnas si existen
             if (Schema::hasColumn('categories', 'popularity') && Schema::hasColumn('categories', 'sales_count')) {
-                // Intentamos eliminar ÃƒÂ­ndice por nombre; si no existe, no falla
+                // Intentamos eliminar Ã­ndice por nombre; si no existe, no falla
                 try {
                     $table->dropIndex('categories_popularity_sales_count_index');
                 } catch (\Throwable $e) {
-                    // ÃƒÂ­ndice no existe o DB diferente; ignorar
+                    // Ã­ndice no existe o DB diferente; ignorar
                 }
             }
 
@@ -68167,24 +70000,24 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * AÃƒÂ±ade store_id (foreign key) a la tabla categories y crea un ÃƒÂ­ndice ÃƒÂºnico compuesto (store_id, slug)
+     * AÃ±ade store_id (foreign key) a la tabla categories y crea un Ã­ndice Ãºnico compuesto (store_id, slug)
      * para permitir slugs iguales en diferentes tiendas. Es seguro si la tabla ya tiene datos.
      */
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // AÃƒÂ±adir store_id si no existe
+            // AÃ±adir store_id si no existe
             if (!Schema::hasColumn('categories', 'store_id')) {
-                // nullable() permite categorÃƒÂ­as globales (null = global)
+                // nullable() permite categorÃ­as globales (null = global)
                 $table->foreignId('store_id')->nullable()->constrained('stores')->nullOnDelete()->after('id');
             }
 
-            // AÃƒÂ±adir slug si no existe (no obligamos si ya existe)
+            // AÃ±adir slug si no existe (no obligamos si ya existe)
             if (!Schema::hasColumn('categories', 'slug')) {
                 $table->string('slug')->after('name')->nullable();
             }
 
-            // Crear ÃƒÂ­ndice ÃƒÂºnico compuesto store_id + slug (si no existe)
+            // Crear Ã­ndice Ãºnico compuesto store_id + slug (si no existe)
             // Usamos try/catch para evitar fallos en distintos motores/estado de BD
             try {
                 $sm = Schema::getConnection()->getDoctrineSchemaManager();
@@ -68194,7 +70027,7 @@ return new class extends Migration
             }
 
             if (!in_array('categories_store_slug_unique', $indexes)) {
-                // Si slug es nullable, MySQL permite mÃƒÂºltiples NULL; el ÃƒÂ­ndice ÃƒÂºnico funcionarÃƒÂ¡ por store_id+slug
+                // Si slug es nullable, MySQL permite mÃºltiples NULL; el Ã­ndice Ãºnico funcionarÃ¡ por store_id+slug
                 $table->unique(['store_id', 'slug'], 'categories_store_slug_unique');
             }
         });
@@ -68206,7 +70039,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // Eliminar ÃƒÂ­ndice compuesto si existe
+            // Eliminar Ã­ndice compuesto si existe
             try {
                 $table->dropUnique('categories_store_slug_unique');
             } catch (\Throwable $e) {
@@ -68260,23 +70093,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // AÃƒÂ±adir store_id si no existe
+            // AÃ±adir store_id si no existe
             if (! Schema::hasColumn('products', 'store_id')) {
                 // Nullable para no romper creaciones previas; null = producto sin tienda (si las hay)
                 $table->foreignId('store_id')->nullable()->after('user_id')
                       ->constrained('stores')->nullOnDelete();
             }
 
-            // Si no existe ÃƒÂ­ndice sobre store_id, crearlo
+            // Si no existe Ã­ndice sobre store_id, crearlo
             if (! Schema::hasColumn('products', 'store_id')) {
-                // la condiciÃƒÂ³n anterior ya aÃƒÂ±adiÃƒÂ³ la columna; aquÃƒÂ­ por seguridad intentamos index
+                // la condiciÃ³n anterior ya aÃ±adiÃ³ la columna; aquÃ­ por seguridad intentamos index
                 try {
                     $table->index('store_id', 'products_store_id_index');
                 } catch (\Throwable $e) {
-                    // ignorar si el ÃƒÂ­ndice ya existe o DB no lo soporta de la misma forma
+                    // ignorar si el Ã­ndice ya existe o DB no lo soporta de la misma forma
                 }
             } else {
-                // Si la columna ya existÃƒÂ­a (raro), aseguramos el ÃƒÂ­ndice por nombre si no existe
+                // Si la columna ya existÃ­a (raro), aseguramos el Ã­ndice por nombre si no existe
                 try {
                     $sm = Schema::getConnection()->getDoctrineSchemaManager();
                     $indexes = array_map(fn($i) => $i->getName(), $sm->listTableIndexes('products'));
@@ -68300,7 +70133,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // Eliminar ÃƒÂ­ndice si existe
+            // Eliminar Ã­ndice si existe
             try {
                 $table->dropIndex('products_store_id_index');
             } catch (\Throwable $e) {
@@ -68350,10 +70183,10 @@ class CategorySeeder extends Seeder
     public function run()
     {
         $categories = [
-            ['name' => 'Cascos y protecciÃ³n', 'slug' => 'cascos-y-proteccion', 'description' => 'Cascos, guantes, chaquetas y seguridad'],
+            ['name' => 'Cascos y protección', 'slug' => 'cascos-y-proteccion', 'description' => 'Cascos, guantes, chaquetas y seguridad'],
             ['name' => 'Accesorios para moto', 'slug' => 'accesorios-para-moto', 'description' => 'Accesorios y mejoras para tu moto'],
-            ['name' => 'Frenos y suspensiÃ³n', 'slug' => 'frenos-y-suspension', 'description' => 'Pastillas, discos y suspensiÃ³n'],
-            ['name' => 'Llantas y rines', 'slug' => 'llantas-y-rines', 'description' => 'Llantas, rines y neumÃ¡ticos'],
+            ['name' => 'Frenos y suspensión', 'slug' => 'frenos-y-suspension', 'description' => 'Pastillas, discos y suspensión'],
+            ['name' => 'Llantas y rines', 'slug' => 'llantas-y-rines', 'description' => 'Llantas, rines y neumáticos'],
             ['name' => 'Lubricantes y mantenimiento', 'slug' => 'lubricantes-y-mantenimiento', 'description' => 'Aceites y mantenimiento'],
             ['name' => 'Repuestos generales', 'slug' => 'repuestos-generales', 'description' => 'Repuestos para todo tipo de moto'],
         ];
@@ -68487,7 +70320,7 @@ class ComercioPlusSeeder extends Seeder
         }
 
         // -------------------------
-        // ASIGNAR PERMISOS A ROLES (Spatie tables) -- CORREGIDO OPCIÃƒâ€œN A
+        // ASIGNAR PERMISOS A ROLES (Spatie tables) -- CORREGIDO OPCIÃ“N A
         // -------------------------
         if (Schema::hasTable('roles') && Schema::hasTable('permissions') && Schema::hasTable('role_has_permissions')) {
             $roleAdminId = DB::table('roles')->where('name', 'admin')->value('id');
@@ -68654,8 +70487,8 @@ class ComercioPlusSeeder extends Seeder
                 ['name' => 'Ropa Moto', 'slug' => 'ropa-moto', 'description' => 'Ropa para motociclistas'],
                 ['name' => 'Aceites y Lubricantes', 'slug' => 'aceites-lubricantes', 'description' => 'Aceites y lubricantes para motos'],
                 ['name' => 'Frenos', 'slug' => 'frenos', 'description' => 'Sistema de frenos'],
-                ['name' => 'TransmisiÃƒÂ³n', 'slug' => 'transmision', 'description' => 'Cadenas y transmisiÃƒÂ³n'],
-                ['name' => 'IluminaciÃƒÂ³n', 'slug' => 'iluminacion', 'description' => 'Luces y accesorios elÃƒÂ©ctricos'],
+                ['name' => 'TransmisiÃ³n', 'slug' => 'transmision', 'description' => 'Cadenas y transmisiÃ³n'],
+                ['name' => 'IluminaciÃ³n', 'slug' => 'iluminacion', 'description' => 'Luces y accesorios elÃ©ctricos'],
                 ['name' => 'Accesorios', 'slug' => 'accesorios', 'description' => 'Accesorios varios'],
                 ['name' => 'Herramientas', 'slug' => 'herramientas', 'description' => 'Herramientas para mantenimiento'],
                 ['name' => 'Llantas y Rines', 'slug' => 'llantas-rines', 'description' => 'Llantas y rines para motos'],
@@ -68866,12 +70699,12 @@ class ComercioPlusSeeder extends Seeder
 
             $comments = [
                 'Excelente producto, muy recomendado',
-                'Buena calidad, llegÃƒÂ³ a tiempo',
+                'Buena calidad, llegÃ³ a tiempo',
                 'Producto como se describe',
                 'Muy satisfecho con la compra',
-                'Calidad superior, volverÃƒÂ© a comprar',
+                'Calidad superior, volverÃ© a comprar',
                 'Perfecto estado, excelente servicio',
-                'Me encantÃƒÂ³, superÃƒÂ³ expectativas',
+                'Me encantÃ³, superÃ³ expectativas',
                 'Buen precio por la calidad',
                 'Producto funcional y resistente',
                 'Recomiendo ampliamente'
@@ -68934,27 +70767,27 @@ class ComercioPlusSeeder extends Seeder
             $clientEmails = ['ana@cliente.com', 'luis1@cliente.com', 'marta2@cliente.com', 'diego3@cliente.com', 'sofia4@cliente.com', 'jorge5@cliente.com'];
             $titles = [
                 'Producto defectuoso',
-                'Producto no llegÃƒÂ³',
+                'Producto no llegÃ³',
                 'Producto diferente al pedido',
                 'Problema con el embalaje',
-                'Producto daÃƒÂ±ado en envÃƒÂ­o',
+                'Producto daÃ±ado en envÃ­o',
                 'Talla incorrecta',
                 'Color diferente al mostrado',
                 'Falta accesorio',
                 'Producto no funciona',
-                'Problema con la garantÃƒÂ­a'
+                'Problema con la garantÃ­a'
             ];
             $descriptions = [
-                'El casco llegÃƒÂ³ con rasguÃƒÂ±os',
-                'El pedido nunca llegÃƒÂ³ a mi direcciÃƒÂ³n',
-                'RecibÃƒÂ­ un producto diferente al que ordenÃƒÂ©',
-                'El embalaje estaba muy daÃƒÂ±ado',
-                'El producto llegÃƒÂ³ roto por el envÃƒÂ­o',
+                'El casco llegÃ³ con rasguÃ±os',
+                'El pedido nunca llegÃ³ a mi direcciÃ³n',
+                'RecibÃ­ un producto diferente al que ordenÃ©',
+                'El embalaje estaba muy daÃ±ado',
+                'El producto llegÃ³ roto por el envÃ­o',
                 'La talla no corresponde a la pedida',
                 'El color es diferente al de la foto',
                 'Faltaba un accesorio importante',
                 'El producto no enciende ni funciona',
-                'Problemas con la garantÃƒÂ­a del fabricante'
+                'Problemas con la garantÃ­a del fabricante'
             ];
 
             foreach ($clientEmails as $index => $email) {
@@ -68990,16 +70823,16 @@ class ComercioPlusSeeder extends Seeder
         // -------------------------
         if (Schema::hasTable('tutorials')) {
             $tutorials = [
-                ['language' => 'es', 'content' => 'Tutorial bÃƒÂ¡sico para registrarse en la plataforma'],
-                ['language' => 'es', 'content' => 'CÃƒÂ³mo crear y gestionar tu tienda en lÃƒÂ­nea'],
-                ['language' => 'es', 'content' => 'GuÃƒÂ­a para agregar productos a tu catÃƒÂ¡logo'],
-                ['language' => 'es', 'content' => 'Tutorial de gestiÃƒÂ³n de pedidos y envÃƒÂ­os'],
-                ['language' => 'es', 'content' => 'CÃƒÂ³mo configurar mÃƒÂ©todos de pago'],
-                ['language' => 'es', 'content' => 'GuÃƒÂ­a de promociones y descuentos'],
-                ['language' => 'es', 'content' => 'Tutorial de atenciÃƒÂ³n al cliente'],
-                ['language' => 'es', 'content' => 'CÃƒÂ³mo analizar reportes de ventas'],
-                ['language' => 'es', 'content' => 'GuÃƒÂ­a de seguridad y privacidad'],
-                ['language' => 'es', 'content' => 'Tutorial avanzado de personalizaciÃƒÂ³n de tienda'],
+                ['language' => 'es', 'content' => 'Tutorial bÃ¡sico para registrarse en la plataforma'],
+                ['language' => 'es', 'content' => 'CÃ³mo crear y gestionar tu tienda en lÃ­nea'],
+                ['language' => 'es', 'content' => 'GuÃ­a para agregar productos a tu catÃ¡logo'],
+                ['language' => 'es', 'content' => 'Tutorial de gestiÃ³n de pedidos y envÃ­os'],
+                ['language' => 'es', 'content' => 'CÃ³mo configurar mÃ©todos de pago'],
+                ['language' => 'es', 'content' => 'GuÃ­a de promociones y descuentos'],
+                ['language' => 'es', 'content' => 'Tutorial de atenciÃ³n al cliente'],
+                ['language' => 'es', 'content' => 'CÃ³mo analizar reportes de ventas'],
+                ['language' => 'es', 'content' => 'GuÃ­a de seguridad y privacidad'],
+                ['language' => 'es', 'content' => 'Tutorial avanzado de personalizaciÃ³n de tienda'],
             ];
 
             foreach ($tutorials as $index => $tutorial) {
@@ -69024,7 +70857,7 @@ class ComercioPlusSeeder extends Seeder
                     'name' => $st->name,
                     'nombre_tienda' => $st->name,
                     'slug' => Str::slug($st->name),
-                    'descripcion' => 'Tienda pÃƒÂºblica de ejemplo',
+                    'descripcion' => 'Tienda pÃºblica de ejemplo',
                     'logo' => $st->logo ?? null,
                     'cover' => $st->cover ?? null,
                     'direccion' => $st->address ?? null,
@@ -69049,14 +70882,14 @@ class ComercioPlusSeeder extends Seeder
             $user_id = DB::table('users')->where('email', 'ana@cliente.com')->value('id');
             if ($user_id) {
                 $act = $this->setIfColumnExists('activity_logs', [
-                    'action' => 'IniciÃƒÂ³ sesiÃƒÂ³n',
+                    'action' => 'IniciÃ³ sesiÃ³n',
                     'model_type' => 'User',
                     'model_id' => $user_id,
                     'user_id' => $user_id,
                     'user_name' => 'Ana Cliente'
                 ]);
                 $act = array_merge($act, ['created_at' => now(), 'updated_at' => now()]);
-                DB::table('activity_logs')->updateOrInsert(['user_id' => $user_id, 'action' => 'IniciÃƒÂ³ sesiÃƒÂ³n'], $act);
+                DB::table('activity_logs')->updateOrInsert(['user_id' => $user_id, 'action' => 'IniciÃ³ sesiÃ³n'], $act);
             }
         }
 
@@ -69126,16 +70959,16 @@ class ComercioPlusSeeder extends Seeder
         // -------------------------
         if (Schema::hasTable('locations')) {
             $locations = [
-                ['name' => 'BogotÃƒÂ¡', 'type' => 'city', 'parent_id' => null],
-                ['name' => 'MedellÃƒÂ­n', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'BogotÃ¡', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'MedellÃ­n', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Cali', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Barranquilla', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Cartagena', 'type' => 'city', 'parent_id' => null],
-                ['name' => 'CÃƒÂºcuta', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'CÃºcuta', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Bucaramanga', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Pereira', 'type' => 'city', 'parent_id' => null],
                 ['name' => 'Santa Marta', 'type' => 'city', 'parent_id' => null],
-                ['name' => 'IbaguÃƒÂ©', 'type' => 'city', 'parent_id' => null],
+                ['name' => 'IbaguÃ©', 'type' => 'city', 'parent_id' => null],
             ];
 
             foreach ($locations as $location) {
@@ -69348,10 +71181,10 @@ class ProductionMinimalSeeder extends Seeder
         );
 
         $categories = [
-            ['name' => 'Cascos y protecciÃ³n', 'slug' => 'cascos-y-proteccion', 'description' => 'Cascos, guantes, chaquetas y seguridad'],
+            ['name' => 'Cascos y protección', 'slug' => 'cascos-y-proteccion', 'description' => 'Cascos, guantes, chaquetas y seguridad'],
             ['name' => 'Accesorios para moto', 'slug' => 'accesorios-para-moto', 'description' => 'Accesorios y mejoras para tu moto'],
-            ['name' => 'Frenos y suspensiÃ³n', 'slug' => 'frenos-y-suspension', 'description' => 'Pastillas, discos y suspensiÃ³n'],
-            ['name' => 'Llantas y rines', 'slug' => 'llantas-y-rines', 'description' => 'Llantas, rines y neumÃ¡ticos'],
+            ['name' => 'Frenos y suspensión', 'slug' => 'frenos-y-suspension', 'description' => 'Pastillas, discos y suspensión'],
+            ['name' => 'Llantas y rines', 'slug' => 'llantas-y-rines', 'description' => 'Llantas, rines y neumáticos'],
             ['name' => 'Lubricantes y mantenimiento', 'slug' => 'lubricantes-y-mantenimiento', 'description' => 'Aceites y mantenimiento'],
             ['name' => 'Repuestos generales', 'slug' => 'repuestos-generales', 'description' => 'Repuestos para todo tipo de moto'],
         ];
@@ -69368,7 +71201,7 @@ class ProductionMinimalSeeder extends Seeder
             );
         }
 
-        $this->command->info('ProductionMinimalSeeder ejecutado: roles, permisos, admin y categorÃ­as base.');
+        $this->command->info('ProductionMinimalSeeder ejecutado: roles, permisos, admin y categorías base.');
     }
 }
 ~~~~
@@ -69575,30 +71408,30 @@ INSERT INTO categories (name) VALUES ('Cascos');
 INSERT INTO categories (name) VALUES ('Ropa y Protecciones');
 INSERT INTO categories (name) VALUES ('Accesorios');
 INSERT INTO categories (name) VALUES ('Repuestos');
-INSERT INTO categories (name) VALUES ('ElectrÃƒÂ³nica');
+INSERT INTO categories (name) VALUES ('ElectrÃ³nica');
 
 -- Insertar 20 productos
 INSERT INTO products (name, description, price, image, stock_quantity, category_id) VALUES
-('Casco de moto integral', 'Casco integral con certificaciÃƒÂ³n ECE 22.05 y interior desmontable', 129.99, 'https://via.placeholder.com/640x480.png?text=Casco', 25, 1),
+('Casco de moto integral', 'Casco integral con certificaciÃ³n ECE 22.05 y interior desmontable', 129.99, 'https://via.placeholder.com/640x480.png?text=Casco', 25, 1),
 ('Casco modular con visera solar', 'Casco modular con visera integrada y forro lavable', 179.50, 'https://via.placeholder.com/640x480.png?text=Casco+modular', 15, 1),
 ('Chaqueta de cuero para moto', 'Chaqueta de cuero bovino con protecciones en hombros y codos', 199.00, 'https://via.placeholder.com/640x480.png?text=Chaqueta', 12, 2),
 ('Guantes de moto de verano', 'Guantes transpirables con refuerzos en nudillos', 39.90, 'https://via.placeholder.com/640x480.png?text=Guantes', 40, 2),
 ('Botas de moto impermeables', 'Botas con membrana impermeable y suela antideslizante', 149.00, 'https://via.placeholder.com/640x480.png?text=Botas', 10, 2),
-('Soporte para mÃƒÂ³vil en moto', 'Soporte universal con fijaciÃƒÂ³n al manillar', 24.50, 'https://via.placeholder.com/640x480.png?text=Soporte+mÃƒÂ³vil', 60, 3),
-('Alarma para moto con GPS', 'Alarma con localizador GPS y alertas al mÃƒÂ³vil', 89.99, 'https://via.placeholder.com/640x480.png?text=Alarma+GPS', 8, 3),
+('Soporte para mÃ³vil en moto', 'Soporte universal con fijaciÃ³n al manillar', 24.50, 'https://via.placeholder.com/640x480.png?text=Soporte+mÃ³vil', 60, 3),
+('Alarma para moto con GPS', 'Alarma con localizador GPS y alertas al mÃ³vil', 89.99, 'https://via.placeholder.com/640x480.png?text=Alarma+GPS', 8, 3),
 ('Candado de disco con alarma', 'Candado con alarma de 120dB y cable reforzado', 54.99, 'https://via.placeholder.com/640x480.png?text=Candado', 22, 3),
 ('Filtro de aceite para moto', 'Filtro de alto rendimiento compatible con 4T', 12.50, 'https://via.placeholder.com/640x480.png?text=Filtro+aceite', 80, 4),
 ('Pastillas de freno delanteras', 'Pastillas sinterizadas para frenada potente', 45.00, 'https://via.placeholder.com/640x480.png?text=Pastillas+freno', 35, 4),
-('Kit de arrastre completo', 'Cadena, corona y piÃƒÂ±ÃƒÂ³n de acero de alta resistencia', 129.00, 'https://via.placeholder.com/640x480.png?text=Kit+arrastre', 14, 4),
-('NeumÃƒÂ¡tico trasero deportivo', 'NeumÃƒÂ¡tico con excelente agarre en seco y mojado', 99.95, 'https://via.placeholder.com/640x480.png?text=NeumÃƒÂ¡tico', 20, 4),
-('Aceite de motor 4T 10W-40', 'Aceite sintÃƒÂ©tico para motores 4T', 18.75, 'https://via.placeholder.com/640x480.png?text=Aceite+4T', 120, 4),
-('BujÃƒÂ­a de iridio', 'BujÃƒÂ­a de iridio para mejor combustiÃƒÂ³n y durabilidad', 19.99, 'https://via.placeholder.com/640x480.png?text=BujÃƒÂ­a', 50, 4),
-('BaterÃƒÂ­a de gel para moto', 'BaterÃƒÂ­a de gel sin mantenimiento con excelente arranque', 89.00, 'https://via.placeholder.com/640x480.png?text=BaterÃƒÂ­a', 9, 5),
-('Manillar deportivo de aluminio', 'Manillar deportivo mÃƒÂ¡s ligero y resistente', 74.90, 'https://via.placeholder.com/640x480.png?text=Manillar', 18, 5),
-('Espejos retrovisores homologados', 'Espejos con diseÃƒÂ±o aerodinÃƒÂ¡mico y homologados', 29.50, 'https://via.placeholder.com/640x480.png?text=Espejos', 45, 3),
+('Kit de arrastre completo', 'Cadena, corona y piÃ±Ã³n de acero de alta resistencia', 129.00, 'https://via.placeholder.com/640x480.png?text=Kit+arrastre', 14, 4),
+('NeumÃ¡tico trasero deportivo', 'NeumÃ¡tico con excelente agarre en seco y mojado', 99.95, 'https://via.placeholder.com/640x480.png?text=NeumÃ¡tico', 20, 4),
+('Aceite de motor 4T 10W-40', 'Aceite sintÃ©tico para motores 4T', 18.75, 'https://via.placeholder.com/640x480.png?text=Aceite+4T', 120, 4),
+('BujÃ­a de iridio', 'BujÃ­a de iridio para mejor combustiÃ³n y durabilidad', 19.99, 'https://via.placeholder.com/640x480.png?text=BujÃ­a', 50, 4),
+('BaterÃ­a de gel para moto', 'BaterÃ­a de gel sin mantenimiento con excelente arranque', 89.00, 'https://via.placeholder.com/640x480.png?text=BaterÃ­a', 9, 5),
+('Manillar deportivo de aluminio', 'Manillar deportivo mÃ¡s ligero y resistente', 74.90, 'https://via.placeholder.com/640x480.png?text=Manillar', 18, 5),
+('Espejos retrovisores homologados', 'Espejos con diseÃ±o aerodinÃ¡mico y homologados', 29.50, 'https://via.placeholder.com/640x480.png?text=Espejos', 45, 3),
 ('Intermitentes LED', 'Juego de intermitentes LED de alta visibilidad', 34.99, 'https://via.placeholder.com/640x480.png?text=Intermitentes', 30, 3),
-('Faro delantero halÃƒÂ³geno H4', 'Faro halÃƒÂ³geno H4 de alta potencia', 22.00, 'https://via.placeholder.com/640x480.png?text=Faro+H4', 26, 5),
-('BaÃƒÂºl para moto 48L', 'BaÃƒÂºl con capacidad para dos cascos y respaldo', 159.00, 'https://via.placeholder.com/640x480.png?text=BaÃƒÂºl+48L', 7, 3);
+('Faro delantero halÃ³geno H4', 'Faro halÃ³geno H4 de alta potencia', 22.00, 'https://via.placeholder.com/640x480.png?text=Faro+H4', 26, 5),
+('BaÃºl para moto 48L', 'BaÃºl con capacidad para dos cascos y respaldo', 159.00, 'https://via.placeholder.com/640x480.png?text=BaÃºl+48L', 7, 3);
 
 COMMIT;
 PRAGMA foreign_keys = ON;
@@ -73324,7 +75157,7 @@ export default {
 ### FILE: public/health.html
 
 <!-- BEGIN_CODE_FILE: public/health.html -->
-~~~~html
+~~~~text
 <!doctype html>
 <meta charset="utf-8">
 <title>health</title>
@@ -73541,6 +75374,7 @@ api.interceptors.response.use(
     throw e
   }
 )
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/api/client.js -->
 
@@ -73596,6 +75430,7 @@ onMounted(() => {
   apply(stored === 'dark' ? 'dark' : 'light')
 })
 </script>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/App.vue -->
 
@@ -73658,6 +75493,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
     <span class="text-xl font-extrabold tracking-tight text-white drop-shadow">COMERCIOPLUS</span>
   </div>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/AuthLogo.vue -->
 
@@ -73672,7 +75508,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
     <div class="grid md:grid-cols-2 gap-6 items-center">
       <div>
         <h2 id="branding-ai" class="text-2xl font-bold">Branding asistido por IA</h2>
-        <p class="mt-2 text-neutral-700 dark:text-neutral-300">Sube tu logo y generamos paleta, tipografÃ­a y una vista previa suave y profesional.</p>
+        <p class="mt-2 text-neutral-700 dark:text-neutral-300">Sube tu logo y generamos paleta, tipografía y una vista previa suave y profesional.</p>
         <div class="mt-4 flex gap-2">
           <button class="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-600 transition">Probar branding IA</button>
           <button class="px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">Ver ejemplo</button>
@@ -73689,6 +75525,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
     </div>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/BrandAIPromo.vue -->
 
@@ -73703,6 +75540,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
     <slot />
   </span>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/CategoryChip.vue -->
 
@@ -73747,7 +75585,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
               </div>
             </div>
             <p class="text-gray-300 leading-relaxed mb-6">
-              La plataforma lÃ­der para tiendas de repuestos de motocicletas.
+              La plataforma líder para tiendas de repuestos de motocicletas.
               Conecta con miles de clientes y haz crecer tu negocio.
             </p>
             <div class="flex space-x-4">
@@ -73780,7 +75618,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
           <!-- Quick Links -->
           <div>
-            <h3 class="text-xl font-bold text-white mb-6">Enlaces RÃ¡pidos</h3>
+            <h3 class="text-xl font-bold text-white mb-6">Enlaces Rápidos</h3>
             <ul class="space-y-4">
               <li>
                 <RouterLink to="/products" class="text-gray-300 hover:text-orange-400 transition-colors duration-300 flex items-center">
@@ -73842,7 +75680,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
                   <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
-                  TÃ©rminos de Servicio
+                  Términos de Servicio
                 </a>
               </li>
               <li>
@@ -73850,7 +75688,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
                   <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                   </svg>
-                  PolÃ­tica de Privacidad
+                  Política de Privacidad
                 </a>
               </li>
             </ul>
@@ -73860,7 +75698,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
           <div>
             <h3 class="text-xl font-bold text-white mb-6">Newsletter</h3>
             <p class="text-gray-300 mb-6 leading-relaxed">
-              SuscrÃ­bete para recibir las Ãºltimas novedades y ofertas exclusivas.
+              Suscríbete para recibir las últimas novedades y ofertas exclusivas.
             </p>
             <form class="space-y-4">
               <div class="relative">
@@ -73896,7 +75734,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
                 <svg class="w-4 h-4 mr-2 text-green-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
-                Hecho con â¤ï¸ en Colombia
+                Hecho con ❤️ en Colombia
               </span>
               <span>v1.0.0</span>
             </div>
@@ -73936,16 +75774,17 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
       <nav class="hidden md:flex items-center gap-6 text-sm text-neutral-700 dark:text-neutral-300">
         <RouterLink to="/stores" class="hover:text-neutral-900 dark:hover:text-white transition">Tiendas</RouterLink>
         <RouterLink to="/products" class="hover:text-neutral-900 dark:hover:text-white transition">Productos</RouterLink>
-        <RouterLink to="/orders" class="hover:text-neutral-900 dark:hover:text-white transition">Ã“rdenes</RouterLink>
+        <RouterLink to="/orders" class="hover:text-neutral-900 dark:hover:text-white transition">Órdenes</RouterLink>
       </nav>
       <div class="flex items-center gap-2">
-        <button @click="$emit('toggle-theme')" class="px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition" aria-label="Cambiar tema">ðŸŒ“</button>
+        <button @click="$emit('toggle-theme')" class="px-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition" aria-label="Cambiar tema">🌓</button>
         <RouterLink to="/login" class="px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">Entrar</RouterLink>
         <RouterLink to="/register" class="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-600 transition">Crear cuenta</RouterLink>
       </div>
     </div>
   </header>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/Header.vue -->
 
@@ -73977,14 +75816,14 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
           </label>
 
           <label class="block">
-            <span class="sr-only">ContraseÃ±a</span>
-            <input v-model="form.password" type="password" placeholder="ContraseÃ±a"
+            <span class="sr-only">Contraseña</span>
+            <input v-model="form.password" type="password" placeholder="Contraseña"
                    class="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-3 outline-none focus:ring-2 focus:ring-orange-400" />
           </label>
 
           <button type="submit"
                   class="w-full mt-2 rounded-xl px-4 py-3 font-medium text-white bg-orange-500 hover:bg-orange-600 transition">
-            Iniciar sesiÃ³n
+            Iniciar sesión
           </button>
 
           <div class="flex items-center justify-between text-sm text-stone-700 mt-2">
@@ -73992,7 +75831,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
               <input type="checkbox" v-model="form.remember" class="rounded border-stone-300" />
               Recordarme
             </label>
-            <a href="#" class="underline hover:no-underline">Â¿Olvidaste tu contraseÃ±a?</a>
+            <a href="#" class="underline hover:no-underline">¿Olvidaste tu contraseña?</a>
           </div>
         </form>
       </div>
@@ -74024,7 +75863,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
         <div class="mt-16 lg:mt-24 max-w-3xl">
           <h2 class="text-4xl lg:text-5xl font-semibold tracking-tight">
-            Empieza gratis y comparte tu catÃ¡logo hoy
+            Empieza gratis y comparte tu catálogo hoy
           </h2>
           <p class="mt-4 text-white/90 max-w-xl">
             Configura tu tienda, sube tu logo y elige tus colores en minutos.
@@ -74052,7 +75891,7 @@ const form = reactive({ email: '', password: '', remember: false })
 const dark = ref(false)
 
 const submit = () => {
-  // AquÃ­ puedes integrar Axios hacia tu endpoint de login de Laravel
+  // Aquí puedes integrar Axios hacia tu endpoint de login de Laravel
   // axios.post('/login', {...form})
   alert('Demo: submit login')
 }
@@ -74070,7 +75909,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* evita FOUC de {{}} si algÃºn dÃ­a renderizas texto reactivo dentro de Blade */
+/* evita FOUC de {{}} si algún día renderizas texto reactivo dentro de Blade */
 [v-cloak] { display: none; }
 </style>
 ~~~~
@@ -74354,7 +76193,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Puedes agregar estilos adicionales aquÃ­ si es necesario */
+/* Puedes agregar estilos adicionales aquí si es necesario */
 </style>
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/NavigationBar.vue -->
@@ -74385,15 +76224,15 @@ onMounted(() => {
       <h3 class="font-medium text-neutral-900 dark:text-neutral-100 line-clamp-2">{{ name }}</h3>
       <div class="text-sm text-neutral-600 dark:text-neutral-400 flex items-center gap-2">
         <span class="font-semibold text-neutral-900 dark:text-neutral-100">{{ formattedPrice }}</span>
-        <span>Â·</span>
-        <span>â˜… {{ formattedRating }}</span>
-        <span>Â·</span>
+        <span>·</span>
+        <span>★ {{ formattedRating }}</span>
+        <span>·</span>
         <span>{{ stock }} u</span>
       </div>
       <div class="flex items-center gap-2 pt-2">
         <button class="px-3 py-1.5 rounded-lg bg-primary text-white hover:opacity-90">Editar</button>
         <button class="px-3 py-1.5 rounded-lg border border-border/70 hover:bg-neutral-50 dark:hover:bg-neutral-800">Ver</button>
-        <button class="ml-auto px-2 py-1 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800">â‹®</button>
+        <button class="ml-auto px-2 py-1 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800">⋮</button>
       </div>
     </div>
   </article>
@@ -74413,10 +76252,10 @@ const props = defineProps({
 })
 
 const formattedPrice = computed(() =>
-  props.price != null ? `$${props.price.toLocaleString('es-CO')}` : 'â€”'
+  props.price != null ? `$${props.price.toLocaleString('es-CO')}` : '—'
 )
 const formattedRating = computed(() =>
-  typeof props.rating === 'number' ? props.rating.toFixed(1) : 'â€”'
+  typeof props.rating === 'number' ? props.rating.toFixed(1) : '—'
 )
 </script>
 ~~~~
@@ -74441,7 +76280,7 @@ const formattedRating = computed(() =>
     <div class="flex flex-1 justify-center">
       <input
         type="search"
-        placeholder="Buscar nombre, SKU, categorÃ­aâ€¦"
+        placeholder="Buscar nombre, SKU, categoría…"
         class="w-full max-w-xl rounded-full border border-border/70 bg-white dark:bg-neutral-900 px-4 py-2"
         v-model="q"
       />
@@ -74452,8 +76291,8 @@ const formattedRating = computed(() =>
       <button class="px-3 py-2 rounded-lg border border-border/70">Importar</button>
       <button class="px-3 py-2 rounded-lg border border-border/70">Exportar</button>
       <div class="h-6 w-px bg-border/80"></div>
-      <button class="px-2 py-2 rounded-lg border border-border/70">â˜°</button>
-      <button class="px-2 py-2 rounded-lg border border-border/70">â–¥</button>
+      <button class="px-2 py-2 rounded-lg border border-border/70">☰</button>
+      <button class="px-2 py-2 rounded-lg border border-border/70">▥</button>
       <button class="px-2 py-2 rounded-lg border border-border/70">Densidad</button>
     </div>
   </div>
@@ -74467,13 +76306,13 @@ const formattedRating = computed(() =>
     <div class="ml-auto flex items-center gap-2">
       <label class="text-sm">Ordenar:</label>
       <select class="rounded-lg border border-border/70 bg-white dark:bg-neutral-900 px-2 py-1 text-sm">
-        <option>MÃ¡s vendidos</option>
-        <option>Precio â†‘</option>
-        <option>Precio â†“</option>
-        <option>Actualizado â†“</option>
+        <option>Más vendidos</option>
+        <option>Precio ↑</option>
+        <option>Precio ↓</option>
+        <option>Actualizado ↓</option>
       </select>
       <button @click="$emit('open-filters')" class="px-3 py-1.5 rounded-lg border border-border/70">
-        âš™ Filtros
+        ⚙ Filtros
       </button>
     </div>
   </div>
@@ -74484,6 +76323,7 @@ import { ref } from 'vue'
 const q = ref('')
 const chips = ['Todos', 'Activos', 'Sin stock', 'Ocultos', 'En oferta']
 </script>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/ProductsToolbar.vue -->
 
@@ -74497,18 +76337,19 @@ const chips = ['Todos', 'Activos', 'Sin stock', 'Ocultos', 'En oferta']
   <article class="bg-white dark:bg-neutral-900 rounded-xl shadow hover:shadow-lg transition overflow-hidden border border-neutral-200 dark:border-neutral-800 p-3 flex items-center gap-3">
     <div class="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
       <img v-if="logo" :src="logo" :alt="`Logo ${name}`" class="w-full h-full object-cover" loading="lazy" />
-      <div v-else class="w-full h-full grid place-items-center text-neutral-500">ðŸª</div>
+      <div v-else class="w-full h-full grid place-items-center text-neutral-500">🏪</div>
     </div>
     <div class="flex-1 min-w-0">
       <h3 class="font-medium truncate">{{ name }}</h3>
       <p class="text-sm text-neutral-600 dark:text-neutral-300 truncate">{{ category }}</p>
     </div>
-    <span v-if="rating" class="text-sm text-neutral-600 dark:text-neutral-300">â˜… {{ Number(rating).toFixed(1) }}</span>
+    <span v-if="rating" class="text-sm text-neutral-600 dark:text-neutral-300">★ {{ Number(rating).toFixed(1) }}</span>
   </article>
 </template>
 <script setup>
 defineProps({ name: String, logo: String, rating: [String, Number], category: String })
 </script>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/StoreCard.vue -->
 
@@ -74521,12 +76362,13 @@ defineProps({ name: String, logo: String, rating: [String, Number], category: St
 <template>
   <section aria-label="Confianza" class="border-y border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900">
     <div class="max-w-7xl mx-auto px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-neutral-700 dark:text-neutral-300">
-      <div class="flex items-center gap-2"><span class="text-primary">â€¢</span> +1000 productos</div>
-      <div class="flex items-center gap-2"><span class="text-primary">â€¢</span> Tiendas verificadas</div>
-      <div class="flex items-center gap-2"><span class="text-primary">â€¢</span> Pagos seguros</div>
+      <div class="flex items-center gap-2"><span class="text-primary">•</span> +1000 productos</div>
+      <div class="flex items-center gap-2"><span class="text-primary">•</span> Tiendas verificadas</div>
+      <div class="flex items-center gap-2"><span class="text-primary">•</span> Pagos seguros</div>
     </div>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/components/Trustbar.vue -->
 
@@ -74649,6 +76491,7 @@ export function useProducts() {
 
   return { items, meta, filters, loading, error, fetch }
 }
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/composables/useProducts.js -->
 
@@ -74679,7 +76522,7 @@ export function useProducts() {
       price: 89.99,
       stock: 50,
       imageUrl: 'https://images.unsplash.com/photo-1616627891234-casco.jpg',
-      description: 'Casco integral para mÃ¡xima protecciÃ³n.',
+      description: 'Casco integral para máxima protección.',
       status: true,
     },
     {
@@ -74695,7 +76538,7 @@ export function useProducts() {
     {
       id: '4',
       name: 'Cadena para moto',
-      category: 'TransmisiÃ³n',
+      category: 'Transmisión',
       price: 79.90,
       stock: 15,
       imageUrl: 'https://images.unsplash.com/photo-1616627891234-cadena.jpg',
@@ -74829,7 +76672,7 @@ export function useProducts() {
       deleteBtn.textContent = 'Eliminar'
       deleteBtn.className = 'flex-1 bg-red-600 text-white py-2 rounded-full font-semibold hover:bg-red-700 transition'
       deleteBtn.addEventListener('click', () => {
-        if (confirm(`Â¿EstÃ¡ seguro de eliminar el producto "${product.name}"?`)) {
+        if (confirm(`¿Está seguro de eliminar el producto "${product.name}"?`)) {
           handleDelete(product.id)
         }
       })
@@ -75064,9 +76907,9 @@ export function useProducts() {
       </div>
       <nav class="p-3 space-y-1 text-sm">
         <RouterLink class="navlink" to="/dashboard">Dashboard</RouterLink>
-        <RouterLink class="navlink" to="/orders">Ã“rdenes</RouterLink>
+        <RouterLink class="navlink" to="/orders">Órdenes</RouterLink>
         <RouterLink class="navlink" to="/products">Productos</RouterLink>
-        <RouterLink class="navlink" to="/categories">CategorÃ­as</RouterLink>
+        <RouterLink class="navlink" to="/categories">Categorías</RouterLink>
         <RouterLink class="navlink" to="/customers">Clientes</RouterLink>
         <RouterLink class="navlink" to="/discounts">Descuentos</RouterLink>
         <RouterLink class="navlink" to="/settings">Ajustes</RouterLink>
@@ -75074,10 +76917,10 @@ export function useProducts() {
       <div class="absolute bottom-0 left-0 right-0 border-t border-border/70 p-3 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-full bg-neutral-200 overflow-hidden"></div>
-          <span class="text-sm">TÃº</span>
+          <span class="text-sm">Tú</span>
         </div>
         <div class="flex items-center gap-2">
-          <button class="px-2 py-1 rounded-lg border border-border" @click="toggleTheme">{{ dark ? 'â˜€ï¸Ž' : 'ðŸŒ™' }}</button>
+          <button class="px-2 py-1 rounded-lg border border-border" @click="toggleTheme">{{ dark ? '☀︎' : '🌙' }}</button>
           <a href="/logout" class="px-2 py-1 rounded-lg border border-border">Salir</a>
         </div>
       </div>
@@ -75120,6 +76963,7 @@ function toggleTheme(){
 .navlink{ display:block; padding:10px 12px; border-radius:12px; }
 .navlink.router-link-active{ background:rgba(255,122,61,.08); color:#FF7A3D; font-weight:600; }
 </style>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/layouts/DashboardLayout.vue -->
 
@@ -75150,9 +76994,10 @@ export const RouterLink = defineComponent({
 <template>
   <section class="max-w-5xl mx-auto px-4 py-10">
     <h1 class="text-2xl font-bold">Carrito</h1>
-    <p class="mt-2 text-neutral-700 dark:text-neutral-300">Tu carrito estÃ¡ vacÃ­o por ahora.</p>
+    <p class="mt-2 text-neutral-700 dark:text-neutral-300">Tu carrito está vacío por ahora.</p>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/Cart.vue -->
 
@@ -75204,7 +77049,7 @@ const updateQuantity = async (item, newQuantity) => {
 }
 
 const removeItem = async (item) => {
-  if (!confirm(`Â¿EstÃ¡s seguro de que quieres eliminar "${item.product.name}" del carrito?`)) return
+  if (!confirm(`¿Estás seguro de que quieres eliminar "${item.product.name}" del carrito?`)) return
   try {
     await axios.delete(`${API}/api/cart/${item.id}`)
     cartItems.value = cartItems.value.filter(i => i.id !== item.id)
@@ -75216,12 +77061,12 @@ const removeItem = async (item) => {
 // --- Computed Properties ---
 const subtotal = computed(() => cartItems.value.reduce((sum, item) => sum + (item.product.price * item.quantity), 0))
 const totalItems = computed(() => cartItems.value.reduce((sum, item) => sum + item.quantity, 0))
-const shipping = computed(() => subtotal.value >= 100000 ? 0 : 15000) // EnvÃ­o gratis sobre $100.000
+const shipping = computed(() => subtotal.value >= 100000 ? 0 : 15000) // Envío gratis sobre $100.000
 const total = computed(() => subtotal.value + shipping.value)
 
 // --- Helpers ---
 const price = (val) => {
-  if (val == null) return 'â€”'
+  if (val == null) return '—'
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
 }
 
@@ -75257,9 +77102,9 @@ onMounted(() => {
 
       <!-- Empty Cart State -->
       <div v-else-if="cartItems.length === 0" class="text-center bg-cp-surface rounded-xl-20 shadow-cp-card p-12">
-        <img src="/assets/icons/ic_cart.svg" class="h-16 w-16 mx-auto text-cp-sub opacity-50" alt="Carrito vacÃ­o"/>
-        <h2 class="text-2xl font-semibold text-cp-text mt-6">Tu carrito estÃ¡ vacÃ­o</h2>
-        <p class="text-cp-sub mt-2 mb-8">Parece que aÃºn no has aÃ±adido productos. Â¡Explora nuestras tiendas!</p>
+        <img src="/assets/icons/ic_cart.svg" class="h-16 w-16 mx-auto text-cp-sub opacity-50" alt="Carrito vacío"/>
+        <h2 class="text-2xl font-semibold text-cp-text mt-6">Tu carrito está vacío</h2>
+        <p class="text-cp-sub mt-2 mb-8">Parece que aún no has añadido productos. ¡Explora nuestras tiendas!</p>
         <Link
           href="/products"
           class="inline-block bg-comercioplus text-white px-8 py-3 rounded-lg-16 font-medium hover:bg-comercioplus-600 transition-transform transform hover:scale-105"
@@ -75322,10 +77167,10 @@ onMounted(() => {
               <h3 class="text-xl font-semibold mb-6">Resumen del pedido</h3>
               <div class="space-y-4 mb-6 text-cp-sub">
                 <div class="flex justify-between"><span>Subtotal</span> <span class="font-medium text-cp-text">{{ price(subtotal) }}</span></div>
-                <div class="flex justify-between"><span>EnvÃ­o</span> <span class="font-medium text-cp-text">{{ shipping === 0 ? 'Gratis' : price(shipping) }}</span></div>
+                <div class="flex justify-between"><span>Envío</span> <span class="font-medium text-cp-text">{{ shipping === 0 ? 'Gratis' : price(shipping) }}</span></div>
               </div>
               <div v-if="shipping === 0" class="text-sm text-green-700 bg-green-100 p-3 rounded-lg mb-6">
-                  Â¡Felicidades! Tu envÃ­o es gratis.
+                  ¡Felicidades! Tu envío es gratis.
               </div>
               <div class="border-t border-gray-200 pt-6 mb-6">
                 <div class="flex justify-between items-center">
@@ -75340,7 +77185,7 @@ onMounted(() => {
                 Proceder al Pago
               </Link>
               <div class="mt-6 text-center text-xs text-cp-sub">
-                <p>ðŸ”’ Pago seguro garantizado</p>
+                <p>🔒 Pago seguro garantizado</p>
               </div>
             </div>
           </div>
@@ -75362,7 +77207,7 @@ onMounted(() => {
 ~~~~vue
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-    <!-- Header moderno con diseÃ±o JBL -->
+    <!-- Header moderno con diseño JBL -->
     <header class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-2xl">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
@@ -75420,9 +77265,9 @@ onMounted(() => {
           <div class="absolute top-10 left-1/4 w-8 h-8 bg-orange-500/20 rounded-full blur-sm animate-pulse"></div>
           <div class="absolute bottom-10 right-1/4 w-6 h-6 bg-blue-500/20 rounded-full blur-sm animate-pulse delay-1000"></div>
         </div>
-        <h2 class="text-4xl font-black text-white mb-6">CategorÃ­a no encontrada</h2>
+        <h2 class="text-4xl font-black text-white mb-6">Categoría no encontrada</h2>
         <p class="text-xl text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed">
-          La categorÃ­a que buscas no existe o ha sido eliminada
+          La categoría que buscas no existe o ha sido eliminada
         </p>
         <RouterLink
           class="inline-block bg-gradient-to-r from-orange-500 to-red-600 text-white px-10 py-5 rounded-2xl font-bold hover:shadow-2xl hover:shadow-orange-500/25 transition-all duration-500 transform hover:scale-110 text-xl"
@@ -75473,15 +77318,15 @@ onMounted(() => {
           <div class="p-10">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
               <div>
-                <h2 class="text-3xl font-black text-white mb-6">Sobre esta categorÃ­a</h2>
+                <h2 class="text-3xl font-black text-white mb-6">Sobre esta categoría</h2>
                 <p class="text-gray-300 text-xl leading-relaxed">
-                  {{ category.short_description || 'Descubre todos los productos disponibles en esta categorÃ­a.' }}
+                  {{ category.short_description || 'Descubre todos los productos disponibles en esta categoría.' }}
                 </p>
               </div>
 
               <!-- Category Stats -->
               <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 class="text-xl font-bold text-white mb-6">EstadÃ­sticas</h3>
+                <h3 class="text-xl font-bold text-white mb-6">Estadísticas</h3>
                 <div class="grid grid-cols-2 gap-6">
                   <div class="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-sm p-6 rounded-2xl text-center border border-blue-500/30">
                     <div class="text-3xl font-black text-blue-400">{{ products.length }}</div>
@@ -75502,7 +77347,7 @@ onMounted(() => {
           <div class="flex items-center justify-between mb-10">
             <div>
               <h2 class="text-4xl font-black text-white mb-3">Productos en {{ category.name }}</h2>
-              <p class="text-gray-300 text-lg">Explora todos los productos disponibles en esta categorÃ­a</p>
+              <p class="text-gray-300 text-lg">Explora todos los productos disponibles en esta categoría</p>
             </div>
             <div class="text-right">
               <div class="text-3xl font-black text-orange-400">{{ products.length }}</div>
@@ -75581,14 +77426,14 @@ onMounted(() => {
               <div class="absolute bottom-5 right-1/4 w-4 h-4 bg-blue-500/20 rounded-full blur-sm animate-pulse delay-1000"></div>
             </div>
             <h3 class="text-2xl font-bold text-white mb-4">No hay productos disponibles</h3>
-            <p class="text-gray-400">Esta categorÃ­a aÃºn no tiene productos publicados</p>
+            <p class="text-gray-400">Esta categoría aún no tiene productos publicados</p>
           </div>
         </div>
 
         <!-- Call to Action -->
         <div class="bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 rounded-3xl p-10 text-white text-center shadow-2xl">
-          <h3 class="text-4xl font-black mb-6">Â¿Buscas algo especÃ­fico?</h3>
-          <p class="text-2xl mb-8 opacity-90 leading-relaxed">Explora nuestro catÃ¡logo completo de productos para encontrar exactamente lo que necesitas</p>
+          <h3 class="text-4xl font-black mb-6">¿Buscas algo específico?</h3>
+          <p class="text-2xl mb-8 opacity-90 leading-relaxed">Explora nuestro catálogo completo de productos para encontrar exactamente lo que necesitas</p>
           <div class="flex flex-col sm:flex-row gap-6 justify-center">
             <RouterLink
               class="inline-block bg-black/20 backdrop-blur-sm text-white px-10 py-4 rounded-2xl font-bold hover:bg-black/30 transition-all duration-300 border border-white/20 text-lg"
@@ -75641,7 +77486,7 @@ const fetchCategory = async () => {
 }
 
 const price = (val) => {
-  if (val == null) return 'â€”'
+  if (val == null) return '—'
   try {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
   } catch {
@@ -75682,9 +77527,10 @@ onMounted(() => {
 <template>
   <section class="max-w-3xl mx-auto px-4 py-10">
     <h1 class="text-2xl font-bold">Checkout</h1>
-    <p class="mt-2 text-neutral-700 dark:text-neutral-300">PrÃ³ximamenteâ€¦</p>
+    <p class="mt-2 text-neutral-700 dark:text-neutral-300">Próximamente…</p>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/Checkout.vue -->
 
@@ -75696,7 +77542,7 @@ onMounted(() => {
 ~~~~vue
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-    <!-- Header moderno con diseÃ±o JBL -->
+    <!-- Header moderno con diseño JBL -->
     <header class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-2xl">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
@@ -75741,7 +77587,7 @@ onMounted(() => {
           </span>
         </h1>
         <p class="text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-          Solo un paso mÃ¡s para recibir tus repuestos de motocicleta
+          Solo un paso más para recibir tus repuestos de motocicleta
         </p>
       </div>
 
@@ -75791,7 +77637,7 @@ onMounted(() => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                   </svg>
                 </div>
-                <h2 class="text-3xl font-black text-white">InformaciÃ³n de envÃ­o</h2>
+                <h2 class="text-3xl font-black text-white">Información de envío</h2>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -75807,7 +77653,7 @@ onMounted(() => {
                 </div>
 
                 <div>
-                  <label class="block text-sm font-semibold text-gray-300 mb-3">Correo electrÃ³nico *</label>
+                  <label class="block text-sm font-semibold text-gray-300 mb-3">Correo electrónico *</label>
                   <input
                     v-model="form.email"
                     type="email"
@@ -75818,7 +77664,7 @@ onMounted(() => {
                 </div>
 
                 <div>
-                  <label class="block text-sm font-semibold text-gray-300 mb-3">TelÃ©fono *</label>
+                  <label class="block text-sm font-semibold text-gray-300 mb-3">Teléfono *</label>
                   <input
                     v-model="form.phone"
                     type="tel"
@@ -75829,13 +77675,13 @@ onMounted(() => {
                 </div>
 
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-semibold text-gray-300 mb-3">DirecciÃ³n de envÃ­o *</label>
+                  <label class="block text-sm font-semibold text-gray-300 mb-3">Dirección de envío *</label>
                   <textarea
                     v-model="form.address"
                     required
                     rows="4"
                     class="w-full px-6 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 resize-none"
-                    placeholder="DirecciÃ³n completa de envÃ­o"
+                    placeholder="Dirección completa de envío"
                   ></textarea>
                 </div>
 
@@ -75870,7 +77716,7 @@ onMounted(() => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                   </svg>
                 </div>
-                <h2 class="text-3xl font-black text-white">MÃ©todo de pago</h2>
+                <h2 class="text-3xl font-black text-white">Método de pago</h2>
               </div>
 
               <div class="space-y-6">
@@ -75946,7 +77792,7 @@ onMounted(() => {
                   </div>
 
                   <div class="flex justify-between items-center">
-                    <span class="text-gray-300">EnvÃ­o</span>
+                    <span class="text-gray-300">Envío</span>
                     <span class="font-semibold" :class="shipping === 0 ? 'text-green-400' : 'text-white'">
                       {{ shipping === 0 ? 'Gratis' : price(shipping) }}
                     </span>
@@ -75956,7 +77802,7 @@ onMounted(() => {
                     <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                     </svg>
-                    Â¡EnvÃ­o gratis en compras superiores a $100.000!
+                    ¡Envío gratis en compras superiores a $100.000!
                   </div>
 
                   <div class="border-t border-white/20 pt-4">
@@ -75984,7 +77830,7 @@ onMounted(() => {
                 <p class="text-sm text-gray-400 text-center mt-6">
                   Al realizar el pedido aceptas nuestros
                   <a href="/terms" target="_blank" class="text-orange-400 hover:text-orange-300 underline transition-colors">
-                    tÃ©rminos y condiciones
+                    términos y condiciones
                   </a>
                 </p>
 
@@ -76001,7 +77847,7 @@ onMounted(() => {
                       <svg class="w-4 h-4 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                       </svg>
-                      EnvÃ­o RÃ¡pido
+                      Envío Rápido
                     </div>
                   </div>
                 </div>
@@ -76039,21 +77885,21 @@ const form = ref({
 const paymentMethods = ref([
   {
     id: 'card',
-    name: 'Tarjeta de crÃ©dito/dÃ©bito',
+    name: 'Tarjeta de crédito/débito',
     description: 'Pago seguro con tarjeta',
-    icon: 'ðŸ’³'
+    icon: '💳'
   },
   {
     id: 'transfer',
     name: 'Transferencia bancaria',
     description: 'Pago por transferencia',
-    icon: 'ðŸ¦'
+    icon: '🏦'
   },
   {
     id: 'cash',
     name: 'Pago contra entrega',
     description: 'Paga cuando recibas tu pedido',
-    icon: 'ðŸ’µ'
+    icon: '💵'
   }
 ])
 
@@ -76105,7 +77951,7 @@ const subtotal = computed(() => {
 })
 
 const shipping = computed(() => {
-  return subtotal.value >= 100000 ? 0 : 10000 // EnvÃ­o gratis sobre $100.000
+  return subtotal.value >= 100000 ? 0 : 10000 // Envío gratis sobre $100.000
 })
 
 const total = computed(() => {
@@ -76113,7 +77959,7 @@ const total = computed(() => {
 })
 
 const price = (val) => {
-  if (val == null) return 'â€”'
+  if (val == null) return '—'
   try {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
   } catch {
@@ -76204,7 +78050,7 @@ onMounted(async () => {
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Total Ã“rdenes</dt>
+                    <dt class="text-sm font-medium text-gray-500 truncate">Total Órdenes</dt>
                     <dd class="text-lg font-medium text-gray-900">{{ stats.totalOrders }}</dd>
                   </dl>
                 </div>
@@ -76240,7 +78086,7 @@ onMounted(async () => {
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Ã“rdenes Pendientes</dt>
+                    <dt class="text-sm font-medium text-gray-500 truncate">Órdenes Pendientes</dt>
                     <dd class="text-lg font-medium text-gray-900">{{ stats.pendingOrders }}</dd>
                   </dl>
                 </div>
@@ -76252,7 +78098,7 @@ onMounted(async () => {
         <!-- Quick Actions -->
         <div class="bg-white shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Acciones RÃ¡pidas</h3>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Acciones Rápidas</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <router-link
                 to="/products"
@@ -76281,7 +78127,7 @@ onMounted(async () => {
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                Ver Ã“rdenes
+                Ver Órdenes
               </router-link>
             </div>
           </div>
@@ -76330,7 +78176,7 @@ import Welcome from './Welcome.vue'
 
         <!-- Email -->
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-300">Correo electrÃ³nico</label>
+          <label for="email" class="block text-sm font-medium text-gray-300">Correo electrónico</label>
           <input
             id="email"
             v-model="form.email"
@@ -76344,14 +78190,14 @@ import Welcome from './Welcome.vue'
 
         <!-- Password -->
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-300">ContraseÃ±a</label>
+          <label for="password" class="block text-sm font-medium text-gray-300">Contraseña</label>
           <input
             id="password"
             v-model="form.password"
             :type="showPassword ? 'text' : 'password'"
             required
             class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm"
-            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+            placeholder="••••••••"
           />
           <button
             type="button"
@@ -76375,10 +78221,10 @@ import Welcome from './Welcome.vue'
               type="checkbox"
               class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
             />
-            <label for="remember" class="ml-2 block text-sm text-gray-300">RecuÃ©rdame</label>
+            <label for="remember" class="ml-2 block text-sm text-gray-300">Recuérdame</label>
           </div>
           <div class="text-sm">
-            <a href="#" class="font-medium text-orange-500 hover:text-orange-400">Â¿Olvidaste tu contraseÃ±a?</a>
+            <a href="#" class="font-medium text-orange-500 hover:text-orange-400">¿Olvidaste tu contraseña?</a>
           </div>
         </div>
 
@@ -76388,14 +78234,14 @@ import Welcome from './Welcome.vue'
             :disabled="loading"
             class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
           >
-            <span v-if="loading">Iniciando sesiÃ³n...</span>
-            <span v-else>Iniciar sesiÃ³n</span>
+            <span v-if="loading">Iniciando sesión...</span>
+            <span v-else>Iniciar sesión</span>
           </button>
         </div>
 
         <div class="text-center">
           <p class="text-sm text-gray-300">
-            Â¿No tienes cuenta?
+            ¿No tienes cuenta?
             <RouterLink to="/register" class="font-medium text-orange-500 hover:text-orange-400 ml-1">Crea una cuenta</RouterLink>
           </p>
         </div>
@@ -76449,7 +78295,7 @@ const submit = async () => {
     }
   } catch (error) {
     loading.value = false
-    // Manejar errores de validaciÃ³n
+    // Manejar errores de validación
     if (error.response && error.response.data && error.response.data.errors) {
       const serverErrors = error.response.data.errors
       for (const key in serverErrors) {
@@ -76460,7 +78306,7 @@ const submit = async () => {
     } else if (error.response && error.response.data && error.response.data.message) {
       generalError.value = error.response.data.message
     } else {
-      generalError.value = 'Error al iniciar sesiÃ³n. IntÃ©ntalo de nuevo.'
+      generalError.value = 'Error al iniciar sesión. Inténtalo de nuevo.'
     }
   }
 }
@@ -76484,11 +78330,12 @@ const clearErrors = () => {
   <section class="min-h-[60vh] grid place-items-center px-4">
     <div class="text-center">
       <h1 class="text-3xl font-bold">404</h1>
-      <p class="mt-2 text-neutral-700 dark:text-neutral-300">PÃ¡gina no encontrada</p>
+      <p class="mt-2 text-neutral-700 dark:text-neutral-300">Página no encontrada</p>
       <RouterLink to="/" class="inline-block mt-4 px-4 py-2 rounded-xl bg-primary text-white">Ir al inicio</RouterLink>
     </div>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/NotFound.vue -->
 
@@ -76500,10 +78347,11 @@ const clearErrors = () => {
 ~~~~vue
 <template>
   <section class="max-w-5xl mx-auto px-4 py-10">
-    <h1 class="text-2xl font-bold">Ã“rdenes</h1>
-    <p class="mt-2 text-neutral-700 dark:text-neutral-300">Historial de Ã³rdenes (placeholder).</p>
+    <h1 class="text-2xl font-bold">Órdenes</h1>
+    <p class="mt-2 text-neutral-700 dark:text-neutral-300">Historial de órdenes (placeholder).</p>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/Orders.vue -->
 
@@ -76524,7 +78372,7 @@ const clearErrors = () => {
         <p class="mt-2 text-neutral-700 dark:text-neutral-300">{{ product.description }}</p>
         <div class="mt-4 text-3xl font-bold">${{ Number(product.price).toFixed(2) }}</div>
         <div class="mt-6 flex gap-2">
-          <button class="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-600">AÃ±adir al carrito</button>
+          <button class="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-600">Añadir al carrito</button>
           <RouterLink to="/cart" class="px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800">Ver carrito</RouterLink>
         </div>
       </div>
@@ -76539,6 +78387,7 @@ const product = ref(null)
 
 onMounted(async () => { try { const r = await fetch(`/api/products/${route.params.slug}`); product.value = await r.json() } catch {} })
 </script>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/ProductDetail.vue -->
 
@@ -76579,8 +78428,8 @@ onMounted(async () => { try { const r = await fetch(`/api/products/${route.param
 
     <!-- Resto de tu contenido -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- AquÃ­ ya estÃ¡ toda la lÃ³gica de productos -->
-      <!-- ... (mantÃ©n igual tu grid de productos) ... -->
+      <!-- Aquí ya está toda la lógica de productos -->
+      <!-- ... (mantén igual tu grid de productos) ... -->
     </main>
   </div>
 </template>
@@ -76614,7 +78463,7 @@ onMounted(() => {
 ~~~~vue
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-    <!-- Header moderno con diseÃ±o JBL -->
+    <!-- Header moderno con diseño JBL -->
     <header class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-2xl">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
@@ -76658,7 +78507,7 @@ onMounted(() => {
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
-          CatÃ¡logo Premium de Repuestos
+          Catálogo Premium de Repuestos
         </div>
         <h1 class="text-5xl md:text-7xl font-black text-white mb-6">
           Productos
@@ -76667,7 +78516,7 @@ onMounted(() => {
           </span>
         </h1>
         <p class="text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-          Descubre la mejor selecciÃ³n de repuestos y accesorios para tu motocicleta
+          Descubre la mejor selección de repuestos y accesorios para tu motocicleta
         </p>
       </div>
 
@@ -76698,7 +78547,7 @@ onMounted(() => {
                 @change="fetchProducts"
                 class="appearance-none bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-4 pr-12 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
               >
-                <option value="" class="bg-gray-800">Todas las categorÃ­as</option>
+                <option value="" class="bg-gray-800">Todas las categorías</option>
                 <option v-for="category in categories" :key="category.id" :value="category.id" class="bg-gray-800">
                   {{ category.name }}
                 </option>
@@ -76754,7 +78603,7 @@ onMounted(() => {
           <div class="absolute bottom-10 right-1/4 w-6 h-6 bg-blue-500/20 rounded-full blur-sm animate-pulse delay-1000"></div>
         </div>
         <h3 class="text-4xl font-black text-white mb-6">No hay productos que coincidan</h3>
-        <p class="text-xl text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed">Intenta con otros filtros o tÃ©rminos de bÃºsqueda.</p>
+        <p class="text-xl text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed">Intenta con otros filtros o términos de búsqueda.</p>
         <button
           class="bg-gradient-to-r from-orange-500 to-red-600 text-white px-10 py-5 rounded-2xl font-bold hover:shadow-2xl hover:shadow-orange-500/25 transition-all duration-500 transform hover:scale-110 text-xl"
           @click="clearFilters"
@@ -76791,7 +78640,7 @@ onMounted(() => {
               <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
               </svg>
-              Â¡Ãšltimas!
+              ¡Últimas!
             </div>
             <div v-if="product.stock <= 0" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
               <span class="bg-red-600 text-white px-6 py-3 rounded-2xl font-bold text-lg shadow-lg">Agotado</span>
@@ -76805,7 +78654,7 @@ onMounted(() => {
           <div class="p-8">
             <div class="flex items-center justify-between mb-4">
               <span class="inline-flex items-center px-4 py-2 rounded-2xl text-sm font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                {{ product.category?.name || 'Sin categorÃ­a' }}
+                {{ product.category?.name || 'Sin categoría' }}
               </span>
               <span class="text-sm text-gray-400 bg-white/10 px-3 py-1 rounded-full">{{ product.store?.name || 'Tienda' }}</span>
             </div>
@@ -76922,7 +78771,7 @@ const fetchCategories = async () => {
     const { data } = await axios.get(`${API}/api/categories`)
     categories.value = data.data || data
   } catch (e) {
-    console.error('Error cargando categorÃ­as', e)
+    console.error('Error cargando categorías', e)
   }
 }
 
@@ -76968,7 +78817,7 @@ const clearFilters = () => {
 }
 
 const price = (val) => {
-  if (val == null) return 'â€”'
+  if (val == null) return '—'
   try {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
   } catch {
@@ -76983,7 +78832,7 @@ const addToCart = async (product) => {
       quantity: 1
     })
     fetchCartCount()
-    // Mostrar notificaciÃ³n de Ã©xito
+    // Mostrar notificación de éxito
   } catch (e) {
     console.error('Error agregando al carrito', e)
   }
@@ -77042,7 +78891,7 @@ onMounted(() => {
     <div class="absolute bottom-20 right-20 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
     <div class="absolute top-1/2 left-10 w-16 h-16 bg-yellow-500/10 rounded-full blur-lg animate-pulse delay-500"></div>
 
-    <!-- Header moderno con diseÃ±o JBL -->
+    <!-- Header moderno con diseño JBL -->
     <header class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-2xl">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
@@ -77134,7 +78983,7 @@ onMounted(() => {
             </div>
             <div class="absolute top-4 left-4">
               <div class="bg-black/60 backdrop-blur-xl text-white px-4 py-2 rounded-2xl text-sm font-bold border border-white/20 shadow-xl">
-                {{ product.category?.name || 'Sin categorÃ­a' }}
+                {{ product.category?.name || 'Sin categoría' }}
               </div>
             </div>
             <!-- Floating decorative elements -->
@@ -77185,10 +79034,10 @@ onMounted(() => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
               </div>
-              <h3 class="text-2xl font-black text-white">DescripciÃ³n del producto</h3>
+              <h3 class="text-2xl font-black text-white">Descripción del producto</h3>
             </div>
             <p class="text-gray-300 text-lg leading-relaxed">
-              {{ product.description || 'Sin descripciÃ³n disponible.' }}
+              {{ product.description || 'Sin descripción disponible.' }}
             </p>
             <!-- Decorative elements -->
             <div class="absolute top-4 right-4 w-20 h-20 bg-orange-500/5 rounded-full blur-xl"></div>
@@ -77253,7 +79102,7 @@ onMounted(() => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
               </div>
-              <h3 class="text-2xl font-black text-white">InformaciÃ³n de la tienda</h3>
+              <h3 class="text-2xl font-black text-white">Información de la tienda</h3>
             </div>
             <div class="flex items-center space-x-6">
               <div class="w-20 h-20 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-2xl flex items-center justify-center border border-orange-400/30">
@@ -77297,7 +79146,7 @@ onMounted(() => {
             </span>
           </h2>
           <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Descubre otros productos que podrÃ­an interesarte
+            Descubre otros productos que podrían interesarte
           </p>
         </div>
 
@@ -77438,8 +79287,8 @@ const addToCart = async () => {
       quantity: quantity.value
     })
     fetchCartCount()
-    // Mostrar notificaciÃ³n de Ã©xito
-    alert(`Â¡${quantity.value} ${product.value.name} agregado(s) al carrito!`)
+    // Mostrar notificación de éxito
+    alert(`¡${quantity.value} ${product.value.name} agregado(s) al carrito!`)
   } catch (e) {
     console.error('Error agregando al carrito', e)
     alert('Error al agregar el producto al carrito')
@@ -77447,7 +79296,7 @@ const addToCart = async () => {
 }
 
 const price = (val) => {
-  if (val == null) return 'â€”'
+  if (val == null) return '—'
   try {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
   } catch {
@@ -77502,6 +79351,7 @@ import ProductCard from '@/components/ProductCard.vue'
 const products = ref([])
 onMounted(async () => { try{ const r = await fetch('/api/products'); products.value = await r.json() } catch {} })
 </script>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/ProductsDashboard.vue -->
 
@@ -77517,6 +79367,7 @@ onMounted(async () => { try{ const r = await fetch('/api/products'); products.va
     <p class="mt-2 text-neutral-700 dark:text-neutral-300">Configura tus datos personales.</p>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/Profile.vue -->
 
@@ -77531,7 +79382,7 @@ onMounted(async () => { try{ const r = await fetch('/api/products'); products.va
     <div class="max-w-md w-full space-y-8">
       <div>
         <h2 class="mt-6 text-center text-3xl font-bold text-orange-500">Crear cuenta ComercioPlus</h2>
-        <p class="mt-2 text-center text-sm text-gray-300">RegÃ­strate para comenzar</p>
+        <p class="mt-2 text-center text-sm text-gray-300">Regístrate para comenzar</p>
       </div>
       <form @submit.prevent="submit" class="mt-8 space-y-6 bg-gray-800 rounded-lg p-6" enctype="multipart/form-data">
         <!-- Error Message -->
@@ -77548,14 +79399,14 @@ onMounted(async () => { try{ const r = await fetch('/api/products'); products.va
             type="text"
             required
             class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm"
-            placeholder="Juan PÃ©rez"
+            placeholder="Juan Pérez"
           />
           <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
         </div>
 
         <!-- Email -->
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-300">Correo electrÃ³nico</label>
+          <label for="email" class="block text-sm font-medium text-gray-300">Correo electrónico</label>
           <input
             id="email"
             v-model="form.email"
@@ -77569,7 +79420,7 @@ onMounted(async () => { try{ const r = await fetch('/api/products'); products.va
 
         <!-- Password -->
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-300">ContraseÃ±a</label>
+          <label for="password" class="block text-sm font-medium text-gray-300">Contraseña</label>
           <input
             id="password"
             v-model="form.password"
@@ -77577,21 +79428,21 @@ onMounted(async () => { try{ const r = await fetch('/api/products'); products.va
             required
             minlength="8"
             class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm"
-            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+            placeholder="••••••••"
           />
           <p v-if="errors.password" class="mt-1 text-sm text-red-600">{{ errors.password }}</p>
         </div>
 
         <!-- Password Confirmation -->
         <div>
-          <label for="password_confirmation" class="block text-sm font-medium text-gray-300">Confirmar contraseÃ±a</label>
+          <label for="password_confirmation" class="block text-sm font-medium text-gray-300">Confirmar contraseña</label>
           <input
             id="password_confirmation"
             v-model="form.password_confirmation"
             type="password"
             required
             class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-600 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 bg-white sm:text-sm"
-            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+            placeholder="••••••••"
           />
         </div>
 
@@ -77636,8 +79487,8 @@ onMounted(async () => { try{ const r = await fetch('/api/products'); products.va
 
         <div class="text-center">
           <p class="text-sm text-gray-300">
-            Â¿Ya tienes cuenta?
-            <RouterLink to="/login" class="font-medium text-orange-500 hover:text-orange-400 ml-1">Inicia sesiÃ³n</RouterLink>
+            ¿Ya tienes cuenta?
+            <RouterLink to="/login" class="font-medium text-orange-500 hover:text-orange-400 ml-1">Inicia sesión</RouterLink>
           </p>
         </div>
       </form>
@@ -77701,7 +79552,7 @@ const submit = async () => {
     } else if (error.response && error.response.data && error.response.data.message) {
       generalError.value = error.response.data.message
     } else {
-      generalError.value = 'Error en el registro. IntÃ©ntalo de nuevo.'
+      generalError.value = 'Error en el registro. Inténtalo de nuevo.'
     }
   }
 }
@@ -77727,10 +79578,11 @@ const clearErrors = () => {
 ~~~~vue
 <template>
   <section class="max-w-4xl mx-auto px-4 py-10">
-    <h1 class="text-2xl font-bold">ConfiguraciÃ³n</h1>
+    <h1 class="text-2xl font-bold">Configuración</h1>
     <p class="mt-2 text-neutral-700 dark:text-neutral-300">Preferencias de la cuenta y del comercio.</p>
   </section>
 </template>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/Settings.vue -->
 
@@ -77753,7 +79605,7 @@ const clearErrors = () => {
         <input v-model="form.slug" class="mt-1 w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2" />
       </div>
       <div>
-        <label class="text-sm">DescripciÃ³n corta</label>
+        <label class="text-sm">Descripción corta</label>
         <textarea v-model="form.short_description" class="mt-1 w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2"></textarea>
       </div>
       <div class="flex gap-2">
@@ -77775,6 +79627,7 @@ const submit = async () => {
   } catch {}
 }
 </script>
+
 ~~~~
 <!-- END_CODE_FILE: resources/js/Pages/StoreCreate.vue -->
 
@@ -77887,7 +79740,7 @@ onMounted(async () => {
 ~~~~vue
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-    <!-- Header moderno con diseÃ±o JBL -->
+    <!-- Header moderno con diseño JBL -->
     <header class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-2xl">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
@@ -77976,7 +79829,7 @@ onMounted(async () => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                       </svg>
-                      UbicaciÃ³n disponible
+                      Ubicación disponible
                     </span>
                   </div>
                 </div>
@@ -77999,11 +79852,11 @@ onMounted(async () => {
                   </div>
                   <div class="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm p-6 rounded-2xl text-center border border-green-500/30">
                     <div class="text-3xl font-black text-green-400">4.8</div>
-                    <div class="text-sm text-green-300 font-medium">CalificaciÃ³n</div>
+                    <div class="text-sm text-green-300 font-medium">Calificación</div>
                   </div>
                   <div class="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-sm p-6 rounded-2xl text-center border border-purple-500/30">
                     <div class="text-3xl font-black text-purple-400">98%</div>
-                    <div class="text-sm text-purple-300 font-medium">SatisfacciÃ³n</div>
+                    <div class="text-sm text-purple-300 font-medium">Satisfacción</div>
                   </div>
                   <div class="bg-gradient-to-br from-orange-500/20 to-orange-600/20 backdrop-blur-sm p-6 rounded-2xl text-center border border-orange-500/30">
                     <div class="text-3xl font-black text-orange-400">24h</div>
@@ -78014,7 +79867,7 @@ onMounted(async () => {
 
               <!-- Contact Info -->
               <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 class="text-xl font-bold text-white mb-6">InformaciÃ³n de contacto</h3>
+                <h3 class="text-xl font-bold text-white mb-6">Información de contacto</h3>
                 <div class="space-y-4">
                   <div class="flex items-center space-x-4">
                     <div class="w-10 h-10 bg-orange-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-orange-500/30">
@@ -78131,14 +79984,14 @@ onMounted(async () => {
               <div class="absolute bottom-5 right-1/4 w-4 h-4 bg-blue-500/20 rounded-full blur-sm animate-pulse delay-1000"></div>
             </div>
             <h3 class="text-2xl font-bold text-white mb-4">No hay productos disponibles</h3>
-            <p class="text-gray-400">Esta tienda aÃºn no tiene productos publicados</p>
+            <p class="text-gray-400">Esta tienda aún no tiene productos publicados</p>
           </div>
         </div>
 
         <!-- Call to Action -->
         <div class="bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 rounded-3xl p-10 text-white text-center shadow-2xl">
-          <h3 class="text-4xl font-black mb-6">Â¿Necesitas ayuda?</h3>
-          <p class="text-2xl mb-8 opacity-90 leading-relaxed">Nuestro equipo estÃ¡ listo para ayudarte con cualquier consulta sobre nuestros productos</p>
+          <h3 class="text-4xl font-black mb-6">¿Necesitas ayuda?</h3>
+          <p class="text-2xl mb-8 opacity-90 leading-relaxed">Nuestro equipo está listo para ayudarte con cualquier consulta sobre nuestros productos</p>
           <div class="flex flex-col sm:flex-row gap-6 justify-center">
             <button class="bg-white/10 backdrop-blur-sm text-white px-10 py-4 rounded-2xl font-bold hover:bg-white/20 transition-all duration-300 border border-white/20 text-lg">
               <svg class="w-5 h-5 mr-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78153,7 +80006,7 @@ onMounted(async () => {
               <svg class="w-5 h-5 mr-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
-              Ver mÃ¡s productos
+              Ver más productos
             </RouterLink>
           </div>
         </div>
@@ -78185,7 +80038,7 @@ const fetchStore = async () => {
 }
 
 const price = (val) => {
-  if (val == null) return 'â€”'
+  if (val == null) return '—'
   try {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
   } catch {
@@ -78285,13 +80138,13 @@ import { Link } from '@inertiajs/vue3'
               Tu negocio empieza con ComercioPlus
             </h1>
             <p class="mt-6 text-lg leading-relaxed text-cp-sub max-w-lg">
-              Prueba gratis durante 14 dÃ­as - crea tu tienda, aÃ±ade productos y comienza a vender.
+              Prueba gratis durante 14 días - crea tu tienda, añade productos y comienza a vender.
             </p>
             <form class="mt-8 flex flex-col sm:flex-row gap-3 lg:gap-4">
               <input
                 aria-label="email"
                 type="email"
-                placeholder="Tu correo electrÃ³nico"
+                placeholder="Tu correo electrónico"
                 class="flex-1 h-14 rounded-lg border border-gray-200 px-4 focus:outline-none focus:ring-2 focus:ring-comercioplus"
               />
               <button class="h-14 px-6 rounded-lg bg-comercioplus text-white font-medium whitespace-nowrap">
@@ -78319,7 +80172,7 @@ import { Link } from '@inertiajs/vue3'
     <!-- Footer -->
     <footer class="bg-cp-surface border-t border-gray-200">
       <div class="container mx-auto px-6 py-8 text-center text-sm text-cp-sub">
-        Â© {{ new Date().getFullYear() }} ComercioPlus. Todos los derechos reservados.
+        © {{ new Date().getFullYear() }} ComercioPlus. Todos los derechos reservados.
       </div>
     </footer>
   </div>
@@ -78335,7 +80188,7 @@ import { Link } from '@inertiajs/vue3'
 ~~~~js
 import { createRouter, createWebHistory } from 'vue-router'
 
-// PÃ¡ginas
+// Páginas
 import Welcome from '@/pages/Welcome.vue'
 import StoresList from '@/pages/StoresList.vue'
 import StoreCreate from '@/pages/StoreCreate.vue'
@@ -78729,11 +80582,11 @@ export const Ziggy = window.Ziggy || { namedRoutes: {}, baseUrl: '' }
 export const ZiggyVue = {
   install(app) {
     app.config.globalProperties.$route = function (name, params = {}, absolute = true) {
-      // comportamiento mÃ­nimo: devuelve el nombre + params para diagnÃ³stico
-      // Puedes mejorar esta funciÃ³n para generar URLs simples si lo necesitas.
+      // comportamiento mínimo: devuelve el nombre + params para diagnóstico
+      // Puedes mejorar esta función para generar URLs simples si lo necesitas.
       if (!name) return ''
       let paramsStr = Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : ''
-      console.warn(`[ziggy-stub] Se usÃ³ route("${name}") â€” revisa cuando Ziggy estÃ© presente.`)
+      console.warn(`[ziggy-stub] Se usó route("${name}") — revisa cuando Ziggy esté presente.`)
       return `${Ziggy.baseUrl || ''}/${name}${paramsStr}`
     }
   },
@@ -78751,9 +80604,9 @@ export const ZiggyVue = {
 
 return [
     'welcome' => 'Bienvenido',
-    'login' => 'Iniciar sesiÃ³n',
+    'login' => 'Iniciar sesión',
     'register' => 'Registrarse',
-    'logout' => 'Cerrar sesiÃ³n',
+    'logout' => 'Cerrar sesión',
     'dashboard' => 'Tablero',
     'profile' => 'Perfil',
     'store' => 'Tienda',
@@ -78763,7 +80616,7 @@ return [
     'delete' => 'Eliminar',
     'save' => 'Guardar',
     'cancel' => 'Cancelar',
-    'success' => 'Ã‰xito',
+    'success' => 'Éxito',
     'error' => 'Error',
     'mini_store_created' => 'Mini tienda creada correctamente.',
 ];
@@ -78777,11 +80630,11 @@ return [
 <!-- BEGIN_CODE_FILE: resources/views/admin/categories/create.blade.php -->
 ~~~~php
 @extends('layouts.dashboard')
-@section('title', 'Nueva categorÃ­a')
+@section('title', 'Nueva categoría')
 
 @section('content')
 <div class="mx-auto max-w-xl p-4">
-  <h1 class="mb-6 text-2xl font-semibold">Nueva categorÃ­a</h1>
+  <h1 class="mb-6 text-2xl font-semibold">Nueva categoría</h1>
 
   <form method="POST" action="{{ route('admin.categories.store') }}"
         class="rounded-2xl border border-gray-700 p-6">
@@ -78813,11 +80666,11 @@ return [
 <!-- BEGIN_CODE_FILE: resources/views/admin/categories/edit.blade.php -->
 ~~~~php
 @extends('layouts.dashboard')
-@section('title', 'Editar categorÃ­a')
+@section('title', 'Editar categoría')
 
 @section('content')
 <div class="mx-auto max-w-xl p-4">
-  <h1 class="mb-6 text-2xl font-semibold">Editar categorÃ­a</h1>
+  <h1 class="mb-6 text-2xl font-semibold">Editar categoría</h1>
 
   <form method="POST" action="{{ route('admin.categories.update', $category) }}"
         class="rounded-2xl border border-gray-700 p-6">
@@ -78849,22 +80702,22 @@ return [
 <!-- BEGIN_CODE_FILE: resources/views/admin/categories/index.blade.php -->
 ~~~~php
 @extends('layouts.dashboard')
-@section('title', 'CategorÃ­as')
+@section('title', 'Categorías')
 
 @section('content')
 <div class="mx-auto max-w-6xl p-4">
   <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-semibold">CategorÃ­as</h1>
+    <h1 class="text-2xl font-semibold">Categorías</h1>
 
     <a href="{{ route('admin.categories.create') }}"
        class="rounded-xl bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">
-      + Nueva categorÃ­a
+      + Nueva categoría
     </a>
   </div>
 
   <form method="GET" class="mb-4">
     <input name="q" value="{{ $q }}"
-           placeholder="Buscar categorÃ­a..."
+           placeholder="Buscar categoría..."
            class="w-full rounded-xl border border-gray-600 bg-gray-800 px-3 py-2 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-600" />
   </form>
 
@@ -78881,7 +80734,7 @@ return [
 
   @if($categories->count() === 0)
     <div class="rounded-2xl border border-dashed border-gray-600 p-10 text-center text-gray-400">
-      No hay categorÃ­as aÃºn. Crea la primera para organizar tu catÃ¡logo.
+      No hay categorías aún. Crea la primera para organizar tu catálogo.
     </div>
   @else
   <div class="overflow-hidden rounded-2xl border border-gray-700">
@@ -78906,7 +80759,7 @@ return [
                  class="rounded-lg bg-gray-700 px-3 py-1 text-gray-100 hover:bg-gray-600">Editar</a>
 
               <form action="{{ route('admin.categories.destroy', $cat) }}" method="POST"
-                    onsubmit="return confirm('Â¿Eliminar esta categorÃ­a?');">
+                    onsubmit="return confirm('¿Eliminar esta categoría?');">
                 @csrf @method('DELETE')
                 <button class="rounded-lg bg-red-600 px-3 py-1 text-white hover:bg-red-700">
                   Eliminar
@@ -78937,24 +80790,24 @@ return [
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Dashboard â€” Comerciante')
+@section('title', 'Dashboard — Comerciante')
 
 @section('content')
     <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <!-- Welcome + status card -->
         <div class="card p-6 col-span-2">
-            <h2 class="text-2xl font-bold text-white mb-2">Â¡Bienvenido a tu panel!</h2>
-            <p class="text-gray-300 mb-4">Gestiona tu catÃ¡logo, personaliza tu tienda y empieza a vender.</p>
+            <h2 class="text-2xl font-bold text-white mb-2">¡Bienvenido a tu panel!</h2>
+            <p class="text-gray-300 mb-4">Gestiona tu catálogo, personaliza tu tienda y empieza a vender.</p>
 
             @if(auth()->user()->stores->isEmpty())
-                <p class="text-yellow-400 mb-4">No tienes una tienda configurada aÃºn.</p>
+                <p class="text-yellow-400 mb-4">No tienes una tienda configurada aún.</p>
             @else
-                <p class="text-green-400 mb-4">Tu tienda estÃ¡ lista para usar.</p>
+                <p class="text-green-400 mb-4">Tu tienda está lista para usar.</p>
             @endif
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <a href="{{ route('admin.products.create') }}" class="p-4 rounded-lg bg-white/5 smooth hover:bg-white/6">
-                    <div class="text-sm text-gray-200">CatÃ¡logo</div>
+                    <div class="text-sm text-gray-200">Catálogo</div>
                     <div class="mt-2 font-semibold text-white">Agregar producto</div>
                 </a>
 
@@ -78964,8 +80817,8 @@ return [
                 </a>
 
                 <a href="{{ route('admin.categories.index') }}" class="p-4 rounded-lg bg-white/5 smooth hover:bg-white/6">
-                    <div class="text-sm text-gray-200">CatÃ¡logo</div>
-                    <div class="mt-2 font-semibold text-white">CategorÃ­as</div>
+                    <div class="text-sm text-gray-200">Catálogo</div>
+                    <div class="mt-2 font-semibold text-white">Categorías</div>
                 </a>
             </div>
         </div>
@@ -78981,14 +80834,14 @@ return [
             </h3>
             <p class="text-gray-300 mt-2">
                 @if(auth()->user()->stores->isEmpty())
-                    Configura logo, portada y datos bÃ¡sicos para publicar.
+                    Configura logo, portada y datos básicos para publicar.
                 @else
-                    Tu tienda estÃ¡ activa y lista para recibir pedidos.
+                    Tu tienda está activa y lista para recibir pedidos.
                 @endif
             </p>
             <a href="{{ route('store.wizard') }}" class="inline-block mt-4 px-4 py-2 rounded-full bg-orange-500 text-white smooth hover:brightness-95">
                 @if(auth()->user()->stores->isEmpty())
-                    Completar configuraciÃ³n
+                    Completar configuración
                 @else
                     Ver tienda
                 @endif
@@ -79001,17 +80854,17 @@ return [
         <div class="card p-4 smooth">
             <div class="text-xs text-gray-400">Ventas hoy</div>
             <div class="text-xl font-bold text-white">$0</div>
-            <div class="text-xs text-gray-400">0 Ã³rdenes</div>
+            <div class="text-xs text-gray-400">0 órdenes</div>
         </div>
         <div class="card p-4 smooth">
             <div class="text-xs text-gray-400">Productos</div>
             <div class="text-xl font-bold text-white">{{ \App\Models\Product::where('store_id', auth()->user()->stores->first()?->id ?? 0)->count() ?? 0 }}</div>
-            <div class="text-xs text-gray-400">En catÃ¡logo</div>
+            <div class="text-xs text-gray-400">En catálogo</div>
         </div>
         <div class="card p-4 smooth">
             <div class="text-xs text-gray-400">Visitas</div>
             <div class="text-xl font-bold text-white">0</div>
-            <div class="text-xs text-gray-400">Ãšltimas 24h</div>
+            <div class="text-xs text-gray-400">Últimas 24h</div>
         </div>
     </section>
 
@@ -79021,7 +80874,7 @@ return [
             <h4 class="text-lg font-semibold text-white">Actividad reciente</h4>
             <a href="#" class="text-sm text-gray-300">Ver todas</a>
         </div>
-        <div class="text-gray-400">AÃºn no hay actividad para mostrar. Agrega productos o configura tu tienda para empezar.</div>
+        <div class="text-gray-400">Aún no hay actividad para mostrar. Agrega productos o configura tu tienda para empezar.</div>
     </section>
 @endsection
 ~~~~
@@ -79035,7 +80888,7 @@ return [
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Productos Externos â€” ComercioPlus')
+@section('title', 'Productos Externos — ComercioPlus')
 
 @section('content')
 <div class="w-full">
@@ -79051,7 +80904,7 @@ return [
         type="text"
         name="search"
         value="{{ request('search') }}"
-        placeholder="Buscar por nombreâ€¦"
+        placeholder="Buscar por nombre…"
         class="sm:col-span-6 px-4 py-2 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
       />
 
@@ -79060,7 +80913,7 @@ return [
         class="sm:col-span-3 px-4 py-2 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
       >
         @php $sort = request('sort'); @endphp
-        <option value="" {{ $sort ? '' : 'selected' }}>Ordenarâ€¦</option>
+        <option value="" {{ $sort ? '' : 'selected' }}>Ordenar…</option>
         <option value="price:asc"  {{ $sort==='price:asc'  ? 'selected':'' }}>Precio: menor a mayor</option>
         <option value="price:desc" {{ $sort==='price:desc' ? 'selected':'' }}>Precio: mayor a menor</option>
         <option value="stock:desc" {{ $sort==='stock:desc' ? 'selected':'' }}>Stock: mayor a menor</option>
@@ -79072,7 +80925,7 @@ return [
       >
         @php $pp = (int) request('per_page', $limit ?? 12); @endphp
         @foreach([6,12,24,48] as $n)
-          <option value="{{ $n }}" {{ $pp===$n ? 'selected':'' }}>{{ $n }} por pÃ¡gina</option>
+          <option value="{{ $n }}" {{ $pp===$n ? 'selected':'' }}>{{ $n }} por página</option>
         @endforeach
       </select>
 
@@ -79123,7 +80976,7 @@ return [
 
               <div class="mt-2 text-sm text-gray-300 space-y-1">
                 @if($brand)<div><span class="text-gray-400">Marca:</span> {{ $brand }}</div>@endif
-                @if($cat)<div><span class="text-gray-400">CategorÃ­a:</span> {{ $cat }}</div>@endif
+                @if($cat)<div><span class="text-gray-400">Categoría:</span> {{ $cat }}</div>@endif
                 @if(!is_null($stock))<div><span class="text-gray-400">Stock:</span> {{ $stock }}</div>@endif
               </div>
 
@@ -79172,7 +81025,7 @@ return [
 
       <div class="mt-8 flex items-center justify-between">
         <div class="text-gray-400 text-sm">
-          PÃ¡gina {{ $page }} @if($total) de {{ (int) ceil($total / max(1,$limit)) }}@endif
+          Página {{ $page }} @if($total) de {{ (int) ceil($total / max(1,$limit)) }}@endif
         </div>
 
         <div class="flex gap-2">
@@ -79256,14 +81109,14 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Crear nuevo producto â€” ComercioPlus')
+@section('title', 'Crear nuevo producto — ComercioPlus')
 
 @section('content')
 <div class="container mx-auto px-4 py-8 bg-gray-900 min-h-[70vh]">
     <div class="max-w-2xl mx-auto">
         <h1 class="text-3xl font-bold text-gray-100 mb-8 drop-shadow-md">Agregar Nuevo Producto</h1>
 
-        {{-- Errores de validaciÃ³n --}}
+        {{-- Errores de validación --}}
         @if ($errors->any())
             <div class="mb-6 rounded-xl border border-red-400/30 bg-red-50/10 p-4 text-red-200">
                 <div class="font-semibold mb-2">Corrige los siguientes campos:</div>
@@ -79299,14 +81152,14 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
                 @enderror
             </div>
 
-            {{-- DescripciÃ³n (opcional) --}}
+            {{-- Descripción (opcional) --}}
             <div class="mb-6">
-                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">DescripciÃ³n</label>
+                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">Descripción</label>
                 <textarea
                     name="description"
                     id="description"
                     rows="5"
-                    placeholder="Ingrese la descripciÃ³n detallada del producto"
+                    placeholder="Ingrese la descripción detallada del producto"
                     class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('description') ring-red-400 border-red-400 @enderror transition-all resize-vertical"
                 >{{ old('description') }}</textarea>
                 @error('description')
@@ -79354,9 +81207,9 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
                 </div>
             </div>
 
-            {{-- CategorÃ­a (opcional segÃºn tu controlador) --}}
+            {{-- Categoría (opcional según tu controlador) --}}
             <div class="mb-6">
-                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">CategorÃ­a</label>
+                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">Categoría</label>
 
                 @if(isset($categories) && $categories->count())
                     <select
@@ -79365,7 +81218,7 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
                         class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 @error('category_id') ring-red-400 border-red-400 @enderror transition-all"
                         aria-describedby="catHelp"
                     >
-                        <option value="" class="text-gray-500">Seleccionar categorÃ­a (opcional)</option>
+                        <option value="" class="text-gray-500">Seleccionar categoría (opcional)</option>
 
                         @php
                             $popular = $categories->where('is_popular', true);
@@ -79383,7 +81236,7 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
                         @endif
 
                         @if($others->count())
-                            <optgroup label="Otras categorÃ­as">
+                            <optgroup label="Otras categorías">
                                 @foreach($others as $category)
                                     <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
                                         {{ $category->name }}
@@ -79392,14 +81245,14 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
                             </optgroup>
                         @endif
                     </select>
-                    <p id="catHelp" class="text-xs text-gray-400 mt-2">Si no ves categorÃ­as, crea primero la categorÃ­a desde tu panel de tienda.</p>
+                    <p id="catHelp" class="text-xs text-gray-400 mt-2">Si no ves categorías, crea primero la categoría desde tu panel de tienda.</p>
                 @else
                     <div class="bg-gray-800 border border-gray-700 rounded p-4">
-                        <p class="text-gray-300 mb-2">No tienes categorÃ­as aÃºn.</p>
+                        <p class="text-gray-300 mb-2">No tienes categorías aún.</p>
                         <a href="{{ route('admin.categories.create') }}" class="inline-block bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md shadow-sm">
-                            Crear categorÃ­a
+                            Crear categoría
                         </a>
-                        <p class="text-xs text-gray-400 mt-2">Las categorÃ­as son por tienda â€” si aÃºn no creaste la tienda, primero crÃ©ala.</p>
+                        <p class="text-xs text-gray-400 mt-2">Las categorías son por tienda — si aún no creaste la tienda, primero créala.</p>
                     </div>
                 @endif
 
@@ -79433,9 +81286,9 @@ $to = $href ?: (route_exists('admin.products.edit') ? route('admin.products.edit
 
                         <div class="mt-2">
                             <p id="imgHelp" class="text-sm text-gray-400">
-                                Formatos permitidos: JPG, JPEG, PNG, WEBP. TamaÃ±o mÃ¡ximo: 4 MB.
+                                Formatos permitidos: JPG, JPEG, PNG, WEBP. Tamaño máximo: 4 MB.
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">Recomendado: 800Ã—800 px para una vitrina Ã³ptima.</p>
+                            <p class="text-xs text-gray-500 mt-1">Recomendado: 800×800 px para una vitrina óptima.</p>
                         </div>
 
                         @error('image')
@@ -79495,9 +81348,9 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // LÃ­mite coherente con el backend (4 MB)
+        // Límite coherente con el backend (4 MB)
         if (f.size > 4 * 1024 * 1024) {
-            alert('El archivo supera el lÃ­mite de 4 MB.');
+            alert('El archivo supera el límite de 4 MB.');
             realInput.value = '';
             display.textContent = 'No file chosen';
             preview.src = "{{ asset('images/no-image.png') }}";
@@ -79509,7 +81362,7 @@ document.addEventListener('DOMContentLoaded', function () {
         reader.readAsDataURL(f);
     });
 
-    // Accesibilidad: activar con Enter o Space el botÃ³n de subir
+    // Accesibilidad: activar con Enter o Space el botón de subir
     const trigger = document.querySelector('label[for="image"]');
     if (trigger) {
         trigger.tabIndex = 0;
@@ -79558,8 +81411,8 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
 
             <div class="mb-6">
-                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">DescripciÃ³n</label>
-                <textarea name="description" id="description" rows="5" placeholder="Ingrese la descripciÃ³n detallada del producto"
+                <label for="description" class="block text-sm font-semibold text-gray-200 mb-3">Descripción</label>
+                <textarea name="description" id="description" rows="5" placeholder="Ingrese la descripción detallada del producto"
                           class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder-gray-500 @error('description') ring-red-400 border-red-400 @enderror transition-all resize-vertical"
                           required>{{ old('description', $product->description) }}</textarea>
                 @error('description')
@@ -79590,11 +81443,11 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
 
             <div class="mb-6">
-                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">CategorÃ­a</label>
+                <label for="category_id" class="block text-sm font-semibold text-gray-200 mb-3">Categoría</label>
                 <select name="category_id" id="category_id"
                         class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 @error('category_id') ring-red-400 border-red-400 @enderror transition-all"
                         required>
-                    <option value="">Seleccionar categorÃ­a</option>
+                    <option value="">Seleccionar categoría</option>
                     @foreach($categories as $category)
                         <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>
                             {{ $category->name }}
@@ -79622,8 +81475,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         </label>
 
                         <div class="mt-2">
-                            <p class="text-sm text-gray-400">Formatos permitidos: JPG, PNG, GIF. TamaÃ±o mÃ¡ximo: 2MB.</p>
-                            <p class="text-xs text-gray-500 mt-1">Deja vacÃ­o para mantener la imagen actual.</p>
+                            <p class="text-sm text-gray-400">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB.</p>
+                            <p class="text-xs text-gray-500 mt-1">Deja vacío para mantener la imagen actual.</p>
                         </div>
 
                         @error('image')
@@ -79665,7 +81518,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (f.size > 2 * 1024 * 1024) {
-            alert('El archivo supera el lÃ­mite de 2MB.');
+            alert('El archivo supera el límite de 2MB.');
             realInput.value = '';
             display.textContent = 'No file chosen';
             preview.src = "{{ $product->image_url ?? asset('images/placeholder.png') }}";
@@ -79711,8 +81564,8 @@ document.addEventListener('DOMContentLoaded', function () {
     {{-- Grid de productos --}}
     @if($products->isEmpty())
         <div class="rounded-2xl border border-dashed border-gray-700 p-12 text-center text-gray-400">
-            <h3 class="text-lg font-semibold">AÃºn no tienes productos</h3>
-            <p class="mt-2">Â¡Crea tu primer producto para empezar a vender!</p>
+            <h3 class="text-lg font-semibold">Aún no tienes productos</h3>
+            <p class="mt-2">¡Crea tu primer producto para empezar a vender!</p>
         </div>
     @else
         <div class="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -79730,7 +81583,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </h3>
 
                         <p class="mt-1 text-xs text-gray-500 uppercase tracking-wide">
-                            {{ $product->category->name ?? 'Sin categorÃ­a' }}
+                            {{ $product->category->name ?? 'Sin categoría' }}
                         </p>
 
                         <div class="flex justify-between items-center mt-4">
@@ -79743,13 +81596,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-gray-200">
-                            {{-- BotÃ³n Editar --}}
+                            {{-- Botón Editar --}}
                             <a href="{{ route('admin.products.edit', $product) }}"
                                class="text-center px-3 py-2 rounded-md bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-all">
                                Editar
                             </a>
                         
-                            {{-- BotÃ³n Toggle PromociÃ³n --}}
+                            {{-- Botón Toggle Promoción --}}
                             <form action="{{ route('admin.products.toggle-promotion', $product) }}" method="POST">
                                 @csrf
                                 <button class="w-full px-3 py-2 rounded-md text-white text-sm font-semibold transition-all {{ $product->is_promo ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-500 hover:bg-blue-600' }}">
@@ -79757,8 +81610,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </button>
                             </form>
                         
-                            {{-- BotÃ³n Eliminar --}}
-                            <form action="{{ route('admin.products.destroy', $product) }}" method="POST" onsubmit="return confirm('Â¿EstÃ¡s seguro de que quieres eliminar este producto?')">
+                            {{-- Botón Eliminar --}}
+                            <form action="{{ route('admin.products.destroy', $product) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este producto?')">
                                 @csrf
                                 @method('DELETE')
                                 <button class="w-full px-3 py-2 bg-red-600 text-white text-sm rounded-md font-semibold hover:bg-red-700 transition-all">
@@ -79771,7 +81624,7 @@ document.addEventListener('DOMContentLoaded', function () {
             @endforeach
         </div>
 
-        {{-- PaginaciÃ³n --}}
+        {{-- Paginación --}}
         @if ($products->hasPages())
             <div class="mt-10">
                 {{ $products->links() }}
@@ -79791,7 +81644,7 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Detalle del producto â€” ComercioPlus')
+@section('title', 'Detalle del producto — ComercioPlus')
 
 @section('content')
 <div class="mx-auto max-w-6xl p-6">
@@ -79805,7 +81658,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.products.index') }}"
                class="rounded-lg border border-gray-600 px-4 py-2 text-gray-200 hover:bg-gray-700 transition">
-                â† Volver
+                ← Volver
             </a>
 
             <a href="{{ route('admin.products.edit', $product) }}"
@@ -79814,7 +81667,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </a>
 
             <form action="{{ route('admin.products.destroy', $product) }}" method="POST"
-                  onsubmit="return confirm('Â¿Eliminar este producto? Esta acciÃ³n no se puede deshacer.')">
+                  onsubmit="return confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')">
                 @csrf
                 @method('DELETE')
                 <button type="submit"
@@ -79844,7 +81697,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 @endif
             </div>
             <p class="mt-2 text-xs text-gray-400">
-                Ruta: <span class="font-mono">{{ $product->image_path ?? 'â€”' }}</span>
+                Ruta: <span class="font-mono">{{ $product->image_path ?? '—' }}</span>
             </p>
         </div>
 
@@ -79853,7 +81706,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="mb-5">
                 <h2 class="text-xl font-semibold text-gray-100">{{ $product->name }}</h2>
                 <p class="mt-1 text-sm text-gray-400">
-                    {{ $product->description ?: 'Sin descripciÃ³n' }}
+                    {{ $product->description ?: 'Sin descripción' }}
                 </p>
             </div>
 
@@ -79871,9 +81724,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
 
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-gray-400">CategorÃ­a</dt>
+                    <dt class="text-xs uppercase tracking-wide text-gray-400">Categoría</dt>
                     <dd class="text-base text-gray-100">
-                        {{ optional($product->category)->name ?? 'Sin categorÃ­a' }}
+                        {{ optional($product->category)->name ?? 'Sin categoría' }}
                     </dd>
                 </div>
 
@@ -79900,24 +81753,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div>
                     <dt class="text-xs uppercase tracking-wide text-gray-400">Creado</dt>
                     <dd class="text-sm text-gray-300">
-                        {{ optional($product->created_at)->format('Y-m-d H:i') ?? 'â€”' }}
+                        {{ optional($product->created_at)->format('Y-m-d H:i') ?? '—' }}
                     </dd>
                 </div>
 
                 <div>
                     <dt class="text-xs uppercase tracking-wide text-gray-400">Actualizado</dt>
                     <dd class="text-sm text-gray-300">
-                        {{ optional($product->updated_at)->format('Y-m-d H:i') ?? 'â€”' }}
+                        {{ optional($product->updated_at)->format('Y-m-d H:i') ?? '—' }}
                     </dd>
                 </div>
             </dl>
         </div>
     </div>
 
-    {{-- RelaciÃ³n rÃ¡pida (opcional): categorÃ­a/otros productos de la categorÃ­a --}}
+    {{-- Relación rápida (opcional): categoría/otros productos de la categoría --}}
     @if(isset($related) && $related->count())
         <div class="mt-10">
-            <h3 class="mb-4 text-lg font-semibold text-gray-100">Otros productos de â€œ{{ optional($product->category)->name }}â€</h3>
+            <h3 class="mb-4 text-lg font-semibold text-gray-100">Otros productos de “{{ optional($product->category)->name }}”</h3>
             <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 @foreach($related as $r)
                     <a href="{{ route('admin.products.edit', $r) }}"
@@ -79975,7 +81828,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     Pagos
                 </a>
                 <a href="#shipping" class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {{ request('tab') == 'shipping' ? 'border-orange-500 text-orange-500' : 'border-transparent text-gray-300 hover:text-gray-100 hover:border-gray-300' }}" data-tab="shipping">
-                    EnvÃ­os
+                    Envíos
                 </a>
                 <a href="#taxes" class="tab-link whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {{ request('tab') == 'taxes' ? 'border-orange-500 text-orange-500' : 'border-transparent text-gray-300 hover:text-gray-100 hover:border-gray-300' }}" data-tab="taxes">
                     Impuestos
@@ -80074,7 +81927,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 
     <div>
-        <label for="logo" class="block text-sm font-medium text-gray-200 mb-2">Nuevo logo (PNG/JPG/SVG, mÃ¡x 2MB)</label>
+        <label for="logo" class="block text-sm font-medium text-gray-200 mb-2">Nuevo logo (PNG/JPG/SVG, máx 2MB)</label>
         <input type="file" id="logo" name="logo" accept="image/*"
                class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 @error('logo') ring-red-400 border-red-400 @enderror">
         @error('logo')
@@ -80083,7 +81936,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 
     <div>
-        <label for="cover" class="block text-sm font-medium text-gray-200 mb-2">Nueva portada (PNG/JPG, mÃ¡x 4MB)</label>
+        <label for="cover" class="block text-sm font-medium text-gray-200 mb-2">Nueva portada (PNG/JPG, máx 4MB)</label>
         <input type="file" id="cover" name="cover" accept="image/*"
                class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 @error('cover') ring-red-400 border-red-400 @enderror">
         @error('cover')
@@ -80112,7 +81965,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-            <label for="phone" class="block text-sm font-medium text-gray-200 mb-2">TelÃ©fono</label>
+            <label for="phone" class="block text-sm font-medium text-gray-200 mb-2">Teléfono</label>
             <input type="text" id="phone" name="phone" value="{{ old('phone', $store->phone) }}"
                    class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 @error('phone') ring-red-400 border-red-400 @enderror">
             @error('phone')
@@ -80141,7 +81994,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-            <label for="address" class="block text-sm font-medium text-gray-200 mb-2">DirecciÃ³n</label>
+            <label for="address" class="block text-sm font-medium text-gray-200 mb-2">Dirección</label>
             <input type="text" id="address" name="address" value="{{ old('address', $store->address) }}"
                    class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 @error('address') ring-red-400 border-red-400 @enderror">
             @error('address')
@@ -80163,7 +82016,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <input type="checkbox" id="is_visible" name="is_visible" value="1" {{ old('is_visible', $store->is_visible) ? 'checked' : '' }}
                class="h-4 w-4 text-orange-500 focus:ring-orange-400 border-gray-300 rounded">
         <label for="is_visible" class="ml-2 block text-sm text-gray-200">
-            Tienda visible al pÃºblico
+            Tienda visible al público
         </label>
     </div>
 
@@ -80194,7 +82047,7 @@ document.addEventListener('DOMContentLoaded', function () {
         @error('notify_email')
             <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
         @enderror
-        <p class="text-xs text-gray-400 mt-1">RecibirÃ¡s notificaciones de pedidos en este email.</p>
+        <p class="text-xs text-gray-400 mt-1">Recibirás notificaciones de pedidos en este email.</p>
     </div>
 
     <div class="flex justify-end">
@@ -80220,11 +82073,11 @@ document.addEventListener('DOMContentLoaded', function () {
         <label for="payment_instructions" class="block text-sm font-medium text-gray-200 mb-2">Instrucciones de pago</label>
         <textarea id="payment_instructions" name="payment_instructions" rows="6"
                   class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 @error('payment_instructions') ring-red-400 border-red-400 @enderror"
-                  placeholder="Ej: Transferencia bancaria a cuenta XXX, Yape a nÃºmero XXX, etc.">{{ old('payment_instructions', $store->payment_instructions) }}</textarea>
+                  placeholder="Ej: Transferencia bancaria a cuenta XXX, Yape a número XXX, etc.">{{ old('payment_instructions', $store->payment_instructions) }}</textarea>
         @error('payment_instructions')
             <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
         @enderror
-        <p class="text-xs text-gray-400 mt-1">Estas instrucciones se mostrarÃ¡n al cliente en el checkout.</p>
+        <p class="text-xs text-gray-400 mt-1">Estas instrucciones se mostrarán al cliente en el checkout.</p>
     </div>
 
     <div class="flex justify-end">
@@ -80248,23 +82101,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-            <label for="shipping_radius_km" class="block text-sm font-medium text-gray-200 mb-2">Radio de envÃ­o (km)</label>
+            <label for="shipping_radius_km" class="block text-sm font-medium text-gray-200 mb-2">Radio de envío (km)</label>
             <input type="number" id="shipping_radius_km" name="shipping_radius_km" step="0.1" min="0" value="{{ old('shipping_radius_km', $store->shipping_radius_km) }}"
                    class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 @error('shipping_radius_km') ring-red-400 border-red-400 @enderror">
             @error('shipping_radius_km')
                 <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
             @enderror
-            <p class="text-xs text-gray-400 mt-1">Distancia mÃ¡xima para entregas. 0 = sin lÃ­mite.</p>
+            <p class="text-xs text-gray-400 mt-1">Distancia máxima para entregas. 0 = sin límite.</p>
         </div>
 
         <div>
-            <label for="shipping_base_cost" class="block text-sm font-medium text-gray-200 mb-2">Costo base de envÃ­o (S/.)</label>
+            <label for="shipping_base_cost" class="block text-sm font-medium text-gray-200 mb-2">Costo base de envío (S/.)</label>
             <input type="number" id="shipping_base_cost" name="shipping_base_cost" step="0.01" min="0" value="{{ old('shipping_base_cost', $store->shipping_base_cost) }}"
                    class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 @error('shipping_base_cost') ring-red-400 border-red-400 @enderror">
             @error('shipping_base_cost')
                 <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
             @enderror
-            <p class="text-xs text-gray-400 mt-1">Costo mÃ­nimo por envÃ­o.</p>
+            <p class="text-xs text-gray-400 mt-1">Costo mínimo por envío.</p>
         </div>
     </div>
 
@@ -80323,7 +82176,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <!-- BEGIN_CODE_FILE: resources/views/admin/stats/index.blade.php -->
 ~~~~php
 @extends('layouts.dashboard')
-@section('title','EstadÃ­sticas â€” ComercioPlus')
+@section('title','Estadísticas — ComercioPlus')
 
 @push('styles')
 <style>
@@ -80337,7 +82190,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @section('content')
 <div class="max-w-7xl mx-auto p-6">
   <header class="mb-6">
-    <h1 class="text-2xl sm:text-3xl font-bold">EstadÃ­sticas</h1>
+    <h1 class="text-2xl sm:text-3xl font-bold">Estadísticas</h1>
     <p class="text-gray-600">Resumen de pedidos, ventas e ingresos.</p>
   </header>
 
@@ -80366,19 +82219,19 @@ document.addEventListener('DOMContentLoaded', function () {
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="cards">
     <div class="kpi-card">
       <p class="kpi-label">Pedidos</p>
-      <p class="kpi-value" id="kpiPedidos">â€”</p>
+      <p class="kpi-value" id="kpiPedidos">—</p>
     </div>
     <div class="kpi-card">
       <p class="kpi-label">Ventas pagadas</p>
-      <p class="kpi-value" id="kpiPagadas">â€”</p>
+      <p class="kpi-value" id="kpiPagadas">—</p>
     </div>
     <div class="kpi-card">
       <p class="kpi-label">Ingresos</p>
-      <p class="kpi-value" id="kpiIngresos">$â€”</p>
+      <p class="kpi-value" id="kpiIngresos">$—</p>
     </div>
     <div class="kpi-card">
       <p class="kpi-label">Ticket promedio</p>
-      <p class="kpi-value" id="kpiTicket">$â€”</p>
+      <p class="kpi-value" id="kpiTicket">$—</p>
     </div>
   </section>
 
@@ -80403,7 +82256,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (function(){
-  let chart; // referencia al grÃ¡fico para poder actualizarlo
+  let chart; // referencia al gráfico para poder actualizarlo
 
   function moneyCOP(v){
     try {
@@ -80480,14 +82333,14 @@ document.addEventListener('DOMContentLoaded', function () {
         ? top.map(p => `
           <div class="flex items-center justify-between p-3 rounded-lg border bg-white">
             <div class="font-medium">Producto #${p.product_id}</div>
-            <div class="text-sm text-gray-600">${p.unidades} uds â€¢ ${moneyCOP(p.total)}</div>
+            <div class="text-sm text-gray-600">${p.unidades} uds • ${moneyCOP(p.total)}</div>
           </div>
         `).join('')
         : '<p class="text-gray-600">Sin datos en el rango seleccionado.</p>';
 
     } catch (e) {
       console.error(e);
-      msg.textContent = 'No fue posible cargar las estadÃ­sticas. Verifica que los endpoints /api/stats estÃ©n activos y tu sesiÃ³n estÃ© autenticada.';
+      msg.textContent = 'No fue posible cargar las estadísticas. Verifica que los endpoints /api/stats estén activos y tu sesión esté autenticada.';
       msg.classList.remove('hidden');
     }
   }
@@ -80599,13 +82452,13 @@ document.addEventListener('DOMContentLoaded', function () {
   <div class="mt-8 rounded-2xl border border-red-500 bg-white p-6 shadow-sm">
     <h2 class="text-lg font-semibold text-red-700">Eliminar tienda</h2>
     <p class="mt-2 text-sm text-gray-600">
-      Esta acciÃ³n es irreversible. Se eliminarÃ¡n todos los datos de tu tienda, incluyendo productos, categorÃ­as y pedidos.
+      Esta acción es irreversible. Se eliminarán todos los datos de tu tienda, incluyendo productos, categorías y pedidos.
     </p>
     <form
       action="{{ route('admin.store.destroy') }}"
       method="POST"
       class="mt-4"
-      onsubmit="return confirm('Â¿EstÃ¡s seguro de que quieres eliminar tu tienda? Esta acciÃ³n no se puede deshacer.');"
+      onsubmit="return confirm('¿Estás seguro de que quieres eliminar tu tienda? Esta acción no se puede deshacer.');"
     >
       @csrf
       @method('DELETE')
@@ -80630,7 +82483,7 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Crear Usuario Admin â€” ComercioPlus')
+@section('title', 'Crear Usuario Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
@@ -80659,7 +82512,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label for="password" class="block text-sm font-medium text-white/90 mb-2">ContraseÃ±a</label>
+                <label for="password" class="block text-sm font-medium text-white/90 mb-2">Contraseña</label>
                 <input type="password" name="password" id="password" required
                        class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
                 @error('password')
@@ -80668,7 +82521,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
 
             <div>
-                <label for="password_confirmation" class="block text-sm font-medium text-white/90 mb-2">Confirmar contraseÃ±a</label>
+                <label for="password_confirmation" class="block text-sm font-medium text-white/90 mb-2">Confirmar contraseña</label>
                 <input type="password" name="password_confirmation" id="password_confirmation" required
                        class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
             </div>
@@ -80676,7 +82529,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label for="phone" class="block text-sm font-medium text-white/90 mb-2">TelÃ©fono (opcional)</label>
+                <label for="phone" class="block text-sm font-medium text-white/90 mb-2">Teléfono (opcional)</label>
                 <input type="text" name="phone" id="phone" value="{{ old('phone') }}"
                        class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
                 @error('phone')
@@ -80712,7 +82565,7 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Editar Usuario Admin â€” ComercioPlus')
+@section('title', 'Editar Usuario Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
@@ -80742,7 +82595,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label for="password" class="block text-sm font-medium text-white/90 mb-2">Nueva ContraseÃ±a (opcional)</label>
+                <label for="password" class="block text-sm font-medium text-white/90 mb-2">Nueva Contraseña (opcional)</label>
                 <input type="password" name="password" id="password"
                        class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
                 @error('password')
@@ -80751,7 +82604,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
 
             <div>
-                <label for="password_confirmation" class="block text-sm font-medium text-white/90 mb-2">Confirmar Nueva ContraseÃ±a</label>
+                <label for="password_confirmation" class="block text-sm font-medium text-white/90 mb-2">Confirmar Nueva Contraseña</label>
                 <input type="password" name="password_confirmation" id="password_confirmation"
                        class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
             </div>
@@ -80759,7 +82612,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label for="phone" class="block text-sm font-medium text-white/90 mb-2">TelÃ©fono</label>
+                <label for="phone" class="block text-sm font-medium text-white/90 mb-2">Teléfono</label>
                 <input type="text" name="phone" id="phone" value="{{ old('phone', $user->phone) }}"
                        class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth">
                 @error('phone')
@@ -80798,7 +82651,7 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Usuarios Admin â€” ComercioPlus')
+@section('title', 'Usuarios Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
@@ -80823,7 +82676,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Nombre</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">TelÃ©fono</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Teléfono</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -80837,7 +82690,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                             <a href="{{ route('admin.users.show', $user) }}" class="text-blue-400 hover:text-blue-300 smooth">Ver</a>
                             <a href="{{ route('admin.users.edit', $user) }}" class="text-orange-400 hover:text-orange-300 smooth">Editar</a>
-                            <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" onsubmit="return confirm('Â¿EstÃ¡s seguro de eliminar este usuario?')">
+                            <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="text-red-400 hover:text-red-300 smooth">Eliminar</button>
@@ -80870,7 +82723,7 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Ver Usuario Admin â€” ComercioPlus')
+@section('title', 'Ver Usuario Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
@@ -80878,7 +82731,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <h1 class="text-2xl font-bold text-white">Detalles del Usuario</h1>
         <div class="space-x-2">
             <a href="{{ route('admin.users.edit', $user) }}" class="px-4 py-2 text-white bg-white/10 rounded-xl hover:bg-white/15 smooth">Editar</a>
-            <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" onsubmit="return confirm('Â¿EstÃ¡s seguro de eliminar este usuario?')">
+            <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?')">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="px-4 py-2 text-white bg-red-500/20 rounded-xl hover:bg-red-500/30 border border-red-500/30 smooth">Eliminar</button>
@@ -80888,14 +82741,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white/10 ring-1 ring-white/15 rounded-3xl p-6">
         <div>
-            <h2 class="text-xl font-semibold text-white mb-4">InformaciÃ³n Personal</h2>
+            <h2 class="text-xl font-semibold text-white mb-4">Información Personal</h2>
             <div class="space-y-3 text-white/90">
                 <p><strong>ID:</strong> {{ $user->id }}</p>
                 <p><strong>Nombre:</strong> {{ $user->name }}</p>
                 <p><strong>Email:</strong> {{ $user->email }}</p>
-                <p><strong>TelÃ©fono:</strong> {{ $user->phone ?? 'No proporcionado' }}</p>
+                <p><strong>Teléfono:</strong> {{ $user->phone ?? 'No proporcionado' }}</p>
                 <p><strong>Fecha de Registro:</strong> {{ $user->created_at->format('d/m/Y H:i') }}</p>
-                <p><strong>Ãšltimo Acceso:</strong> {{ $user->last_login_at ?? 'Nunca' }}</p>
+                <p><strong>Último Acceso:</strong> {{ $user->last_login_at ?? 'Nunca' }}</p>
             </div>
         </div>
 
@@ -81001,11 +82854,16 @@ document.addEventListener('DOMContentLoaded', function () {
             <p class="text-3xl mt-2">320</p>
         </div>
         <div class="bg-white p-6 rounded shadow text-center">
-            <h3 class="text-xl font-semibold">Ventas del DÃ­a</h3>
+            <h3 class="text-xl font-semibold">Ventas del Día</h3>
             <p class="text-3xl mt-2">25</p>
         </div>
     </div>
 @endsection
+
+
+
+
+
 ~~~~
 <!-- END_CODE_FILE: resources/views/auth/dashboard.blade.php -->
 
@@ -81110,14 +82968,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <head>
     <meta charset="UTF-8" />
-    <title>Recuperar contraseÃ±a</title>
+    <title>Recuperar contraseña</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-100 to-orange-200 p-4">
 
     <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md flex flex-col space-y-6">
-        <h1 class="text-3xl font-extrabold text-gray-900 text-center mb-4">Recuperar contraseÃ±a</h1>
+        <h1 class="text-3xl font-extrabold text-gray-900 text-center mb-4">Recuperar contraseña</h1>
 
         @if (session('status'))
             <div class="bg-green-100 text-green-700 p-3 rounded mb-4">
@@ -81128,7 +82986,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <form method="POST" action="{{ route('password.email') }}" class="flex flex-col space-y-4">
             @csrf
 
-            <input type="email" name="email" placeholder="Correo electrÃ³nico"
+            <input type="email" name="email" placeholder="Correo electrónico"
                 class="p-3 rounded-lg bg-[#f9f1e7] placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-[#ff9800]"
                 required autofocus>
 
@@ -81138,12 +82996,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <button type="submit"
                 class="bg-[#ff9800] text-white font-bold p-3 rounded-lg hover:bg-[#e68a00] transition">
-                Enviar enlace de recuperaciÃ³n
+                Enviar enlace de recuperación
             </button>
         </form>
 
         <div class="text-center">
-            <a href="{{ route('login') }}" class="text-sm text-[#ff9800] hover:underline">Volver al inicio de sesiÃ³n</a>
+            <a href="{{ route('login') }}" class="text-sm text-[#ff9800] hover:underline">Volver al inicio de sesión</a>
         </div>
     </div>
 
@@ -81310,12 +83168,12 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Crear CategorÃ­a Admin â€” ComercioPlus')
+@section('title', 'Crear Categoría Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
     <div class="bg-white/10 ring-1 ring-white/15 rounded-3xl p-6">
-        <h2 class="text-2xl font-bold mb-6 text-white">Agregar CategorÃ­a</h2>
+        <h2 class="text-2xl font-bold mb-6 text-white">Agregar Categoría</h2>
 
         @if ($errors->any())
             <div class="bg-red-500/20 border border-red-500/30 text-red-200 px-4 py-3 rounded-xl mb-6">
@@ -81331,9 +83189,9 @@ document.addEventListener('DOMContentLoaded', function () {
             @csrf
             <div>
                 <label for="name" class="block font-semibold mb-2 text-white/90">Nombre</label>
-                <input type="text" name="name" id="name" placeholder="Nombre de la categorÃ­a" class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" value="{{ old('name') }}" required>
+                <input type="text" name="name" id="name" placeholder="Nombre de la categoría" class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" value="{{ old('name') }}" required>
             </div>
-            <button type="submit" class="px-6 py-2 text-black bg-orange-500 rounded-xl hover:bg-orange-600 font-semibold shadow smooth">Guardar CategorÃ­a</button>
+            <button type="submit" class="px-6 py-2 text-black bg-orange-500 rounded-xl hover:bg-orange-600 font-semibold shadow smooth">Guardar Categoría</button>
         </form>
     </div>
 </div>
@@ -81349,12 +83207,12 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Editar CategorÃ­a Admin â€” ComercioPlus')
+@section('title', 'Editar Categoría Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
     <div class="bg-white/10 ring-1 ring-white/15 rounded-3xl p-6">
-        <h2 class="text-2xl font-bold mb-6 text-white">Editar CategorÃ­a</h2>
+        <h2 class="text-2xl font-bold mb-6 text-white">Editar Categoría</h2>
 
         @if ($errors->any())
             <div class="bg-red-500/20 border border-red-500/30 text-red-200 px-4 py-3 rounded-xl mb-6">
@@ -81371,9 +83229,9 @@ document.addEventListener('DOMContentLoaded', function () {
             @method('PUT')
             <div>
                 <label for="name" class="block font-semibold mb-2 text-white/90">Nombre</label>
-                <input type="text" name="name" id="name" placeholder="Nombre de la categorÃ­a" class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" value="{{ old('name', $category->name) }}" required>
+                <input type="text" name="name" id="name" placeholder="Nombre de la categoría" class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" value="{{ old('name', $category->name) }}" required>
             </div>
-            <button type="submit" class="px-6 py-2 text-black bg-orange-500 rounded-xl hover:bg-orange-600 font-semibold shadow smooth">Actualizar CategorÃ­a</button>
+            <button type="submit" class="px-6 py-2 text-black bg-orange-500 rounded-xl hover:bg-orange-600 font-semibold shadow smooth">Actualizar Categoría</button>
         </form>
     </div>
 </div>
@@ -81389,14 +83247,14 @@ document.addEventListener('DOMContentLoaded', function () {
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'CategorÃ­as Admin â€” ComercioPlus')
+@section('title', 'Categorías Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-white">CategorÃ­as</h1>
+        <h1 class="text-2xl font-bold text-white">Categorías</h1>
         <a href="{{ route('categories.create') }}" class="inline-flex items-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white smooth">
-            + Agregar CategorÃ­a
+            + Agregar Categoría
         </a>
     </div>
 
@@ -81421,7 +83279,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-white">{{ $category->name }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                             <a href="{{ route('categories.edit', $category) }}" class="text-blue-400 hover:text-blue-300 smooth">Editar</a>
-                            <form action="{{ route('categories.destroy', $category) }}" method="POST" class="inline" onsubmit="return confirm('Â¿EstÃ¡ seguro de eliminar esta categorÃ­a?')">
+                            <form action="{{ route('categories.destroy', $category) }}" method="POST" class="inline" onsubmit="return confirm('¿Está seguro de eliminar esta categoría?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="text-red-400 hover:text-red-300 smooth">Eliminar</button>
@@ -81430,7 +83288,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="2" class="px-6 py-4 text-center text-white/70">No hay categorÃ­as registradas.</td>
+                        <td colspan="2" class="px-6 py-4 text-center text-white/70">No hay categorías registradas.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -81579,8 +83437,8 @@ $width = match ($width) {
     </a>
     <nav class="hidden md:flex items-center gap-6 text-sm text-text-light">
       <a href="#tiendas" class="hover:text-text transition">Tiendas</a>
-      <a href="#categorias" class="hover:text-text transition">CategorÃ­as</a>
-      <a href="#como" class="hover:text-text transition">CÃ³mo funciona</a>
+      <a href="#categorias" class="hover:text-text transition">Categorías</a>
+      <a href="#como" class="hover:text-text transition">Cómo funciona</a>
       <a href="#soporte" class="hover:text-text transition">Soporte</a>
     </nav>
     <div class="flex items-center gap-2">
@@ -81770,7 +83628,7 @@ $classes = ($active ?? false)
     <div class="mt-1 flex items-center justify-between">
       <span class="font-bold">${{ number_format($price, 2) }}</span>
       @if(!is_null($rating))
-        <span class="text-sm text-text-light">â˜… {{ number_format($rating,1) }}</span>
+        <span class="text-sm text-text-light">★ {{ number_format($rating,1) }}</span>
       @endif
     </div>
   </div>
@@ -81837,7 +83695,7 @@ $classes = ($active ?? false)
     <div class="mt-1 flex items-center justify-between">
       <span class="text-sm text-text-light">{{ $category }}</span>
       @if(!is_null($rating))
-        <span class="text-sm text-text-light">â˜… {{ number_format($rating,1) }}</span>
+        <span class="text-sm text-text-light">★ {{ number_format($rating,1) }}</span>
       @endif
     </div>
   </div>
@@ -81865,9 +83723,9 @@ $classes = ($active ?? false)
 ~~~~php
 <section aria-label="Confianza" class="border-y border-border bg-background">
   <div class="max-w-7xl mx-auto px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-text-light">
-    <div class="flex items-center gap-2"><span class="text-primary">â€¢</span> +1000 productos</div>
-    <div class="flex items-center gap-2"><span class="text-primary">â€¢</span> Tiendas verificadas</div>
-    <div class="flex items-center gap-2"><span class="text-primary">â€¢</span> Pagos seguros</div>
+    <div class="flex items-center gap-2"><span class="text-primary">•</span> +1000 productos</div>
+    <div class="flex items-center gap-2"><span class="text-primary">•</span> Tiendas verificadas</div>
+    <div class="flex items-center gap-2"><span class="text-primary">•</span> Pagos seguros</div>
   </div>
 </section>
 ~~~~
@@ -81933,7 +83791,7 @@ $classes = ($active ?? false)
         @error('cover')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
       </div>
       <button class="inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground h-10 px-4 py-2 w-full">
-        <span class="mr-2">âœ¨</span>
+        <span class="mr-2">✨</span>
         {{ __('Generar Tema con IA') }}
       </button>
     </form>
@@ -81943,12 +83801,12 @@ $classes = ($active ?? false)
       $c = $sessionColors ?: $colors;
     @endphp
 
-    {{-- PALETA DE COLORES (ediciÃ³n manual, como en el original) --}}
+    {{-- PALETA DE COLORES (edición manual, como en el original) --}}
     <div class="space-y-4 pt-4 border-t">
       <h4 class="font-semibold">Paleta de Colores</h4>
       <form method="POST" action="{{ route('dashboard.branding.generate') }}" enctype="multipart/form-data" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         @csrf
-        {{-- Mantener nombre para no romper flujo (si el usuario re-envÃ­a sin imÃ¡genes) --}}
+        {{-- Mantener nombre para no romper flujo (si el usuario re-envía sin imágenes) --}}
         <input type="hidden" name="shopName" value="{{ old('shopName', $store->name ?? '') }}" />
         <div class="space-y-2">
           <label class="text-sm font-medium leading-none">Primary Color</label>
@@ -81979,8 +83837,8 @@ $classes = ($active ?? false)
       <h4 class="font-semibold">Vista Previa</h4>
       <div class="rounded-lg p-4 border" style="background-color: {{ $c['backgroundColor'] }}; color: {{ $c['textColor'] }};">
         <h5 class="font-bold text-lg">Producto de Muestra</h5>
-        <p class="text-sm opacity-80">Una descripciÃ³n breve del producto.</p>
-        <button class="mt-4 rounded-md px-4 py-2 font-semibold" style="background-color: {{ $c['primaryColor'] }}; color: {{ $c['textColor'] }};">BotÃ³n Principal</button>
+        <p class="text-sm opacity-80">Una descripción breve del producto.</p>
+        <button class="mt-4 rounded-md px-4 py-2 font-semibold" style="background-color: {{ $c['primaryColor'] }}; color: {{ $c['textColor'] }};">Botón Principal</button>
       </div>
     </div>
   </div>
@@ -81995,7 +83853,6 @@ $classes = ($active ?? false)
 
 <!-- BEGIN_CODE_FILE: resources/views/dashboard/index.blade.php -->
 ~~~~php
-
 ~~~~
 <!-- END_CODE_FILE: resources/views/dashboard/index.blade.php -->
 
@@ -82023,7 +83880,7 @@ $classes = ($active ?? false)
         <h1 class="text-4xl font-bold mb-6 flex items-center gap-2">
           {{ $store?->name ?? 'Mi Tienda' }}
           @if($store && $store->cover_path)
-            <span class="text-xs text-white/50">Â· portada activa</span>
+            <span class="text-xs text-white/50">· portada activa</span>
           @endif
         </h1>
         @if($store && $store->description)
@@ -82033,7 +83890,7 @@ $classes = ($active ?? false)
     </div>
 
     <div class="flex items-center gap-3">
-      {{-- BotÃ³n "Crear tienda" eliminado --}}
+      {{-- Botón "Crear tienda" eliminado --}}
       {{-- <button class="btn-create-store">Crear tienda</button> --}}
       @if($store)
         <a href="{{ route('store.edit', $store) }}" class="rounded-xl bg-white/10 text-white px-4 py-2 hover:bg-white/15">Editar tienda</a>
@@ -82057,12 +83914,12 @@ $classes = ($active ?? false)
     <input id="searchInput" type="search" placeholder="Buscar..." aria-label="Buscar productos"
       class="bg-neutral-900/60 ring-1 ring-white/10 text-white placeholder-white/40 rounded-lg px-4 py-2 flex-grow max-w-xs focus:ring-[#FF6000] outline-none" />
 
-    <select id="categoryFilter" aria-label="Filtrar por categorÃ­a"
+    <select id="categoryFilter" aria-label="Filtrar por categoría"
       class="bg-neutral-900/60 ring-1 ring-white/10 text-white rounded-lg px-4 py-2 focus:ring-[#FF6000] outline-none">
-      <option value="">Todas las categorÃ­as</option>
+      <option value="">Todas las categorías</option>
       <option value="Frenos">Frenos</option>
-      <option value="IluminaciÃ³n">IluminaciÃ³n</option>
-      <option value="TransmisiÃ³n">TransmisiÃ³n</option>
+      <option value="Iluminación">Iluminación</option>
+      <option value="Transmisión">Transmisión</option>
       <option value="Accesorios">Accesorios</option>
       <option value="Lubricantes">Lubricantes</option>
       <option value="Llantas">Llantas</option>
@@ -82100,18 +83957,18 @@ $classes = ($active ?? false)
         </div>
 
         <div>
-          <label for="category" class="block mb-1">CategorÃ­a</label>
+          <label for="category" class="block mb-1">Categoría</label>
           <select id="category" name="category" required
             class="w-full bg-neutral-900/60 ring-1 ring-white/10 text-white rounded-lg px-4 py-2 focus:ring-[#FF6000] outline-none">
-            <option value="">Seleccione una categorÃ­a</option>
+            <option value="">Seleccione una categoría</option>
             <option value="Frenos">Frenos</option>
-            <option value="IluminaciÃ³n">IluminaciÃ³n</option>
-            <option value="TransmisiÃ³n">TransmisiÃ³n</option>
+            <option value="Iluminación">Iluminación</option>
+            <option value="Transmisión">Transmisión</option>
             <option value="Accesorios">Accesorios</option>
             <option value="Lubricantes">Lubricantes</option>
             <option value="Llantas">Llantas</option>
           </select>
-          <p class="text-red-500 text-sm mt-1 hidden" id="categoryError">Seleccione una categorÃ­a.</p>
+          <p class="text-red-500 text-sm mt-1 hidden" id="categoryError">Seleccione una categoría.</p>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
@@ -82119,13 +83976,13 @@ $classes = ($active ?? false)
             <label for="price" class="block mb-1">Precio</label>
             <input type="number" id="price" name="price" min="0" step="0.01" required
               class="w-full bg-neutral-900/60 ring-1 ring-white/10 text-white placeholder-white/40 rounded-lg px-4 py-2 focus:ring-[#FF6000] outline-none" />
-            <p class="text-red-500 text-sm mt-1 hidden" id="priceError">Ingrese un precio vÃ¡lido.</p>
+            <p class="text-red-500 text-sm mt-1 hidden" id="priceError">Ingrese un precio válido.</p>
           </div>
           <div>
             <label for="stock" class="block mb-1">Existencias</label>
             <input type="number" id="stock" name="stock" min="0" step="1" required
               class="w-full bg-neutral-900/60 ring-1 ring-white/10 text-white placeholder-white/40 rounded-lg px-4 py-2 focus:ring-[#FF6000] outline-none" />
-            <p class="text-red-500 text-sm mt-1 hidden" id="stockError">Ingrese un stock vÃ¡lido.</p>
+            <p class="text-red-500 text-sm mt-1 hidden" id="stockError">Ingrese un stock válido.</p>
           </div>
         </div>
 
@@ -82133,14 +83990,14 @@ $classes = ($active ?? false)
           <label for="imageUrl" class="block mb-1">URL de imagen</label>
           <input type="url" id="imageUrl" name="imageUrl" placeholder="https://example.com/imagen.jpg"
             class="w-full bg-neutral-900/60 ring-1 ring-white/10 text-white placeholder-white/40 rounded-lg px-4 py-2 focus:ring-[#FF6000] outline-none" />
-          <p class="text-red-500 text-sm mt-1 hidden" id="imageUrlError">Ingrese una URL vÃ¡lida.</p>
+          <p class="text-red-500 text-sm mt-1 hidden" id="imageUrlError">Ingrese una URL válida.</p>
           <div class="mt-3">
             <img id="imagePreview" src="" alt="Vista previa de imagen" class="w-full max-h-48 object-contain rounded-lg" />
           </div>
         </div>
 
         <div>
-          <label for="description" class="block mb-1">DescripciÃ³n</label>
+          <label for="description" class="block mb-1">Descripción</label>
           <textarea id="description" name="description" rows="3"
             class="w-full bg-neutral-900/60 ring-1 ring-white/10 text-white placeholder-white/40 rounded-lg px-4 py-2 focus:ring-[#FF6000] outline-none"></textarea>
         </div>
@@ -82173,14 +84030,14 @@ $classes = ($active ?? false)
 <!-- BEGIN_CODE_FILE: resources/views/errors/404.blade.php -->
 ~~~~php
 @extends('layouts.guest')
-@section('title','PÃ¡gina no encontrada | ComercioPlus')
+@section('title','Página no encontrada | ComercioPlus')
 
 @section('content')
 <div class="mx-auto max-w-5xl px-6 py-24 text-center">
   <div class="mx-auto w-28 h-28 rounded-3xl grid place-content-center bg-white/5 border border-white/10">
     <div class="text-5xl font-bold text-[var(--cp-primary)]">404</div>
   </div>
-  <h1 class="mt-8 text-3xl md:text-4xl font-semibold">PÃ¡gina no encontrada</h1>
+  <h1 class="mt-8 text-3xl md:text-4xl font-semibold">Página no encontrada</h1>
   <p class="mt-3 opacity-80">La ruta que intentas abrir no existe o fue movida.</p>
   <div class="mt-8 flex items-center justify-center gap-3">
     <a href="{{ url('/') }}" class="px-5 py-3 rounded-xl bg-[var(--cp-primary)] hover:bg-[var(--cp-primary-2)] transition font-medium">Ir al inicio</a>
@@ -82201,7 +84058,7 @@ $classes = ($active ?? false)
 <html lang="es" class="h-full">
 <head>
   <meta charset="utf-8" />
-  <title>@yield('title', 'Panel â€” ComercioPlus')</title>
+  <title>@yield('title', 'Panel — ComercioPlus')</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -82226,7 +84083,7 @@ $classes = ($active ?? false)
     $initials = $user ? collect(explode(' ', trim($user->name)))->map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)))->join('') : 'U';
   @endphp
 
-  {{-- SIDEBAR fijo en desktop + drawer en mÃ³vil --}}
+  {{-- SIDEBAR fijo en desktop + drawer en móvil --}}
   <aside class="hidden lg:flex fixed left-0 top-0 h-screen w-72 flex-col bg-white/10 backdrop-blur-md ring-1 ring-white/15 z-40">
     <div class="p-4 border-b border-white/10 flex items-center">
       <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
@@ -82249,9 +84106,9 @@ $classes = ($active ?? false)
         </ul>
       </div>
 
-      {{-- CatÃ¡logo --}}
+      {{-- Catálogo --}}
       <div>
-        <div class="px-2 text-[11px] uppercase tracking-wide text-white/60">CatÃ¡logo</div>
+        <div class="px-2 text-[11px] uppercase tracking-wide text-white/60">Catálogo</div>
         <ul class="mt-2 space-y-1">
           <li>
             <a href="{{ route('admin.products.index') }}"
@@ -82262,7 +84119,7 @@ $classes = ($active ?? false)
           <li>
             <a href="{{ route('admin.categories.index') }}"
                class="block px-4 py-2 rounded-xl hover:bg-white/10 {{ request()->routeIs('admin.categories.*') ? 'bg-white/10' : '' }}">
-              CategorÃ­as
+              Categorías
             </a>
           </li>
           <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">Inventario</a></li>
@@ -82276,15 +84133,15 @@ $classes = ($active ?? false)
           <li><a href="{{ route('store.create') }}" class="block px-4 py-2 rounded-xl hover:bg-white/10">Datos de la tienda</a></li>
           <li><a href="{{ route('store.create') }}" class="block px-4 py-2 rounded-xl hover:bg-white/10">Logo y portada</a></li>
           <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">Apariencia</a></li>
-          <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">MÃ©todos de pago</a></li>
-          <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">EnvÃ­os</a></li>
-          <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">Dominio / URL pÃºblica</a></li>
+          <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">Métodos de pago</a></li>
+          <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">Envíos</a></li>
+          <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">Dominio / URL pública</a></li>
         </ul>
       </div>
 
-      {{-- ConfiguraciÃ³n --}}
+      {{-- Configuración --}}
       <div>
-        <div class="px-2 text-[11px] uppercase tracking-wide text-white/60">ConfiguraciÃ³n</div>
+        <div class="px-2 text-[11px] uppercase tracking-wide text-white/60">Configuración</div>
         <ul class="mt-2 space-y-1">
           <li><a href="{{ route('profile.edit') }}" class="block px-4 py-2 rounded-xl hover:bg-white/10">Mi perfil</a></li>
           <li><a href="#" class="block px-4 py-2 rounded-xl hover:bg-white/10">Seguridad</a></li>
@@ -82296,7 +84153,7 @@ $classes = ($active ?? false)
         @csrf
         <button type="submit"
                 class="w-full text-left px-4 py-2 rounded-xl text-red-200 hover:bg-red-600/20 hover:text-white transition">
-          Cerrar sesiÃ³n
+          Cerrar sesión
         </button>
       </form>
     </nav>
@@ -82307,15 +84164,15 @@ $classes = ($active ?? false)
     {{-- Topbar --}}
     <header class="sticky top-0 z-30 bg-white/10 backdrop-blur-md ring-1 ring-white/15">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
-        {{-- BotÃ³n del drawer en mÃ³vil --}}
+        {{-- Botón del drawer en móvil --}}
         <button class="lg:hidden -ml-1 inline-flex items-center justify-center h-9 w-9 rounded-lg bg-white/10"
-                onclick="document.getElementById('drawer').classList.remove('hidden')">â˜°</button>
+                onclick="document.getElementById('drawer').classList.remove('hidden')">☰</button>
 
         <div class="font-semibold truncate">@yield('header', 'Panel del Comerciante')</div>
 
         <div class="flex-1">
           <form action="#" class="max-w-xl">
-            <input type="search" placeholder="Busca productos, categorÃ­asâ€¦"
+            <input type="search" placeholder="Busca productos, categorías…"
                    class="w-full rounded-full bg-white/10 ring-1 ring-white/15 px-4 h-10 placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500">
           </form>
         </div>
@@ -82341,11 +84198,11 @@ $classes = ($active ?? false)
 
     {{-- Footer compacto --}}
     <footer class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8">
-      <div class="text-xs text-white/70">Â© {{ now()->year }} ComercioPlus â€” Panel del Comerciante</div>
+      <div class="text-xs text-white/70">© {{ now()->year }} ComercioPlus — Panel del Comerciante</div>
     </footer>
   </div>
 
-  {{-- Drawer mÃ³vil del menÃº --}}
+  {{-- Drawer móvil del menú --}}
   <div id="drawer" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="this.parentElement.classList.add('hidden')"></div>
     <div class="absolute left-0 top-0 h-full w-72 bg-white/10 backdrop-blur-md ring-1 ring-white/15 p-4">
@@ -82354,12 +84211,12 @@ $classes = ($active ?? false)
           <span class="text-xl font-extrabold">Comercio</span>
           <span class="rounded px-2 font-extrabold bg-orange-500 text-black">+</span>
         </div>
-        <button class="text-white/90" onclick="document.getElementById('drawer').classList.add('hidden')">âœ•</button>
+        <button class="text-white/90" onclick="document.getElementById('drawer').classList.add('hidden')">✕</button>
       </div>
       <nav class="space-y-2">
         <a class="block px-3 py-2 rounded-xl hover:bg-white/10" href="{{ route('admin.dashboard') }}">Dashboard</a>
         <a class="block px-3 py-2 rounded-xl hover:bg-white/10" href="{{ route('admin.products.index') }}">Productos</a>
-        <a class="block px-3 py-2 rounded-xl hover:bg-white/10" href="{{ route('admin.categories.index') }}">CategorÃ­as</a>
+        <a class="block px-3 py-2 rounded-xl hover:bg-white/10" href="{{ route('admin.categories.index') }}">Categorías</a>
         <a class="block px-3 py-2 rounded-xl hover:bg-white/10" href="{{ route('store.create') }}">Mi Tienda</a>
         <a class="block px-3 py-2 rounded-xl hover:bg-white/10" href="{{ route('profile.edit') }}">Perfil</a>
       </nav>
@@ -82460,21 +84317,21 @@ $classes = ($active ?? false)
                     <span>Productos</span>
                 </a>
 
-                {{-- CategorÃ­as: apuntar a admin.categories.index --}}
+                {{-- Categorías: apuntar a admin.categories.index --}}
                 <a href="{{ route('admin.categories.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition {{ request()->routeIs('admin.categories.*') ? 'bg-orange-500 text-white' : '' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z"/>
                     </svg>
-                    <span>CategorÃ­as</span>
+                    <span>Categorías</span>
                 </a>
 
-                {{-- ConfiguraciÃ³n --}}
+                {{-- Configuración --}}
                 <a href="{{ route('admin.settings.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition {{ request()->routeIs('admin.settings.*') ? 'bg-orange-500 text-white' : '' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
-                    <span>ConfiguraciÃ³n</span>
+                    <span>Configuración</span>
                 </a>
 
                 {{-- Ver tienda --}}
@@ -82494,7 +84351,7 @@ $classes = ($active ?? false)
             {{-- Topbar --}}
             <header class="bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <button id="menu-toggle" class="text-gray-300 md:hidden">â˜°</button>
+                    <button id="menu-toggle" class="text-gray-300 md:hidden">☰</button>
                     <h1 class="text-lg font-semibold">{{ $title ?? 'Panel de control' }}</h1>
                 </div>
 
@@ -82502,14 +84359,14 @@ $classes = ($active ?? false)
                     <span class="text-sm text-gray-300">{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="text-sm text-gray-300 hover:text-white">Cerrar sesiÃ³n</button>
+                        <button type="submit" class="text-sm text-gray-300 hover:text-white">Cerrar sesión</button>
                     </form>
                 </div>
             </header>
 
             {{-- Content area --}}
             <main class="p-6">
-                {{-- Mensajes de sesiÃ³n --}}
+                {{-- Mensajes de sesión --}}
                 @if(session('success'))
                     <div class="mb-4 p-3 bg-emerald-800 text-emerald-100 rounded">{{ session('success') }}</div>
                 @endif
@@ -82779,7 +84636,7 @@ $classes = ($active ?? false)
 
   <footer class="border-t border-gray-800">
     <div class="mx-auto max-w-6xl p-4 text-sm text-gray-400">
-      Â© {{ date('Y') }} {{ $store->name ?? config('app.name','ComercioPlus') }}
+      © {{ date('Y') }} {{ $store->name ?? config('app.name','ComercioPlus') }}
     </div>
   </footer>
 </body>
@@ -82797,7 +84654,7 @@ $classes = ($active ?? false)
 # Test completo ComercioPlus: Backend + Frontend + Endpoints
 # -------------------------------------------------------------
 
-# ConfiguraciÃ³n
+# Configuración
 $backendPath = "E:\htdocs\comercioPlusOficial"
 $frontendPath = "E:\htdocs\comercio-plus-frontend"
 $backendURL = "http://127.0.0.1:8000"
@@ -82805,51 +84662,51 @@ $frontendURL = "http://127.0.0.1:3000"
 $apiCategories = "$backendURL/api/categories"
 $apiProducts = "$backendURL/api/products"
 
-# FunciÃ³n para comprobar HTTP
+# Función para comprobar HTTP
 function Test-HTTP($url) {
     try {
         $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5
         if ($response.StatusCode -eq 200) {
-            Write-Host "âœ… $url OK" -ForegroundColor Green
+            Write-Host "✅ $url OK" -ForegroundColor Green
         } else {
-            Write-Host "âŒ $url status: $($response.StatusCode)" -ForegroundColor Red
+            Write-Host "❌ $url status: $($response.StatusCode)" -ForegroundColor Red
         }
     } catch {
-        Write-Host "âŒ $url ERROR: $_" -ForegroundColor Red
+        Write-Host "❌ $url ERROR: $_" -ForegroundColor Red
     }
 }
 
 # -------------------------------------------------------------
-# 1ï¸âƒ£ Levantar Backend Laravel
+# 1️⃣ Levantar Backend Laravel
 # -------------------------------------------------------------
-Write-Host "ðŸ”¹ Iniciando Backend Laravel..." -ForegroundColor Cyan
+Write-Host "🔹 Iniciando Backend Laravel..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit","-Command cd `"$backendPath`"; php artisan serve --host=127.0.0.1 --port=8000"
 
 Start-Sleep -Seconds 5
 
 # -------------------------------------------------------------
-# 2ï¸âƒ£ Levantar Frontend Vue
+# 2️⃣ Levantar Frontend Vue
 # -------------------------------------------------------------
-Write-Host "ðŸ”¹ Iniciando Frontend Vue 3..." -ForegroundColor Cyan
+Write-Host "🔹 Iniciando Frontend Vue 3..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit","-Command cd `"$frontendPath`"; npm run dev"
 
 Start-Sleep -Seconds 5
 
 # -------------------------------------------------------------
-# 3ï¸âƒ£ Probar Endpoints API
+# 3️⃣ Probar Endpoints API
 # -------------------------------------------------------------
-Write-Host "`nðŸ”¹ Probando Endpoints API..." -ForegroundColor Cyan
+Write-Host "`n🔹 Probando Endpoints API..." -ForegroundColor Cyan
 Test-HTTP $apiCategories
 Test-HTTP $apiProducts
 
 # -------------------------------------------------------------
-# 4ï¸âƒ£ Probar Vistas Blade
+# 4️⃣ Probar Vistas Blade
 # -------------------------------------------------------------
-Write-Host "`nðŸ”¹ Probando Vistas Blade..." -ForegroundColor Cyan
+Write-Host "`n🔹 Probando Vistas Blade..." -ForegroundColor Cyan
 Test-HTTP $backendURL
 Test-HTTP "$backendURL/dashboard"
 
-Write-Host "`nðŸ”¹ Test completado. Revisa colores, vistas y endpoints." -ForegroundColor Yellow
+Write-Host "`n🔹 Test completado. Revisa colores, vistas y endpoints." -ForegroundColor Yellow
 Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Yellow
 ~~~~
 <!-- END_CODE_FILE: resources/views/layouts/test-comercioplus.ps1 -->
@@ -82885,23 +84742,23 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
     <div class="flex-1">
       <nav class="grid items-start px-4 text-sm font-medium">
         <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
-          <span>ðŸ </span>
+          <span>🏠</span>
           Inicio
         </a>
         <span class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground/50 transition-all cursor-not-allowed">
-          <span>ðŸ›’</span>
-          Ã“rdenes
+          <span>🛒</span>
+          Órdenes
         </span>
         <a href="{{ route('products.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
-          <span>ðŸ“¦</span>
+          <span>📦</span>
           Productos
         </a>
         <a href="#" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
-          <span>ðŸŽ¨</span>
+          <span>🎨</span>
           Branding IA
         </a>
         <a href="#" class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary">
-          <span>âš™ï¸</span>
+          <span>⚙️</span>
           Ajustes
         </a>
       </nav>
@@ -82918,7 +84775,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 <!-- BEGIN_CODE_FILE: resources/views/partials/footer.blade.php -->
 ~~~~php
 <footer class="bg-gray-800 text-white text-center p-4">
-    Â© 2025 Comercio Plus. Todos los derechos reservados.
+    © 2025 Comercio Plus. Todos los derechos reservados.
 </footer>
 ~~~~
 <!-- END_CODE_FILE: resources/views/partials/footer.blade.php -->
@@ -82930,12 +84787,12 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 <!-- BEGIN_CODE_FILE: resources/views/partials/navbar.blade.php -->
 ~~~~php
 <nav class="bg-white bg-opacity-80 backdrop-blur-sm px-6 py-4 flex justify-between items-center shadow">
-  <span class="text-lg font-semibold text-gray-800">ðŸ‘‹ Hola, {{ Auth::user()->name }}</span>
+  <span class="text-lg font-semibold text-gray-800">👋 Hola, {{ Auth::user()->name }}</span>
   <form method="POST" action="{{ route('logout') }}">
     @csrf
     <button type="submit"
       class="text-orange-500 font-medium hover:text-orange-600 transition">
-      Cerrar sesiÃ³n
+      Cerrar sesión
     </button>
   </form>
 </nav>
@@ -82975,12 +84832,12 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
       </a></li>
       <li><a href="#"
              class="block py-1 text-lg hover:text-orange-400 transition @if(request()->is('admin/settings*')) border-b-2 border-orange-400 @endif">
-        ConfiguraciÃ³n
+        Configuración
       </a></li>
     </ul>
   </div>
   <div class="text-sm text-gray-500">
-    Â© 2025 Comercio Plus
+    © 2025 Comercio Plus
   </div>
 </aside>
 ~~~~
@@ -82994,7 +84851,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Crear Producto Admin â€” ComercioPlus')
+@section('title', 'Crear Producto Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
@@ -83018,8 +84875,8 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                 <input type="text" name="name" id="name" placeholder="Nombre del producto" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" value="{{ old('name') }}" required>
             </div>
             <div>
-                <label for="description" class="block font-semibold mb-2 text-white/90">DescripciÃ³n</label>
-                <textarea name="description" id="description" rows="5" placeholder="DescripciÃ³n del producto" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth resize-vertical" required>{{ old('description') }}</textarea>
+                <label for="description" class="block font-semibold mb-2 text-white/90">Descripción</label>
+                <textarea name="description" id="description" rows="5" placeholder="Descripción del producto" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth resize-vertical" required>{{ old('description') }}</textarea>
             </div>
             <div>
                 <label for="price" class="block font-semibold mb-2 text-white/90">Precio</label>
@@ -83037,9 +84894,9 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                 </select>
             </div>
             <div>
-                <label for="category_id" class="block font-semibold mb-2 text-white/90">CategorÃ­a</label>
+                <label for="category_id" class="block font-semibold mb-2 text-white/90">Categoría</label>
                 <select name="category_id" id="category_id" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" required>
-                    <option value="">Seleccione una categorÃ­a</option>
+                    <option value="">Seleccione una categoría</option>
                     @foreach($categories as $category)
                     <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
                         {{ $category->name }}
@@ -83065,7 +84922,6 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 
 <!-- BEGIN_CODE_FILE: resources/views/products/create_corrected.blade.php -->
 ~~~~php
-
 ~~~~
 <!-- END_CODE_FILE: resources/views/products/create_corrected.blade.php -->
 
@@ -83077,7 +84933,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Editar Producto Admin â€” ComercioPlus')
+@section('title', 'Editar Producto Admin — ComercioPlus')
 
 @section('content')
 <div class="p-6 space-y-6">
@@ -83102,8 +84958,8 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                 <input type="text" name="name" id="name" placeholder="Nombre del producto" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" value="{{ old('name', $product->name) }}" required>
             </div>
             <div>
-                <label for="description" class="block font-semibold mb-2 text-white/90">DescripciÃ³n</label>
-                <textarea name="description" id="description" rows="5" placeholder="DescripciÃ³n del producto" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth resize-vertical" required>{{ old('description', $product->description) }}</textarea>
+                <label for="description" class="block font-semibold mb-2 text-white/90">Descripción</label>
+                <textarea name="description" id="description" rows="5" placeholder="Descripción del producto" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth resize-vertical" required>{{ old('description', $product->description) }}</textarea>
             </div>
             <div>
                 <label for="price" class="block font-semibold mb-2 text-white/90">Precio</label>
@@ -83121,9 +84977,9 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                 </select>
             </div>
             <div>
-                <label for="category_id" class="block font-semibold mb-2 text-white/90">CategorÃ­a</label>
+                <label for="category_id" class="block font-semibold mb-2 text-white/90">Categoría</label>
                 <select name="category_id" id="category_id" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" required>
-                    <option value="">Seleccione una categorÃ­a</option>
+                    <option value="">Seleccione una categoría</option>
                     @foreach($categories as $category)
                     <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>
                         {{ $category->name }}
@@ -83160,7 +85016,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 
 @section('content')
 <!--
-  Vista de Productos - ImplementaciÃ³n profesional
+  Vista de Productos - Implementación profesional
   - Blade + Tailwind CSS + Alpine.js (no dependencias extra)
   - Accessible, responsive y modular dentro de un solo archivo para copiar/pegar
   - Uso de componentes y convenciones modernas (BEM-like classes para claridad)
@@ -83171,7 +85027,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
     <header class="flex items-start justify-between gap-4 mb-6">
       <div>
         <h1 class="text-3xl font-extrabold tracking-tight">Productos</h1>
-        <p class="mt-1 text-sm text-gray-400">Gestiona tus productos, stock y precios desde aquÃ­.</p>
+        <p class="mt-1 text-sm text-gray-400">Gestiona tus productos, stock y precios desde aquí.</p>
       </div>
 
       <div class="flex items-center gap-3">
@@ -83198,7 +85054,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
       </div>
     </header>
 
-    <!-- MÃ©tricas -->
+    <!-- Métricas -->
     <section class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
       <div class="bg-gray-800 rounded-2xl p-4 shadow-sm">
         <p class="text-sm text-gray-400">Total de productos</p>
@@ -83209,8 +85065,8 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
         <p class="text-2xl font-bold text-emerald-300">Indreos</p>
       </div>
       <div class="bg-gray-800 rounded-2xl p-4 shadow-sm">
-        <p class="text-sm text-gray-400">CategorÃ­a destacada</p>
-        <p class="text-2xl font-bold">IluminaciÃ³n</p>
+        <p class="text-sm text-gray-400">Categoría destacada</p>
+        <p class="text-2xl font-bold">Iluminación</p>
       </div>
       <div class="bg-gray-800 rounded-2xl p-4 shadow-sm">
         <p class="text-sm text-gray-400">Stock bajo</p>
@@ -83235,7 +85091,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                 </button>
                 <div class="absolute right-0 mt-2 w-40 bg-gray-800 rounded-lg shadow-lg py-1 hidden group-hover:block" role="menu" aria-label="Opciones de producto">
                   <a href="{{ route('products.edit', $product) }}" class="block px-3 py-2 text-sm hover:bg-gray-700">Editar</a>
-                  <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Â¿Deseas eliminar este producto?');">
+                  <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('¿Deseas eliminar este producto?');">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="w-full text-left block px-3 py-2 text-sm text-rose-400 hover:bg-gray-700">Eliminar</button>
@@ -83248,7 +85104,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
           <div class="p-4">
             <h3 id="product-{{ $product->id }}-name" class="text-lg font-semibold">{{ 
               Str::limit($product->name, 40) }}</h3>
-            <p class="text-sm text-gray-400 mt-1">{{ $product->category->name ?? 'Sin categorÃ­a' }}</p>
+            <p class="text-sm text-gray-400 mt-1">{{ $product->category->name ?? 'Sin categoría' }}</p>
 
             <div class="mt-3 flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -83268,7 +85124,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
         @endforeach
       </ul>
 
-      <!-- PaginaciÃ³n accesible -->
+      <!-- Paginación accesible -->
       <div class="mt-8">
         {{ $products->links() }}
       </div>
@@ -83300,9 +85156,9 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
       </div>
 
       <div>
-        <label for="category_id" class="block text-sm font-medium text-gray-300">CategorÃ­a</label>
+        <label for="category_id" class="block text-sm font-medium text-gray-300">Categoría</label>
         <select id="category_id" name="category_id" class="mt-1 block w-full bg-gray-800 text-gray-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400">
-          <option value="">-- Seleccionar categorÃ­a --</option>
+          <option value="">-- Seleccionar categoría --</option>
           @foreach($categories as $cat)
             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
           @endforeach
@@ -83329,14 +85185,14 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
           </div>
           <div class="flex-1">
             <input id="image" name="image" type="file" accept="image/*" @change="handleFileChange" class="block w-full text-sm text-gray-400 file:bg-gray-700 file:text-gray-100 file:rounded-md file:px-3 file:py-2 file:border-0" />
-            <p class="mt-1 text-xs text-gray-400">Formatos: JPG, PNG. MÃ¡x: 2MB.</p>
+            <p class="mt-1 text-xs text-gray-400">Formatos: JPG, PNG. Máx: 2MB.</p>
           </div>
         </div>
       </div>
 
       <div>
-        <label for="description" class="block text-sm font-medium text-gray-300">DescripciÃ³n</label>
-        <textarea id="description" name="description" rows="4" class="mt-1 block w-full bg-gray-800 text-gray-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="DescripciÃ³n corta del producto"></textarea>
+        <label for="description" class="block text-sm font-medium text-gray-300">Descripción</label>
+        <textarea id="description" name="description" rows="4" class="mt-1 block w-full bg-gray-800 text-gray-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="Descripción corta del producto"></textarea>
       </div>
 
       <div class="flex items-center justify-between">
@@ -83366,7 +85222,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
         const file = e.target.files[0];
         if(!file) return this.previewUrl = null;
         if(file.size > 2 * 1024 * 1024){
-          alert('El archivo supera el lÃ­mite de 2MB.');
+          alert('El archivo supera el límite de 2MB.');
           e.target.value = null;
           return this.previewUrl = null;
         }
@@ -83626,13 +85482,13 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>ConfiguraciÃ³n Â· Mi perfil</title>
+    <title>Configuración · Mi perfil</title>
     {{-- Cargamos tus assets de Vite (Tailwind + JS) --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-full text-white">
 
-    {{-- NAV / Encabezado mÃ­nimo (puedes quitarlo si ya tienes navbar global) --}}
+    {{-- NAV / Encabezado mínimo (puedes quitarlo si ya tienes navbar global) --}}
     <header class="border-b border-white/10 bg-black/40 backdrop-blur-md">
         <div class="mx-auto max-w-7xl h-16 px-6 flex items-center justify-between">
             <a href="{{ route('welcome') }}" class="font-semibold tracking-wide">
@@ -83647,13 +85503,13 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
     </header>
 
     <main class="max-w-5xl mx-auto px-4 py-8">
-        {{-- TÃ­tulo --}}
+        {{-- Título --}}
         <div class="mb-6">
             <h1 class="text-2xl sm:text-3xl font-extrabold text-white">
-                ConfiguraciÃ³n Â· <span class="text-orange-400">Mi perfil</span>
+                Configuración · <span class="text-orange-400">Mi perfil</span>
             </h1>
             <p class="text-white/60 text-sm mt-1">
-                Actualiza tu informaciÃ³n personal y tu foto de perfil.
+                Actualiza tu información personal y tu foto de perfil.
             </p>
         </div>
 
@@ -83710,13 +85566,13 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                                required>
                     </div>
                     <div>
-                        <label class="block text-sm text-white/80 mb-1">Correo electrÃ³nico</label>
+                        <label class="block text-sm text-white/80 mb-1">Correo electrónico</label>
                         <input type="email" name="email" value="{{ old('email', $user->email ?? '') }}"
                                class="w-full rounded-2xl bg-black/40 text-white border border-white/10 focus:border-orange-500 focus:ring-orange-500 px-4 py-2.5"
                                required>
                     </div>
                     <div>
-                        <label class="block text-sm text-white/80 mb-1">TelÃ©fono</label>
+                        <label class="block text-sm text-white/80 mb-1">Teléfono</label>
                         <input type="text" name="phone" value="{{ old('phone', $user->phone ?? '') }}"
                                class="w-full rounded-2xl bg-black/40 text-white border border-white/10 focus:border-orange-500 focus:ring-orange-500 px-4 py-2.5">
                     </div>
@@ -83734,10 +85590,10 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
         </form>
     </main>
 
-    {{-- FOOTER mÃ­nimo --}}
+    {{-- FOOTER mínimo --}}
     <footer class="mt-10 border-t border-white/10">
         <div class="max-w-7xl mx-auto px-6 py-8 text-sm text-white/70">
-            Â© {{ date('Y') }} ComercioPlus
+            © {{ date('Y') }} ComercioPlus
         </div>
     </footer>
 
@@ -83754,7 +85610,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 ~~~~php
 @extends('layouts.dashboard')
 
-@section('title', 'Crear tienda â€” ComercioPlus')
+@section('title', 'Crear tienda — ComercioPlus')
 
 @section('content')
 <div class="w-full bg-gray-50 min-h-screen">
@@ -83763,10 +85619,10 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
     {{-- Encabezado --}}
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">Crear tienda</h1>
-      <p class="text-gray-600">Completa los datos de tu tienda. Al finalizar verÃ¡s el logo y la portada aplicados en tu panel de productos.</p>
+      <p class="text-gray-600">Completa los datos de tu tienda. Al finalizar verás el logo y la portada aplicados en tu panel de productos.</p>
     </header>
 
-    {{-- Formulario de creaciÃ³n --}}
+    {{-- Formulario de creación --}}
     <div class="bg-white border border-gray-200 rounded-2xl shadow-md p-8">
       <form method="POST" action="{{ route('store.store') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
@@ -83781,9 +85637,9 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
           @enderror
         </div>
 
-        {{-- DescripciÃ³n --}}
+        {{-- Descripción --}}
         <div>
-          <label for="description" class="block text-sm font-medium text-gray-700 mb-2">DescripciÃ³n</label>
+          <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
           <textarea name="description" id="description" rows="4" placeholder="Describe brevemente tu tienda..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-vertical">{{ old('description') }}</textarea>
           @error('description')
@@ -83796,7 +85652,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
           <label for="logo" class="block text-sm font-medium text-gray-700 mb-2">Logo de la tienda</label>
           <input type="file" name="logo" id="logo" accept="image/*"
                  class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-          <span class="text-sm text-gray-600">Selecciona una imagen para el logo (PNG/JPG/SVG, mÃ¡x 2MB)</span>
+          <span class="text-sm text-gray-600">Selecciona una imagen para el logo (PNG/JPG/SVG, máx 2MB)</span>
           @error('logo')
             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
           @enderror
@@ -83807,7 +85663,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
           <label for="cover" class="block text-sm font-medium text-gray-700 mb-2">Portada de la tienda</label>
           <input type="file" name="cover" id="cover" accept="image/*"
                  class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-          <span class="text-sm text-gray-600">Selecciona una imagen para la portada (PNG/JPG, mÃ¡x 4MB)</span>
+          <span class="text-sm text-gray-600">Selecciona una imagen para la portada (PNG/JPG, máx 4MB)</span>
           @error('cover')
             <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
           @enderror
@@ -83870,7 +85726,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
             </div>
         </div>
 
-        {{-- Formulario de actualizaciÃ³n --}}
+        {{-- Formulario de actualización --}}
         <div class="bg-white/10 ring-1 ring-white/15 rounded-3xl p-6">
             <h2 class="text-2xl font-bold mb-6 text-white">Configurar Tienda</h2>
 
@@ -83888,7 +85744,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                     <input type="text" name="name" id="name" placeholder="Ejemplo: Tienda Plus" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth" required value="{{ old('name', $store->name) }}">
                 </div>
                 <div>
-                    <label for="description" class="block font-semibold mb-2 text-white/90">DescripciÃ³n</label>
+                    <label for="description" class="block font-semibold mb-2 text-white/90">Descripción</label>
                     <textarea name="description" id="description" rows="5" placeholder="Describe tu tienda" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 smooth resize-vertical" required>{{ old('description', $store->description) }}</textarea>
                 </div>
                 <div>
@@ -83924,7 +85780,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Crear Perfil & Tienda â€” ComercioPlus</title>
+  <title>Crear Perfil & Tienda — ComercioPlus</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
@@ -83935,7 +85791,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
       <p class="text-white/70">Crear Perfil & Tienda</p>
     </header>
 
-    {{-- AquÃ­ Vue montarÃ¡ el asistente (perfil+tienda) y el dashboard --}}
+    {{-- Aquí Vue montará el asistente (perfil+tienda) y el dashboard --}}
     <div id="store-wizard"></div>
   </div>
 </body>
@@ -83963,7 +85819,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 
     <select name="category_id"
             class="md:col-span-2 w-full rounded-xl border border-gray-600 bg-gray-800 px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-600">
-      <option value="">Todas las categorÃ­as</option>
+      <option value="">Todas las categorías</option>
       @foreach($categories as $c)
         <option value="{{ $c->id }}" @selected((string)$catId === (string)$c->id)>{{ $c->name }}</option>
       @endforeach
@@ -83991,7 +85847,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
           </div>
           <div class="p-4">
             <h3 class="line-clamp-1 text-lg font-medium text-gray-100">{{ $p->name }}</h3>
-            <p class="mt-1 text-sm text-gray-400">{{ optional($p->category)->name ?? 'Sin categorÃ­a' }}</p>
+            <p class="mt-1 text-sm text-gray-400">{{ optional($p->category)->name ?? 'Sin categoría' }}</p>
             <p class="mt-2 text-xl font-semibold text-gray-100">
               {{ $p->price_formatted ?? '$'.number_format($p->price, 0, ',', '.') }}
             </p>
@@ -84021,7 +85877,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 
 @section('content')
 <div class="mx-auto max-w-5xl p-4">
-  <a href="{{ route('storefront.public.home', $store->slug) }}" class="text-sm text-gray-400 hover:underline">â† Volver a la tienda</a>
+  <a href="{{ route('storefront.public.home', $store->slug) }}" class="text-sm text-gray-400 hover:underline">← Volver a la tienda</a>
 
   <div class="mt-4 grid gap-6 md:grid-cols-2">
     <div class="overflow-hidden rounded-2xl border border-gray-700 bg-gray-800">
@@ -84033,7 +85889,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 
     <div>
       <h1 class="text-2xl font-semibold text-gray-100">{{ $product->name }}</h1>
-      <p class="mt-1 text-gray-400">{{ optional($product->category)->name ?? 'Sin categorÃ­a' }}</p>
+      <p class="mt-1 text-gray-400">{{ optional($product->category)->name ?? 'Sin categoría' }}</p>
       <p class="mt-4 text-3xl font-semibold text-gray-100">
         {{ $product->price_formatted ?? '$'.number_format($product->price, 0, ',', '.') }}
       </p>
@@ -84045,7 +85901,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
         </div>
       @endif
 
-      {{-- futuro: botÃ³n aÃ±adir al carrito/checkout --}}
+      {{-- futuro: botón añadir al carrito/checkout --}}
     </div>
   </div>
 </div>
@@ -84060,7 +85916,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 <!-- BEGIN_CODE_FILE: resources/views/stores/create.blade.php -->
 ~~~~php
 <x-guest-layout>
-  {{-- Fondo negro sÃ³lido como en la imagen --}}
+  {{-- Fondo negro sólido como en la imagen --}}
   <div class="min-h-[85vh] flex items-center justify-center bg-black">
 
     <div class="w-full max-w-xl rounded-3xl bg-black text-white
@@ -84071,11 +85927,11 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
         <h1 class="text-3xl font-bold tracking-tight">Crea tu Tienda</h1>
         <p class="mt-2 text-white/70 text-sm">
           Configura el nombre, logo y portada.<br>
-          PodrÃ¡s editarlos mÃ¡s adelante
+          Podrás editarlos más adelante
         </p>
       </header>
 
-      {{-- Errores de validaciÃ³n --}}
+      {{-- Errores de validación --}}
       @if ($errors->any())
         <div class="mb-4 rounded-xl bg-red-500/15 text-red-300 ring-1 ring-red-500/30 px-3 py-2 text-sm">
           <ul class="list-disc pl-4 space-y-1">
@@ -84098,9 +85954,9 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                         border border-white/10 focus:border-[#FF6000] focus:ring-[#FF6000] px-3 py-2 text-sm" />
         </div>
 
-        {{-- DescripciÃ³n --}}
+        {{-- Descripción --}}
         <div>
-          <label class="block text-sm font-medium mb-2">DescripciÃ³n</label>
+          <label class="block text-sm font-medium mb-2">Descripción</label>
           <textarea name="description" rows="3"
                     class="w-full rounded-xl bg-white text-gray-900 placeholder-gray-500
                            border border-white/10 focus:border-[#FF6000] focus:ring-[#FF6000] px-3 py-2 text-sm">{{ old('description') }}</textarea>
@@ -84203,15 +86059,15 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
             <input type="email" name="email" class="w-full border border-gray-300 rounded px-3 py-2" required>
         </div>
 
-        <!-- TelÃ©fono -->
+        <!-- Teléfono -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">TelÃ©fono</label>
+            <label class="block text-gray-700 font-semibold">Teléfono</label>
             <input type="text" name="phone" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
-        <!-- DirecciÃ³n -->
+        <!-- Dirección -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">DirecciÃ³n</label>
+            <label class="block text-gray-700 font-semibold">Dirección</label>
             <input type="text" name="address" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
@@ -84241,19 +86097,19 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
             <input type="file" name="avatar" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
-        <!-- ContraseÃ±a -->
+        <!-- Contraseña -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">ContraseÃ±a</label>
+            <label class="block text-gray-700 font-semibold">Contraseña</label>
             <input type="password" name="password" class="w-full border border-gray-300 rounded px-3 py-2" required>
         </div>
 
-        <!-- ConfirmaciÃ³n -->
+        <!-- Confirmación -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Confirmar ContraseÃ±a</label>
+            <label class="block text-gray-700 font-semibold">Confirmar Contraseña</label>
             <input type="password" name="password_confirmation" class="w-full border border-gray-300 rounded px-3 py-2" required>
         </div>
 
-        <!-- BotÃ³n -->
+        <!-- Botón -->
         <div class="text-right">
             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">
                 Guardar Usuario
@@ -84295,15 +86151,15 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
             <input type="email" name="email" value="{{ old('email', $user->email) }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
         </div>
 
-        <!-- TelÃ©fono -->
+        <!-- Teléfono -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">TelÃ©fono</label>
+            <label class="block text-gray-700 font-semibold">Teléfono</label>
             <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
-        <!-- DirecciÃ³n -->
+        <!-- Dirección -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">DirecciÃ³n</label>
+            <label class="block text-gray-700 font-semibold">Dirección</label>
             <input type="text" name="address" value="{{ old('address', $user->address) }}" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
@@ -84339,19 +86195,19 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
             <input type="file" name="avatar" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
-        <!-- ContraseÃ±a -->
+        <!-- Contraseña -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">ContraseÃ±a (opcional)</label>
+            <label class="block text-gray-700 font-semibold">Contraseña (opcional)</label>
             <input type="password" name="password" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
-        <!-- ConfirmaciÃ³n -->
+        <!-- Confirmación -->
         <div class="mb-4">
-            <label class="block text-gray-700 font-semibold">Confirmar ContraseÃ±a</label>
+            <label class="block text-gray-700 font-semibold">Confirmar Contraseña</label>
             <input type="password" name="password_confirmation" class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
-        <!-- BotÃ³n -->
+        <!-- Botón -->
         <div class="text-right">
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
                 Actualizar Usuario
@@ -84393,8 +86249,8 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                     <th class="px-4 py-2 border-b">ID</th>
                     <th class="px-4 py-2 border-b">Nombre</th>
                     <th class="px-4 py-2 border-b">Email</th>
-                    <th class="px-4 py-2 border-b">TelÃ©fono</th>
-                    <th class="px-4 py-2 border-b">DirecciÃ³n</th>
+                    <th class="px-4 py-2 border-b">Teléfono</th>
+                    <th class="px-4 py-2 border-b">Dirección</th>
                     <th class="px-4 py-2 border-b">Rol</th>
                     <th class="px-4 py-2 border-b">Estado</th>
                     <th class="px-4 py-2 border-b">Avatar</th>
@@ -84432,7 +86288,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
                                     Editar
                                 </a>
                                 <form action="{{ route('users.destroy', $user->id) }}" method="POST"
-                                    onsubmit="return confirm('Â¿EstÃ¡s seguro de eliminar este usuario?');">
+                                    onsubmit="return confirm('¿Estás seguro de eliminar este usuario?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
@@ -84570,18 +86426,18 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 ~~~~php
 @extends('layouts.marketing')
 
-@section('title', 'CatÃ¡logo â€” Demo Vue')
+@section('title', 'Catálogo — Demo Vue')
 
 @section('content')
   <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
     <header class="mb-6">
       <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-        CatÃ¡logo (demo Vue)
+        Catálogo (demo Vue)
       </h1>
       <p class="text-white/80 mt-1">Ejemplo de un widget Vue montado dentro de Blade.</p>
     </header>
 
-    <!-- AquÃ­ se monta Vue -->
+    <!-- Aquí se monta Vue -->
     <div id="vue-catalog"></div>
   </section>
 @endsection
@@ -84597,7 +86453,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 {{-- resources/views/welcome.blade.php --}}
 @extends('layouts.marketing')
 
-@section('title', 'ComercioPlus â€” CatÃ¡logo de repuestos y accesorios de moto')
+@section('title', 'ComercioPlus — Catálogo de repuestos y accesorios de moto')
 
 @section('content')
   <!-- HERO -->
@@ -84623,7 +86479,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
           Tu vitrina de <span class="text-orange-400">repuestos y accesorios</span> en minutos
         </h1>
         <p class="mt-5 text-lg text-white/90 drop-shadow-[0_1px_10px_rgba(0,0,0,.7)]">
-          Crea tu <strong>tienda</strong>, carga productos, organiza por categorÃ­as y comparte tu catÃ¡logo profesional.
+          Crea tu <strong>tienda</strong>, carga productos, organiza por categorías y comparte tu catálogo profesional.
         </p>
         <div class="mt-8 flex flex-wrap items-center gap-3">
           <a href="{{ route('register') }}?role=comerciante"
@@ -84638,7 +86494,7 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
 
         <ul class="mt-8 grid gap-2 text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,.6)] text-sm">
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Sube tu logo y portada</li>
-          <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span> CatÃ¡logo por categorÃ­as (Frenos, IluminaciÃ³n, TransmisiÃ³nâ€¦)</li>
+          <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Catálogo por categorías (Frenos, Iluminación, Transmisión…)</li>
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Panel para crear/editar productos al instante</li>
         </ul>
       </div>
@@ -84647,18 +86503,18 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
       <div class="lg:pl-6">
         <div class="rounded-3xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 shadow-2xl p-6">
           <div class="flex items-center justify-between">
-            <div class="font-semibold text-white/90">Vista previa de tu catÃ¡logo</div>
+            <div class="font-semibold text-white/90">Vista previa de tu catálogo</div>
             <span class="text-xs text-white/60">demo</span>
           </div>
 
           @php
             $cards = [
-              ['alt' => 'Cascos y protecciÃ³n',   'src' => 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=900&auto=format&fit=crop'],
+              ['alt' => 'Cascos y protección',   'src' => 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=900&auto=format&fit=crop'],
               ['alt' => 'Llantas y rines',       'src' => 'https://images.unsplash.com/photo-1517940310602-75f39d4ac6fb?q=80&w=900&auto=format&fit=crop'],
               ['alt' => 'Frenos y discos',       'src' => 'https://images.unsplash.com/photo-1526045478516-99145907023c?q=80&w=900&auto=format&fit=crop'],
-              ['alt' => 'TransmisiÃ³n y cadenas', 'src' => 'https://images.unsplash.com/photo-1602320734573-1b57f5813996?q=80&w=900&auto=format&fit=crop'],
+              ['alt' => 'Transmisión y cadenas', 'src' => 'https://images.unsplash.com/photo-1602320734573-1b57f5813996?q=80&w=900&auto=format&fit=crop'],
               ['alt' => 'Aceites y lubricantes', 'src' => 'https://images.unsplash.com/photo-1589578527966-1e9b2ae05a0e?q=80&w=900&auto=format&fit=crop'],
-              ['alt' => 'IluminaciÃ³n/elÃ©ctricos','src' => 'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?q=80&w=900&auto=format&fit=crop'],
+              ['alt' => 'Iluminación/eléctricos','src' => 'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?q=80&w=900&auto=format&fit=crop'],
             ];
           @endphp
 
@@ -84685,19 +86541,19 @@ Write-Host "Abre los navegadores: $backendURL y $frontendURL" -ForegroundColor Y
     </div>
   </section>
 
-  <!-- CATEGORÃAS -->
+  <!-- CATEGORÍAS -->
   <section id="categorias" class="relative bg-[#0e0f12]">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20 pt-10">
-      <h2 class="text-xl font-semibold text-white/95">CategorÃ­as populares</h2>
-      <p class="text-sm text-white/70">Organiza tu catÃ¡logo rÃ¡pidamente.</p>
+      <h2 class="text-xl font-semibold text-white/95">Categorías populares</h2>
+      <p class="text-sm text-white/70">Organiza tu catálogo rápidamente.</p>
 
       <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @foreach (['Aceites & Lubricantes','Llantas & Rines','Frenos','TransmisiÃ³n & Cadenas','Accesorios & EstÃ©tica','IluminaciÃ³n & ElÃ©ctricos'] as $c)
+        @foreach (['Aceites & Lubricantes','Llantas & Rines','Frenos','Transmisión & Cadenas','Accesorios & Estética','Iluminación & Eléctricos'] as $c)
           <a href="#"
              class="group rounded-2xl border border-white/10 bg-white/[.06] px-5 py-4 hover:bg-white/[.1] transition">
             <div class="flex items-center justify-between">
               <div class="text-white font-medium">{{ $c }}</div>
-              <span class="text-xs text-white/70 group-hover:text-white/90">Ver productos â†’</span>
+              <span class="text-xs text-white/70 group-hover:text-white/90">Ver productos →</span>
             </div>
           </a>
         @endforeach
@@ -84756,15 +86612,18 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CartProductController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductAlertController;
 use App\Http\Controllers\Api\PublicCategoryController;
 use App\Http\Controllers\Api\PublicProductController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\StoreVerificationController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxSettingController;
 use App\Http\Controllers\Api\UploadController;
@@ -84844,6 +86703,7 @@ Route::get('/public/stores/{store}', [StoreController::class, 'show']);
 // Public catalog used by frontend.
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
+Route::get('/products/{product}/alerts/mine', [ProductAlertController::class, 'mine']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 
@@ -84908,6 +86768,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/merchant/orders/{order}/picking/reset', [OrderPickingController::class, 'reset']);
     Route::get('/merchant/picking/events', [OrderPickingController::class, 'events']);
     Route::get('/merchant/customers', [CustomerController::class, 'myCustomers']);
+    Route::get('/merchant/credit', [CreditController::class, 'index']);
+    Route::post('/merchant/credit', [CreditController::class, 'store']);
+    Route::get('/merchant/credit/{creditAccount}', [CreditController::class, 'show']);
+    Route::post('/merchant/credit/{creditAccount}/charge', [CreditController::class, 'charge']);
+    Route::post('/merchant/credit/{creditAccount}/payment', [CreditController::class, 'payment']);
+    Route::get('/merchant/store/verification', [StoreVerificationController::class, 'show']);
+    Route::post('/merchant/store/verification', [StoreVerificationController::class, 'submit']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);
     Route::get('/reports/summary', [ReportController::class, 'summary']);
     Route::get('/reports/sales', [ReportController::class, 'sales']);
@@ -84939,6 +86806,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+    Route::post('/products/{product}/alerts', [ProductAlertController::class, 'store']);
+    Route::delete('/products/{product}/alerts', [ProductAlertController::class, 'destroy']);
 
     // API resources used by current tests.
     Route::apiResource('users', UserController::class);
@@ -85695,10 +87564,10 @@ exit($summary['failed'] === 0 ? 0 : 2);
 ~~~~powershell
 #
 # Script de Setup para ComercioPlus (Windows - PowerShell)
-# Este script es idempotente y puede ser ejecutado de forma segura mÃºltiples veces.
-# Ejecutar desde la raÃ­z del proyecto: .\scripts\setup-local.ps1
+# Este script es idempotente y puede ser ejecutado de forma segura múltiples veces.
+# Ejecutar desde la raíz del proyecto: .\scripts\setup-local.ps1
 
-# --- 1. VerificaciÃ³n de Dependencias ---
+# --- 1. Verificación de Dependencias ---
 Write-Host "1/7 - Verificando dependencias..."
 
 $php_exists = (Get-Command php -ErrorAction SilentlyContinue)
@@ -85707,7 +87576,7 @@ $node_exists = (Get-Command node -ErrorAction SilentlyContinue)
 $npm_exists = (Get-Command npm -ErrorAction SilentlyContinue)
 
 if (-not $php_exists) {
-    Write-Error "Error: php no se encuentra en el PATH. Por favor, instala PHP (>=8.1) y agrÃ©galo a tu PATH."
+    Write-Error "Error: php no se encuentra en el PATH. Por favor, instala PHP (>=8.1) y agrégalo a tu PATH."
     exit 1
 }
 php -v
@@ -85730,13 +87599,13 @@ if (-not $npm_exists) {
 }
 npm -v
 
-Write-Host "Dependencias verificadas con Ã©xito."
+Write-Host "Dependencias verificadas con éxito."
 
 # --- 2. Instalar Dependencias de Backend ---
 Write-Host "`n2/7 - Instalando dependencias de Composer..."
 composer install --no-interaction --prefer-dist
 
-# --- 3. ConfiguraciÃ³n del Entorno ---
+# --- 3. Configuración del Entorno ---
 Write-Host "`n3/7 - Configurando archivo .env..."
 if (-not (Test-Path ".env")) {
     Copy-Item .env.example .env
@@ -85757,7 +87626,7 @@ $dbPath = (Resolve-Path "database/database.sqlite").Path
     $_ -replace '(^DB_DATABASE=).*', "`$1${dbPath}"
 } | Set-Content .env
 
-Write-Host "Generando clave de aplicaciÃ³n..."
+Write-Host "Generando clave de aplicación..."
 php artisan key:generate
 
 Write-Host "Ejecutando migraciones de la base de datos..."
@@ -85768,13 +87637,13 @@ Write-Host "`n5/7 - Creando enlace de almacenamiento y generando archivos Ziggy.
 try {
     php artisan storage:link
 } catch {
-    Write-Warning "No se pudo crear el enlace simbÃ³lico de almacenamiento. Puede que necesites ejecutarlo como Administrador."
+    Write-Warning "No se pudo crear el enlace simbólico de almacenamiento. Puede que necesites ejecutarlo como Administrador."
 }
 
 try {
     php artisan ziggy:generate
 } catch {
-    Write-Warning "php artisan ziggy:generate fallÃ³. La aplicaciÃ³n usarÃ¡ el stub de fallback. Re-ejecuta este comando cuando el backend estÃ© completamente funcional."
+    Write-Warning "php artisan ziggy:generate falló. La aplicación usará el stub de fallback. Re-ejecuta este comando cuando el backend esté completamente funcional."
 }
 
 # --- 6. Instalar Dependencias de Frontend ---
@@ -85785,7 +87654,7 @@ npm install
 Write-Host "`n7/7 - Compilando assets del frontend (Vite)..."
 npm run build
 
-Write-Host "`nÂ¡Setup completado! âœ¨"
+Write-Host "`n¡Setup completado! ✨"
 Write-Host "Para iniciar el servidor de desarrollo, ejecuta: php artisan serve"
 ~~~~
 <!-- END_CODE_FILE: scripts/setup-local.ps1 -->
@@ -85799,19 +87668,19 @@ Write-Host "Para iniciar el servidor de desarrollo, ejecuta: php artisan serve"
 #
 #!/bin/bash
 # Script de Setup para ComercioPlus (Linux & macOS)
-# Este script es idempotente y puede ser ejecutado de forma segura mÃºltiples veces.
+# Este script es idempotente y puede ser ejecutado de forma segura múltiples veces.
 
-# FunciÃ³n para verificar comandos y salir con error si no se encuentran
+# Función para verificar comandos y salir con error si no se encuentran
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# --- 1. VerificaciÃ³n de Dependencias ---
+# --- 1. Verificación de Dependencias ---
 echo "1/7 - Verificando dependencias..."
 
 # Verificar PHP
 if ! command_exists php; then
-    echo "Error: php no se encuentra en el PATH. Por favor, instala PHP (>=8.1) y asegÃºrate de que estÃ© en tu PATH." >&2
+    echo "Error: php no se encuentra en el PATH. Por favor, instala PHP (>=8.1) y asegúrate de que esté en tu PATH." >&2
     exit 1
 fi
 php -v
@@ -85836,13 +87705,13 @@ if ! command_exists npm; then
 fi
 npm -v
 
-echo "Dependencias verificadas con Ã©xito."
+echo "Dependencias verificadas con éxito."
 
 # --- 2. Instalar Dependencias de Backend ---
 echo "\n2/7 - Instalando dependencias de Composer..."
 composer install --no-interaction --prefer-dist
 
-# --- 3. ConfiguraciÃ³n del Entorno ---
+# --- 3. Configuración del Entorno ---
 echo "\n3/7 - Configurando archivo .env..."
 if [ ! -f ".env" ]; then
     cp .env.example .env
@@ -85858,10 +87727,10 @@ touch database/database.sqlite
 DB_PATH=$(realpath "database/database.sqlite")
 
 # Actualizar .env con la ruta absoluta a la DB de SQLite
-# Esto evita problemas con la ubicaciÃ³n desde donde se ejecutan los comandos artisan
+# Esto evita problemas con la ubicación desde donde se ejecutan los comandos artisan
 sed -i -e "s#^DB_DATABASE=.*#DB_DATABASE=${DB_PATH}#" .env
 
-echo "Generando clave de aplicaciÃ³n..."
+echo "Generando clave de aplicación..."
 php artisan key:generate
 
 echo "Ejecutando migraciones de la base de datos..."
@@ -85869,9 +87738,9 @@ php artisan migrate --seed
 
 # --- 5. Enlaces y Archivos Generados ---
 echo "\n5/7 - Creando enlace de almacenamiento y generando archivos Ziggy..."
-php artisan storage:link || echo "Advertencia: No se pudo crear el enlace simbÃ³lico de almacenamiento. Puede que necesites ejecutarlo con privilegios elevados."
+php artisan storage:link || echo "Advertencia: No se pudo crear el enlace simbólico de almacenamiento. Puede que necesites ejecutarlo con privilegios elevados."
 
-php artisan ziggy:generate || echo "Advertencia: php artisan ziggy:generate fallÃ³. La aplicaciÃ³n usarÃ¡ el stub de fallback. Re-ejecuta este comando cuando el backend estÃ© completamente funcional."
+php artisan ziggy:generate || echo "Advertencia: php artisan ziggy:generate falló. La aplicación usará el stub de fallback. Re-ejecuta este comando cuando el backend esté completamente funcional."
 
 # --- 6. Instalar Dependencias de Frontend ---
 echo "\n6/7 - Instalando dependencias de npm..."
@@ -85881,7 +87750,7 @@ npm install
 echo "\n7/7 - Compilando assets del frontend (Vite)..."
 npm run build
 
-echo "\nÂ¡Setup completado! âœ¨"
+echo "\n¡Setup completado! ✨"
 echo "Para iniciar el servidor de desarrollo, ejecuta: php artisan serve"
 ~~~~
 <!-- END_CODE_FILE: scripts/setup-local.sh -->
@@ -85911,7 +87780,7 @@ git fetch origin
 if (git rev-parse --verify "origin/$Branch" -ErrorAction SilentlyContinue) {
   git checkout $Branch
 } else {
-  Write-Warning "La rama $Branch no existe en el repositorio remoto. Se usarÃ¡ la rama por defecto."
+  Write-Warning "La rama $Branch no existe en el repositorio remoto. Se usará la rama por defecto."
 }
 
 if (-not (Test-Path .env)) {
@@ -85922,17 +87791,17 @@ if (-not (Test-Path .env)) {
     Write-Host "No existe .env.example. Crea .env manualmente."
   }
 } else {
-  Write-Host ".env ya existe, se mantendrÃ¡."
+  Write-Host ".env ya existe, se mantendrá."
 }
 
 if (-not (Get-Command composer -ErrorAction SilentlyContinue)) {
-  Write-Error "Composer no estÃ¡ instalado. InstÃ¡lalo antes de continuar."
+  Write-Error "Composer no está instalado. Instálalo antes de continuar."
   exit 1
 }
 composer install --no-interaction --prefer-dist --optimize-autoloader
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-  Write-Error "Node no estÃ¡ instalado. InstÃ¡lalo antes de continuar."
+  Write-Error "Node no está instalado. Instálalo antes de continuar."
   exit 1
 }
 if (Test-Path package-lock.json) {
@@ -85943,7 +87812,7 @@ if (Test-Path package-lock.json) {
 
 php artisan key:generate --ansi
 
-$migrate = Read-Host "Â¿Ejecutar migraciones ahora? (y/N)"
+$migrate = Read-Host "¿Ejecutar migraciones ahora? (y/N)"
 if ($migrate -eq "y") {
   php artisan migrate --force
 }
@@ -85962,13 +87831,13 @@ if ($FirebaseProjectId -ne "") {
   if (-not (Get-Command firebase -ErrorAction SilentlyContinue)) {
     npm install -g firebase-tools
   }
-  $deploy = Read-Host "Â¿Desplegar a Firebase Hosting ahora? (y/N)"
+  $deploy = Read-Host "¿Desplegar a Firebase Hosting ahora? (y/N)"
   if ($deploy -eq "y") {
     firebase deploy --only hosting --project $FirebaseProjectId
   }
 }
 
-Write-Host "Â¡Listo! Proyecto preparado en .\$RepoName"
+Write-Host "¡Listo! Proyecto preparado en .\$RepoName"
 ~~~~
 <!-- END_CODE_FILE: setup-comercio.ps1 -->
 
@@ -85980,53 +87849,53 @@ Write-Host "Â¡Listo! Proyecto preparado en .\$RepoName"
 ~~~~bash
 #!/bin/bash
 
-echo "ðŸš€ Iniciando setup de ComercioPlus..."
+echo "🚀 Iniciando setup de ComercioPlus..."
 
-# 1ï¸âƒ£ Verificar PHP
+# 1️⃣ Verificar PHP
 if command -v php >/dev/null 2>&1; then
-    echo "âœ… PHP detectado: $(php -v | head -n 1)"
+    echo "✅ PHP detectado: $(php -v | head -n 1)"
 else
-    echo "âŒ PHP no estÃ¡ instalado. Por favor instÃ¡lalo y reinicia el IDE."
+    echo "❌ PHP no está instalado. Por favor instálalo y reinicia el IDE."
     exit 1
 fi
 
-# 2ï¸âƒ£ Verificar Composer
+# 2️⃣ Verificar Composer
 if command -v composer >/dev/null 2>&1; then
-    echo "âœ… Composer detectado: $(composer --version)"
+    echo "✅ Composer detectado: $(composer --version)"
 else
-    echo "âŒ Composer no estÃ¡ instalado. InstÃ¡lalo para manejar dependencias de Laravel."
+    echo "❌ Composer no está instalado. Instálalo para manejar dependencias de Laravel."
     exit 1
 fi
 
-# 3ï¸âƒ£ Verificar Node.js
+# 3️⃣ Verificar Node.js
 if command -v node >/dev/null 2>&1; then
-    echo "âœ… Node.js detectado: $(node -v)"
+    echo "✅ Node.js detectado: $(node -v)"
 else
-    echo "âŒ Node.js no estÃ¡ instalado. InstÃ¡lalo y reinicia el IDE."
+    echo "❌ Node.js no está instalado. Instálalo y reinicia el IDE."
     exit 1
 fi
 
-# 4ï¸âƒ£ Verificar npm
+# 4️⃣ Verificar npm
 if command -v npm >/dev/null 2>&1; then
-    echo "âœ… npm detectado: $(npm -v)"
+    echo "✅ npm detectado: $(npm -v)"
 else
-    echo "âŒ npm no estÃ¡ instalado. InstÃ¡lalo y reinicia el IDE."
+    echo "❌ npm no está instalado. Instálalo y reinicia el IDE."
     exit 1
 fi
 
-echo "ðŸ“¦ Instalando dependencias de Laravel..."
+echo "📦 Instalando dependencias de Laravel..."
 composer install
 
-echo "ðŸ“¦ Instalando dependencias de Node..."
+echo "📦 Instalando dependencias de Node..."
 npm install
 
-echo "ðŸ›  Ejecutando migraciones y seeders..."
+echo "🛠 Ejecutando migraciones y seeders..."
 php artisan migrate --seed
 
-echo "âš¡ Iniciando servidor de desarrollo..."
+echo "⚡ Iniciando servidor de desarrollo..."
 npm run dev
 
-echo "âœ… Setup completado. La aplicaciÃ³n deberÃ­a estar funcionando."
+echo "✅ Setup completado. La aplicación debería estar funcionando."
 ~~~~
 <!-- END_CODE_FILE: setup-comercio.sh -->
 
@@ -86147,7 +88016,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
 
-    // si este repo tambiÃ©n incluye Laravel Blade/Vue, lo dejamos:
+    // si este repo también incluye Laravel Blade/Vue, lo dejamos:
     "./resources/**/*.blade.php",
     "./resources/**/*.{js,ts,vue}",
   ],
@@ -87198,6 +89067,7 @@ class FullCommerceFlowTest extends TestCase
         $this->assertSame($scannerBeforeOrder - 2, (int) Product::query()->findOrFail($scannerProductId)->stock);
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: tests/Feature/FullCommerceFlowTest.php -->
 
@@ -87598,6 +89468,7 @@ class InventoryReceiveApiTest extends TestCase
         ];
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: tests/Feature/InventoryReceiveApiTest.php -->
 
@@ -88429,6 +90300,7 @@ class ProductCodeLookupApiTest extends TestCase
         ];
     }
 }
+
 ~~~~
 <!-- END_CODE_FILE: tests/Feature/ProductCodeLookupApiTest.php -->
 
@@ -88687,10 +90559,10 @@ class SubscriptionsApiTest extends TestCase
         $this->postJson('/api/subscriptions', [
             'user_id' => $user->id,
             'plan' => 'basic',
-            'period' => 'monthly', // ajusta a tu validaciÃ³n real
+            'period' => 'monthly', // ajusta a tu validación real
         ])->assertStatus(201)->assertJsonFragment(['plan' => 'basic']);
 
-        // RenovaciÃ³n/expiraciÃ³n (mock simple): listar debe incluirla
+        // Renovación/expiración (mock simple): listar debe incluirla
         $this->getJson('/api/subscriptions')
              ->assertStatus(200)
              ->assertJsonFragment(['user_id' => $user->id]);
@@ -88760,7 +90632,7 @@ class UsersApiTest extends TestCase
         $email = 'taken@example.com';
         User::factory()->create(['email' => $email]);
 
-        // email invÃ¡lido
+        // email inválido
         $this->postJson('/api/users', [
             'name' => 'X',
             'email' => 'not-an-email',
@@ -88871,7 +90743,7 @@ class WebRoutesTest extends TestCase
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-// Hace que $this->get(), actingAs(), etc. estÃ©n disponibles en closures de Pest
+// Hace que $this->get(), actingAs(), etc. estén disponibles en closures de Pest
 uses(TestCase::class)->in('Feature', 'Unit');
 
 // Opcional (si quieres base de datos limpia por test Feature):
@@ -88970,15 +90842,15 @@ class UserTest extends TestCase
     public function puede_crear_usuario_con_datos_validos()
     {
         $userData = [
-            'name' => 'Juan PÃ©rez',
+            'name' => 'Juan Pérez',
             'email' => 'juan@ejemplo.com',
-            'password' => bcrypt('contraseÃ±a123'),
+            'password' => bcrypt('contraseña123'),
         ];
 
         $user = User::create($userData);
 
         $this->assertInstanceOf(User::class, $user);
-        $this->assertEquals('Juan PÃ©rez', $user->name);
+        $this->assertEquals('Juan Pérez', $user->name);
         $this->assertEquals('juan@ejemplo.com', $user->email);
     }
 
@@ -89026,10 +90898,10 @@ class UserTest extends TestCase
     /** @test */
     public function password_se_encripta_automaticamente()
     {
-        $user = User::factory()->create(['password' => bcrypt('contraseÃ±a123')]);
+        $user = User::factory()->create(['password' => bcrypt('contraseña123')]);
 
-        $this->assertTrue(Hash::check('contraseÃ±a123', $user->password));
-        $this->assertNotEquals('contraseÃ±a123', $user->password);
+        $this->assertTrue(Hash::check('contraseña123', $user->password));
+        $this->assertNotEquals('contraseña123', $user->password);
     }
 
     /** @test */
@@ -89045,16 +90917,16 @@ class UserTest extends TestCase
     /** @test */
     public function nombre_completo_se_formatea_correctamente()
     {
-        $user = User::factory()->create(['name' => 'juan pÃ©rez']);
+        $user = User::factory()->create(['name' => 'juan pérez']);
 
         // Asumiendo que hay un accessor para formatear el nombre
-        $this->assertEquals('Juan PÃ©rez', $user->formatted_name ?? $user->name);
+        $this->assertEquals('Juan Pérez', $user->formatted_name ?? $user->name);
     }
 
     /** @test */
     public function puede_obtener_iniciales_del_usuario()
     {
-        $user = User::factory()->create(['name' => 'Juan Carlos PÃ©rez']);
+        $user = User::factory()->create(['name' => 'Juan Carlos Pérez']);
 
         $this->assertEquals('JCP', $user->initials);
     }
@@ -89410,6 +91282,7 @@ export default defineConfig({
         }),
     ],
 });
+
 ~~~~
 <!-- END_CODE_FILE: vite.legacy.config.js -->
 
@@ -89419,9 +91292,7 @@ export default defineConfig({
 
 <!-- BEGIN_CODE_FILE: vitest.config.ts -->
 ~~~~ts
-
 ~~~~
 <!-- END_CODE_FILE: vitest.config.ts -->
 
 <!-- END_FULL_CODE_DUMP -->
-
