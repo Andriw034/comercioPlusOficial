@@ -213,3 +213,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('orders', OrderController::class);
     Route::apiResource('subscriptions', SubscriptionController::class);
 });
+
+
+
+
+Route::get('/_debug/env', function () {
+    return response()->json([
+        'app_env' => app()->environment(),
+        'config_cached' => app()->configurationIsCached(),
+
+        // ¿Railway está inyectando estas variables?
+        'has_DB_HOST' => !empty(env('DB_HOST')),
+        'DB_HOST' => env('DB_HOST') ? 'SET' : 'EMPTY',
+
+        'has_DB_DATABASE' => !empty(env('DB_DATABASE')),
+        'DB_DATABASE' => env('DB_DATABASE') ? 'SET' : 'EMPTY',
+
+        'has_CLOUDINARY_CLOUD_NAME' => !empty(env('CLOUDINARY_CLOUD_NAME')),
+        'CLOUDINARY_CLOUD_NAME' => env('CLOUDINARY_CLOUD_NAME') ? 'SET' : 'EMPTY',
+    ]);
+});
