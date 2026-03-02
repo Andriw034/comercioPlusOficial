@@ -5,7 +5,9 @@
       "Bash(npx eslint:*)",
       "Bash(npx tsc:*)",
       "Bash(powershell:*)",
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)"
     ]
   }
 }
