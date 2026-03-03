@@ -1,6 +1,8 @@
 # ---- Base image ----
 FROM php:8.3-cli-bookworm
 
+ARG RAILWAY_CACHE_BUST=2026-03-03-gd-fix
+
 # ---- System deps + PHP extensions required by Laravel ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
@@ -14,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libwebp-dev \
     bash \
+  && echo "cache-bust=${RAILWAY_CACHE_BUST}" \
   && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
   && docker-php-ext-install \
     bcmath \
