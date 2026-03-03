@@ -89,19 +89,22 @@ class InventoryImportService
 
         DB::beginTransaction();
         try {
-            $duplicates = $this->duplicateSkusInFile($rows, $headerKeys);
-            if ($duplicates !== []) {
-                DB::rollBack();
-                return [
-                    'success' => false,
-                    'imported' => 0,
-                    'updated' => 0,
-                    'failed' => count($duplicates),
-                    'errors' => [[
-                        'row' => 1,
-                        'error' => 'SKUs duplicados en archivo: ' . implode(', ', $duplicates),
-                    ]],
-                ];
+            // In strict mode (upsert disabled), duplicated SKUs inside the same file are rejected.
+            if (!$upsert) {
+                $duplicates = $this->duplicateSkusInFile($rows, $headerKeys);
+                if ($duplicates !== []) {
+                    DB::rollBack();
+                    return [
+                        'success' => false,
+                        'imported' => 0,
+                        'updated' => 0,
+                        'failed' => count($duplicates),
+                        'errors' => [[
+                            'row' => 1,
+                            'error' => 'SKUs duplicados en archivo: ' . implode(', ', $duplicates),
+                        ]],
+                    ];
+                }
             }
 
             foreach ($rows->slice(1)->values() as $offset => $row) {

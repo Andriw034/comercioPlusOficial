@@ -75,7 +75,27 @@ export default function InventoryImportPage() {
       setResult(data)
     } catch (error) {
       console.error('[inventory-import] import error', error)
-      alert('No se pudo importar el archivo.')
+      const apiError = (error as any)?.response?.data
+      if (apiError && typeof apiError === 'object') {
+        const importPayload = apiError as Partial<ImportResponse> & { message?: string }
+        if (Array.isArray(importPayload.errors)) {
+          setResult({
+            success: Boolean(importPayload.success),
+            imported: Number(importPayload.imported || 0),
+            updated: Number(importPayload.updated || 0),
+            failed: Number(importPayload.failed || 0),
+            errors: importPayload.errors.map((item: any) => ({
+              row: Number(item?.row || 0),
+              error: String(item?.error || 'Error de importacion'),
+            })),
+          })
+        }
+        const firstError = importPayload.errors?.[0]?.error
+        const message = firstError || importPayload.message || 'No se pudo importar el archivo.'
+        alert(String(message))
+      } else {
+        alert('No se pudo importar el archivo.')
+      }
     } finally {
       setLoading(false)
     }
