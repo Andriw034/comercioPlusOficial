@@ -28,6 +28,16 @@ class InventoryImportService
         'brand',
         'image_url',
     ];
+    private const STANDARD_FIELD_ALIASES = [
+        'name' => ['name', 'nombre', 'producto', 'product', 'product_name'],
+        'sku' => ['sku', 'codigo', 'codigo_sku', 'codigo_de_sku', 'product_code', 'code', 'codigosku'],
+        'description' => ['description', 'descripcion', 'detalle', 'detalles'],
+        'price' => ['price', 'precio', 'valor', 'sale_price'],
+        'stock' => ['stock', 'inventario', 'existencias', 'cantidad', 'qty', 'quantity'],
+        'category' => ['category', 'categoria', 'cat', 'linea'],
+        'brand' => ['brand', 'marca'],
+        'image_url' => ['image_url', 'image', 'imagen', 'foto', 'image_link', 'imagen_url', 'url_imagen'],
+    ];
 
     public function preview(UploadedFile $file): array
     {
@@ -66,8 +76,8 @@ class InventoryImportService
             ];
         }
 
-        $headers = $rows->first()->map(fn ($header) => trim((string) $header))->values();
-        $headerKeys = $headers->map(fn ($header) => Str::lower($header))->values();
+        $headers = $rows->first()->map(fn ($header) => $this->normalizeCell($header))->values();
+        $headerKeys = $headers->map(fn ($header) => $this->canonicalHeaderKey((string) $header))->values();
 
         $result = [
             'success' => true,
@@ -208,8 +218,17 @@ class InventoryImportService
             throw new \RuntimeException('No se pudo abrir el archivo CSV.');
         }
 
-        while (($data = fgetcsv($handle)) !== false) {
-            $rows->push(collect($data)->map(fn ($value) => trim((string) $value))->values());
+        $sampleLine = fgets($handle);
+        if ($sampleLine === false) {
+            fclose($handle);
+            return $rows;
+        }
+
+        rewind($handle);
+        $delimiter = $this->detectCsvDelimiter($sampleLine);
+
+        while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $rows->push(collect($data)->map(fn ($value) => $this->normalizeCell($value))->values());
         }
         fclose($handle);
 
@@ -228,7 +247,7 @@ class InventoryImportService
 
             $rowValues = collect();
             foreach ($cellIterator as $cell) {
-                $rowValues->push(trim((string) $cell->getFormattedValue()));
+                $rowValues->push($this->normalizeCell((string) $cell->getFormattedValue()));
             }
             $rows->push($rowValues->values());
         }
@@ -335,5 +354,75 @@ class InventoryImportService
     {
         $normalized = preg_replace('/[^0-9\-]/', '', (string) $value) ?? '0';
         return max(0, (int) $normalized);
+    }
+
+    private function detectCsvDelimiter(string $sampleLine): string
+    {
+        $candidates = [',', ';', "\t", '|'];
+        $best = ',';
+        $maxHits = -1;
+
+        foreach ($candidates as $candidate) {
+            $hits = substr_count($sampleLine, $candidate);
+            if ($hits > $maxHits) {
+                $best = $candidate;
+                $maxHits = $hits;
+            }
+        }
+
+        return $best;
+    }
+
+    private function canonicalHeaderKey(string $header): string
+    {
+        $token = $this->normalizeHeaderToken($header);
+
+        foreach (self::STANDARD_FIELD_ALIASES as $standard => $aliases) {
+            if (in_array($token, $aliases, true)) {
+                return $standard;
+            }
+        }
+
+        return $token;
+    }
+
+    private function normalizeHeaderToken(string $header): string
+    {
+        $normalized = Str::ascii(Str::lower($this->normalizeCell($header)));
+        $normalized = str_replace(['.', '-', '/', '\\'], ' ', $normalized);
+        $normalized = preg_replace('/\s+/', '_', trim($normalized)) ?? '';
+
+        return trim($normalized, '_');
+    }
+
+    private function normalizeCell(mixed $value): string
+    {
+        $text = trim((string) $value);
+        if ($text === '') {
+            return '';
+        }
+
+        // Remove UTF-8 BOM when present in the first cell/header.
+        $text = preg_replace('/^\xEF\xBB\xBF/u', '', $text) ?? $text;
+
+        if (!preg_match('//u', $text) && function_exists('iconv')) {
+            $converted = @iconv('Windows-1252', 'UTF-8//IGNORE', $text);
+            if ($converted !== false) {
+                $text = trim($converted);
+            }
+        }
+
+        if (!preg_match('//u', $text) && function_exists('iconv')) {
+            $converted = @iconv('UTF-8', 'UTF-8//IGNORE', $text);
+            if ($converted !== false) {
+                $text = trim($converted);
+            }
+        }
+
+        if (!preg_match('//u', $text)) {
+            $text = preg_replace('/[^\x20-\x7E]/', '', $text) ?? '';
+        }
+
+        return trim($text);
     }
 }

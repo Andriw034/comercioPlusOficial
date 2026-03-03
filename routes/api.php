@@ -170,6 +170,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/merchant/store', [MerchantStoreController::class, 'update']);
     Route::get('/merchant/store/verification', [StoreVerificationController::class, 'show']);
     Route::post('/merchant/store/verification', [StoreVerificationController::class, 'submit']);
+    Route::get('/merchant/dashboard', [StatsController::class, 'summary']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);
     Route::get('/reports/summary', [ReportController::class, 'summary']);
     Route::get('/reports/sales', [ReportController::class, 'sales']);

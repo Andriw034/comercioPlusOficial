@@ -26,8 +26,17 @@ class InventoryController extends Controller
             'file' => ['required', 'file', 'max:5120', 'mimes:csv,txt,xlsx,xls'],
         ]);
 
-        $data = $this->inventoryImportService->preview($request->file('file'));
-        return response()->json($data);
+        try {
+            $data = $this->inventoryImportService->preview($request->file('file'));
+            return response()->json($data);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'No se pudo generar la vista previa del archivo.',
+                'error' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     public function import(Request $request): JsonResponse

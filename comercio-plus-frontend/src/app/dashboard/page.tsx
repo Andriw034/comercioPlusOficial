@@ -392,7 +392,16 @@ export default function DashboardPage() {
     setLoading(true)
     setError('')
     try {
-      const response = await API.get('/merchant/dashboard')
+      let response
+      try {
+        response = await API.get('/merchant/dashboard')
+      } catch (primaryError: any) {
+        if (primaryError?.response?.status === 404) {
+          response = await API.get('/merchant/stats')
+        } else {
+          throw primaryError
+        }
+      }
       setDashboard(normalizeDashboard(response.data))
     } catch (err: any) {
       setDashboard(EMPTY_STATE)
