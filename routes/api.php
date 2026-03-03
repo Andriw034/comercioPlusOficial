@@ -181,6 +181,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/summary', [InventoryController::class, 'summary']);
     Route::get('/inventory/movements', [InventoryController::class, 'merchantMovements']);
     Route::post('/inventory/adjust', [InventoryController::class, 'merchantAdjust']);
+    Route::post('/inventory/preview', [InventoryController::class, 'preview'])->middleware('role.key:merchant');
+    Route::post('/inventory/import', [InventoryController::class, 'import'])->middleware('role.key:merchant');
     Route::get('/inventory/invoices', [InventoryController::class, 'invoices']);
     Route::post('/merchant/inventory/scan-in', [InventoryReceiveController::class, 'scanIn']);
     Route::post('/merchant/inventory/create-from-scan', [InventoryReceiveController::class, 'createFromScan']);
@@ -207,6 +209,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // API resources used by current tests.
     Route::apiResource('users', UserController::class);
     Route::apiResource('cart', CartController::class);
+    Route::delete('/cart', [CartController::class, 'clear']);
     Route::get('/cart/count', [CartController::class, 'count']);
     Route::post('/cart/clear', [CartController::class, 'clear']);
     Route::apiResource('cart-products', CartProductController::class);

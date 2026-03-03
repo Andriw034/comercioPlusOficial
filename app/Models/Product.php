@@ -12,6 +12,8 @@ class Product extends Model
 
     protected $fillable = [
         'name',
+        'sku',
+        'brand',
         'description',
         'price',
         'category_id',
@@ -28,12 +30,14 @@ class Product extends Model
         'cost_price',
         'reorder_point',
         'allow_backorder',
+        'metadata',
     ];
 
     protected $casts = [
         'cost_price' => 'decimal:2',
         'reorder_point' => 'integer',
         'allow_backorder' => 'boolean',
+        'metadata' => 'array',
     ];
 
     protected $allowIncluded = ['store', 'category', 'ratings', 'productCodes'];
@@ -72,6 +76,23 @@ class Product extends Model
     public function needsReorder(): bool
     {
         return (int) $this->stock <= (int) $this->reorder_point;
+    }
+
+    public function getMeta(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->metadata, $key, $default);
+    }
+
+    public function setMeta(string $key, mixed $value): self
+    {
+        $this->metadata = array_merge($this->metadata ?? [], [$key => $value]);
+        return $this;
+    }
+
+    public function setMetas(array $data): self
+    {
+        $this->metadata = array_merge($this->metadata ?? [], $data);
+        return $this;
     }
 
     public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente

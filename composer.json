@@ -13,6 +13,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "livewire/livewire": "^3.0",
+        "phpoffice/phpspreadsheet": "1.29",
         "spatie/laravel-permission": "^6.0"
     },
     "require-dev": {

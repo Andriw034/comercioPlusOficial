@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/Icon'
+import CartIcon from '@/components/CartIcon'
 import EmojiIcon from '@/components/ui/EmojiIcon'
 import { clearSession, getStoredToken, getStoredUserRaw } from '@/services/auth-session'
 import API from '@/lib/api'
@@ -353,6 +354,7 @@ export default function Navbar() {
             </div>
 
             <div style={{ width: '1px', height: '20px', background: '#e5e7eb', margin: '0 6px' }} />
+            <CartIcon />
 
             {!isAuthenticated && (
               <Link
@@ -511,7 +513,7 @@ export default function Navbar() {
           }}
         >
           <div style={{ padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {[{ label: 'Tiendas', href: '/stores' }, { label: 'Productos', href: '/products' }].map((item) => (
+            {[{ label: 'Tiendas', href: '/stores' }, { label: 'Productos', href: '/products' }, { label: 'Carrito', href: '/cart' }].map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
@@ -563,5 +565,4 @@ export default function Navbar() {
     </>
   )
 }
-
 

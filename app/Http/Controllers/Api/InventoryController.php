@@ -8,13 +8,45 @@ use App\Models\InventoryMovement;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
+use App\Services\InventoryImportService;
 use App\Services\InventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class InventoryController extends Controller
 {
-    public function __construct(private readonly InventoryService $inventoryService) {}
+    public function __construct(
+        private readonly InventoryService $inventoryService,
+        private readonly InventoryImportService $inventoryImportService
+    ) {}
+
+    public function preview(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:5120', 'mimes:csv,txt,xlsx,xls'],
+        ]);
+
+        $data = $this->inventoryImportService->preview($request->file('file'));
+        return response()->json($data);
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:5120', 'mimes:csv,txt,xlsx,xls'],
+            'upsert' => ['nullable', 'boolean'],
+        ]);
+
+        $store = $this->resolveMerchantStore();
+        $result = $this->inventoryImportService->import(
+            $store,
+            $request->file('file'),
+            $request->boolean('upsert', true),
+        );
+
+        $status = $result['success'] ? 200 : 422;
+        return response()->json($result, $status);
+    }
 
     public function summary(Request $request): JsonResponse
     {

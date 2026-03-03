@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\CartProduct;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CartProductController extends Controller
 {
@@ -13,7 +15,9 @@ class CartProductController extends Controller
      */
     public function index()
     {
-        $cart = CartProduct::with('cart', 'product')->get();
+        $cart = CartProduct::with('cart', 'product')
+            ->whereHas('cart', fn ($query) => $query->where('user_id', (int) Auth::id()))
+            ->get();
 
         return response()->json([
             'status' => 'ok',
@@ -42,6 +46,13 @@ class CartProductController extends Controller
             'unit_price' => 'required|numeric|min:0',
         ]);
 
+        $ownerId = (int) Cart::query()
+            ->where('id', (int) $validated['cart_id'])
+            ->value('user_id');
+        if ($ownerId !== (int) Auth::id()) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
         $cartProduct = CartProduct::create($validated);
 
         return response()->json([
@@ -59,6 +70,10 @@ class CartProductController extends Controller
 
         if (!$cartProduct) {
             return response()->json(['message' => 'Producto en carrito no encontrado'], 404);
+        }
+
+        if (!$this->authorizeCartProduct($cartProduct)) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         return response()->json($cartProduct);
@@ -81,6 +96,10 @@ class CartProductController extends Controller
 
         if (!$cartProduct) {
             return response()->json(['message' => 'Producto en carrito no encontrado'], 404);
+        }
+
+        if (!$this->authorizeCartProduct($cartProduct)) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         $validated = $request->validate([
@@ -109,10 +128,20 @@ class CartProductController extends Controller
             return response()->json(['message' => 'Producto en carrito no encontrado'], 404);
         }
 
+        if (!$this->authorizeCartProduct($cartProduct)) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
         $cartProduct->delete();
 
         return response()->json([
             'message' => 'Producto en carrito eliminado correctamente.',
         ]);
+    }
+
+    private function authorizeCartProduct(CartProduct $cartProduct): bool
+    {
+        $cartProduct->loadMissing('cart:id,user_id');
+        return (int) ($cartProduct->cart?->user_id ?? 0) === (int) Auth::id();
     }
 }

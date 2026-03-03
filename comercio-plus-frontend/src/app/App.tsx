@@ -49,6 +49,7 @@ const DashboardCustomers = lazy(() => import('./dashboard/customers/page'))
 const DashboardCreditPage = lazy(() => import('./dashboard/credit/page'))
 const DashboardInventoryPage = lazy(() => import('./dashboard/inventory/page'))
 const InventoryReceivePage = lazy(() => import('./dashboard/inventory/receive/page'))
+const InventoryImportPage = lazy(() => import('./dashboard/inventory/import/page'))
 const ManageProducts = lazy(() => import('./dashboard/products/page'))
 const DashboardReportsPage = lazy(() => import('./dashboard/reports/page'))
 const DashboardSettingsPage = lazy(() => import('./dashboard/settings/page'))
@@ -170,6 +171,7 @@ export default function App() {
             <Route path="/dashboard/orders/:id/picking" element={<OrderPickingPage />} />
             <Route path="/dashboard/inventory" element={<DashboardInventoryPage />} />
             <Route path="/dashboard/inventory/receive" element={<InventoryReceivePage />} />
+            <Route path="/dashboard/inventory/import" element={<InventoryImportPage />} />
             <Route path="/dashboard/reports" element={<DashboardReportsPage />} />
             <Route path="/dashboard/categories" element={<DashboardCategoriesPage />} />
             <Route path="/dashboard/products" element={<ManageProducts />} />

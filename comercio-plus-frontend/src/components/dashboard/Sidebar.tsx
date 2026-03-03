@@ -52,6 +52,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/dashboard/categories', icon: 'tag', iconBg: 'bg-amber-500/20', label: 'Categorias' },
       { href: '/dashboard/inventory', icon: 'package', iconBg: 'bg-cyan-500/20', label: 'Inventario' },
+      { href: '/dashboard/inventory/import', icon: 'upload', iconBg: 'bg-orange-500/20', label: 'Importar inventario' },
       { href: '/dashboard/inventory/receive', icon: 'camera', iconBg: 'bg-orange-500/20', label: 'Ingreso escaner' },
       { href: '/dashboard/reports', icon: 'trending', iconBg: 'bg-lime-500/20', label: '🤖 IA Comercial' },
       { href: '/dashboard/settings', icon: 'settings', iconBg: 'bg-slate-500/30', label: 'Configuracion' },
