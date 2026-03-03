@@ -61,6 +61,50 @@ class InventoryImportService
         ];
     }
 
+    public function generateTemplateCsv(Store $store): string
+    {
+        $headers = [
+            'nombre',
+            'sku',
+            'precio',
+            'stock',
+            'descripcion',
+            'categoria',
+            'marca',
+        ];
+
+        $headers = array_values(array_unique(array_merge(
+            $headers,
+            $this->getStoreMetadataColumns($store),
+        )));
+
+        $example = [
+            'Ejemplo producto',
+            'SKU-001',
+            '50000',
+            '10',
+            'Descripcion opcional',
+            'Sin categoria',
+            'Marca ejemplo',
+        ];
+        $example = array_pad($example, count($headers), '');
+
+        $stream = fopen('php://temp', 'r+');
+        if ($stream === false) {
+            throw new \RuntimeException('No se pudo generar el template CSV.');
+        }
+
+        fputcsv($stream, $headers);
+        fputcsv($stream, $example);
+
+        rewind($stream);
+        $csv = stream_get_contents($stream) ?: '';
+        fclose($stream);
+
+        // BOM UTF-8 for better compatibility with Excel.
+        return "\xEF\xBB\xBF" . $csv;
+    }
+
     public function import(Store $store, UploadedFile $file, bool $upsert = true): array
     {
         $this->validateFile($file);
@@ -86,6 +130,7 @@ class InventoryImportService
             'failed' => 0,
             'errors' => [],
         ];
+        $defaultCategory = null;
 
         DB::beginTransaction();
         try {
@@ -111,25 +156,48 @@ class InventoryImportService
                 $rowNumber = $offset + 2;
 
                 try {
+                    $row = collect($row)->map(fn ($value) => $this->normalizeCell($value))->values();
+                    if ($this->isRowEmpty($row)) {
+                        continue;
+                    }
+
                     [$standard, $metadata] = $this->mapRowToData($row, $headers, $headerKeys);
+                    $name = trim((string) ($standard['name'] ?? ''));
                     $sku = trim((string) ($standard['sku'] ?? ''));
 
+                    if ($name === '' && $sku === '') {
+                        continue;
+                    }
+
                     if ($sku === '') {
-                        throw new \RuntimeException('SKU requerido.');
+                        $sku = $this->generateAutoSku($name !== '' ? $name : 'producto', (int) $store->id, $rowNumber);
+                    }
+
+                    if ($name === '') {
+                        $name = 'Producto ' . $sku;
                     }
 
                     if (isset($standard['category']) && $standard['category'] !== '') {
                         $category = $this->findOrCreateCategory((string) $standard['category'], $store);
                         $standard['category_id'] = (int) $category->id;
+                    } else {
+                        $defaultCategory ??= $this->findOrCreateCategory('Sin categoria', $store);
+                        $standard['category_id'] = (int) $defaultCategory->id;
                     }
                     unset($standard['category']);
 
                     $standard['price'] = $this->toFloat($standard['price'] ?? 0);
                     $standard['stock'] = $this->toInt($standard['stock'] ?? 0);
                     $standard['status'] = 1;
+                    $standard['name'] = $name;
+                    $standard['sku'] = $sku;
+                    $standard['description'] = (string) ($standard['description'] ?? '');
+                    $standard['brand'] = (string) ($standard['brand'] ?? '');
 
                     $incomingImage = (string) ($standard['image_url'] ?? '');
-                    $standard['image_url'] = $this->resolveImageUrl($incomingImage, (int) $store->id);
+                    $standard['image_url'] = $incomingImage !== ''
+                        ? $this->resolveImageUrl($incomingImage, (int) $store->id)
+                        : self::PLACEHOLDER_IMAGE_URL;
 
                     $product = Product::query()
                         ->where('store_id', (int) $store->id)
@@ -143,6 +211,13 @@ class InventoryImportService
                     if ($product) {
                         $product->price = $standard['price'];
                         $product->stock = $standard['stock'];
+                        $product->name = $standard['name'];
+                        $product->description = $standard['description'];
+                        $product->brand = $standard['brand'];
+                        $product->category_id = (int) $standard['category_id'];
+                        if ($incomingImage !== '') {
+                            $product->image_url = $standard['image_url'];
+                        }
 
                         $currentMeta = is_array($product->metadata) ? $product->metadata : [];
                         $product->metadata = array_merge($currentMeta, $metadata);
@@ -156,6 +231,7 @@ class InventoryImportService
                             'description' => (string) ($standard['description'] ?? ''),
                             'brand' => (string) ($standard['brand'] ?? ''),
                             'sku' => $sku,
+                            'slug' => $this->generateUniqueProductSlug($name, $sku),
                             'metadata' => $metadata,
                         ]);
 
@@ -186,6 +262,10 @@ class InventoryImportService
                 'failed' => 1,
                 'errors' => [['row' => 1, 'error' => $e->getMessage()]],
             ];
+        }
+
+        if (($result['imported'] + $result['updated']) === 0 && $result['failed'] > 0) {
+            $result['success'] = false;
         }
 
         return $result;
@@ -278,7 +358,7 @@ class InventoryImportService
         $metadata = [];
 
         foreach ($headers as $index => $originalHeader) {
-            $value = trim((string) ($row[$index] ?? ''));
+            $value = $this->normalizeCell($row[$index] ?? '');
             if ($value === '') {
                 continue;
             }
@@ -374,6 +454,90 @@ class InventoryImportService
         }
 
         return $best;
+    }
+
+    private function isRowEmpty(Collection $row): bool
+    {
+        return $row->every(fn ($value) => $this->normalizeCell($value) === '');
+    }
+
+    private function generateAutoSku(string $name, int $storeId, int $rowNumber): string
+    {
+        $base = Str::upper(Str::slug($name, '-'));
+        if ($base === '') {
+            $base = 'SKU';
+        }
+
+        $candidate = "{$base}-S{$storeId}-R{$rowNumber}";
+        while (Product::query()
+            ->where('store_id', $storeId)
+            ->where('sku', $candidate)
+            ->exists()) {
+            $candidate = "{$base}-S{$storeId}-R{$rowNumber}-" . Str::upper(Str::random(3));
+        }
+
+        return $candidate;
+    }
+
+    private function generateUniqueProductSlug(string $name, string $sku): string
+    {
+        $base = Str::slug($name);
+        if ($base === '') {
+            $base = Str::slug($sku);
+        }
+        if ($base === '') {
+            $base = 'producto';
+        }
+
+        $slug = $base;
+        $i = 1;
+        while (Product::query()->where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$i}";
+            $i++;
+            if ($i > 200) {
+                $slug = "{$base}-" . Str::lower(Str::random(6));
+                break;
+            }
+        }
+
+        return $slug;
+    }
+
+    private function getStoreMetadataColumns(Store $store): array
+    {
+        $columns = [];
+        $rows = Product::query()
+            ->where('store_id', (int) $store->id)
+            ->whereNotNull('metadata')
+            ->select(['metadata'])
+            ->orderByDesc('id')
+            ->limit(250)
+            ->get();
+
+        foreach ($rows as $product) {
+            $metadata = is_array($product->metadata) ? $product->metadata : [];
+            foreach (array_keys($metadata) as $key) {
+                $label = trim((string) $key);
+                if ($label === '') {
+                    continue;
+                }
+
+                $normalized = $this->canonicalHeaderKey($label);
+                if (in_array($normalized, self::STANDARD_FIELDS, true)) {
+                    continue;
+                }
+
+                if (!in_array($label, $columns, true)) {
+                    $columns[] = $label;
+                }
+
+                if (count($columns) >= 12) {
+                    break 2;
+                }
+            }
+        }
+
+        return $columns;
     }
 
     private function canonicalHeaderKey(string $header): string

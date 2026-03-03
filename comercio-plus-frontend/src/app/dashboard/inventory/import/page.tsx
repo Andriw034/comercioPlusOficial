@@ -20,6 +20,7 @@ export default function InventoryImportPage() {
   const [file, setFile] = useState<File | null>(null)
   const [upsert, setUpsert] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [preview, setPreview] = useState<PreviewResponse | null>(null)
   const [result, setResult] = useState<ImportResponse | null>(null)
 
@@ -101,6 +102,31 @@ export default function InventoryImportPage() {
     }
   }
 
+  const downloadTemplate = async () => {
+    setDownloadingTemplate(true)
+    try {
+      const response = await API.get('/inventory/template', { responseType: 'blob' })
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+
+      const disposition = String(response.headers?.['content-disposition'] || '')
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/i)
+      link.download = filenameMatch?.[1] || 'inventario-template.csv'
+
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('[inventory-import] template error', error)
+      alert('No se pudo descargar el template de inventario.')
+    } finally {
+      setDownloadingTemplate(false)
+    }
+  }
+
   const resetAll = () => {
     setFile(null)
     setPreview(null)
@@ -114,7 +140,10 @@ export default function InventoryImportPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Inventario</p>
         <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white">Importacion masiva</h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Sube archivos CSV o XLSX (max 5MB). Columnas no estandar se guardan en metadata.
+          Sube archivos CSV o XLSX (max 10MB). Columnas no estandar se guardan en metadata.
+        </p>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Las imagenes son opcionales en este paso. Puedes agregarlas despues por URL o carga manual.
         </p>
       </div>
 
@@ -148,6 +177,13 @@ export default function InventoryImportPage() {
         </label>
 
         <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            onClick={downloadTemplate}
+            disabled={loading || downloadingTemplate}
+            className="rounded-lg border border-orange-300 px-4 py-2 text-sm font-semibold text-orange-700 disabled:opacity-60 dark:border-orange-400/50 dark:text-orange-300"
+          >
+            {downloadingTemplate ? 'Descargando...' : 'Descargar template'}
+          </button>
           <button
             onClick={requestPreview}
             disabled={!file || loading}

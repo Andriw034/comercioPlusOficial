@@ -23,7 +23,7 @@ class InventoryController extends Controller
     public function preview(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:5120', 'mimes:csv,txt,xlsx,xls'],
+            'file' => ['required', 'file', 'max:10240', 'mimes:csv,txt,xlsx,xls'],
         ]);
 
         try {
@@ -42,19 +42,47 @@ class InventoryController extends Controller
     public function import(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:5120', 'mimes:csv,txt,xlsx,xls'],
+            'file' => ['required', 'file', 'max:10240', 'mimes:csv,txt,xlsx,xls'],
             'upsert' => ['nullable', 'boolean'],
         ]);
 
-        $store = $this->resolveMerchantStore();
-        $result = $this->inventoryImportService->import(
-            $store,
-            $request->file('file'),
-            $request->boolean('upsert', true),
-        );
+        try {
+            $store = $this->resolveMerchantStore();
+            $result = $this->inventoryImportService->import(
+                $store,
+                $request->file('file'),
+                $request->boolean('upsert', true),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'imported' => 0,
+                'updated' => 0,
+                'failed' => 1,
+                'errors' => [[
+                    'row' => 1,
+                    'error' => $e->getMessage(),
+                ]],
+            ], 422);
+        }
 
         $status = $result['success'] ? 200 : 422;
         return response()->json($result, $status);
+    }
+
+    public function template(Request $request)
+    {
+        $store = $this->resolveMerchantStore();
+        $csv = $this->inventoryImportService->generateTemplateCsv($store);
+        $filename = 'inventario-template-store-' . $store->id . '-' . now()->format('Ymd-His') . '.csv';
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        ]);
     }
 
     public function summary(Request $request): JsonResponse

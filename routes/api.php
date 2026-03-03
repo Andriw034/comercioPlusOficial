@@ -181,6 +181,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/export/tax.csv', [ReportController::class, 'exportTaxCsv']);
     Route::get('/inventory/summary', [InventoryController::class, 'summary']);
     Route::get('/inventory/movements', [InventoryController::class, 'merchantMovements']);
+    Route::get('/inventory/template', [InventoryController::class, 'template'])->middleware('role.key:merchant');
     Route::post('/inventory/adjust', [InventoryController::class, 'merchantAdjust']);
     Route::post('/inventory/preview', [InventoryController::class, 'preview'])->middleware('role.key:merchant');
     Route::post('/inventory/import', [InventoryController::class, 'import'])->middleware('role.key:merchant');
