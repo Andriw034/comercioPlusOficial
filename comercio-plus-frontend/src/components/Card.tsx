@@ -22,11 +22,11 @@ const Card: FC<CardProps> = ({
 }) => {
   const baseStyles = 'rounded-2xl transition-all duration-300 ease-premium relative overflow-hidden'
   const variantStyles = {
-    default: 'bg-white shadow-premium',
-    glass: 'bg-white/60 backdrop-blur-xl border border-white/20 shadow-glass',
-    elevated: 'bg-white shadow-premium-lg',
-    bordered: 'bg-white border-2 border-slate-200',
-    premium: 'bg-gradient-to-br from-white to-slate-50 shadow-premium-xl border border-slate-100',
+    default: 'bg-gradient-to-br from-white via-slate-50 to-slate-100/70 border border-slate-200/80 shadow-premium-lg',
+    glass: 'bg-white/65 backdrop-blur-xl border border-white/40 shadow-glass',
+    elevated: 'bg-gradient-to-br from-white via-slate-50 to-slate-100/70 border border-slate-200/75 shadow-premium-xl',
+    bordered: 'bg-gradient-to-br from-white via-slate-50 to-slate-100/65 border-2 border-slate-200',
+    premium: 'bg-gradient-to-br from-white via-slate-50 to-[#EEF4FF] shadow-premium-xl border border-slate-100',
   }
   const hoverStyles = hoverable
     ? 'cursor-pointer hover:-translate-y-1 hover:shadow-premium-xl hover:scale-[1.01] active:translate-y-0 active:scale-100'

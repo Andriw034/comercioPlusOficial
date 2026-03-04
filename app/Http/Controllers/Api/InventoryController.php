@@ -12,6 +12,9 @@ use App\Services\InventoryImportService;
 use App\Services\InventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class InventoryController extends Controller
 {
@@ -102,7 +105,11 @@ class InventoryController extends Controller
 
         $products = $productsQuery->paginate($perPage);
 
-        $allProducts = Product::query()->where('store_id', $store->id)->get(['id', 'stock', 'reorder_point', 'price']);
+        $allProducts = Product::query()
+            ->where('store_id', $store->id)
+            ->get($this->inventoryStatsSelectColumns());
+
+        $productsWithInventory = $allProducts->filter(fn ($product) => (int) $product->stock > 0)->count();
         $lowStockCount = $allProducts->filter(function ($product) use ($threshold) {
             $stock = (int) $product->stock;
             $limit = $threshold ?? (int) $product->reorder_point;
@@ -112,43 +119,112 @@ class InventoryController extends Controller
         })->count();
 
         $outOfStockCount = $allProducts->filter(fn ($product) => (int) $product->stock <= 0)->count();
-        $inventoryValue = $allProducts->sum(fn ($product) => (float) $product->price * max(0, (int) $product->stock));
+        $normalStockCount = max(0, $productsWithInventory - $lowStockCount);
+        $inventoryValue = $allProducts->sum(function ($product) {
+            $stock = max(0, (int) $product->stock);
+            $unitCost = $this->safeNumericColumn($product, 'cost_price');
+            if ($unitCost <= 0) {
+                $unitCost = $this->safeNumericColumn($product, 'sale_price', (float) ($product->price ?? 0));
+            }
+            return $unitCost * $stock;
+        });
+        $roundedInventoryValue = round((float) $inventoryValue, 2);
+
+        $stats = [
+            // Compatibilidad histórica.
+            'total_products' => (int) $allProducts->count(),
+            'low_stock_products' => (int) $lowStockCount,
+            'out_of_stock_products' => (int) $outOfStockCount,
+            'inventory_value' => $roundedInventoryValue,
+
+            // Nuevos KPIs profesionales.
+            'products_with_inventory' => (int) $productsWithInventory,
+            'normal_stock_products' => (int) $normalStockCount,
+            'inventory_total_value' => $roundedInventoryValue,
+        ];
 
         return response()->json([
-            'message' => 'Resumen de inventario',
+            'message' => 'Resumen profesional de inventario',
             'data' => $products->map(function (Product $product) use ($threshold) {
                 $limit = $threshold ?? (int) $product->reorder_point;
+                $stock = max(0, (int) $product->stock);
+                $salePrice = $this->safeNumericColumn($product, 'sale_price', (float) ($product->price ?? 0));
+                $costPrice = $this->safeNumericColumn($product, 'cost_price');
+                $priceWithIva = round($salePrice * 1.19, 2);
+                $isLowStock = $stock > 0 && $stock <= $limit;
+                $stockStatus = $stock <= 0 ? 'agotado' : ($isLowStock ? 'bajo' : 'normal');
 
                 return [
                     'id' => (int) $product->id,
                     'name' => $product->name,
                     'slug' => $product->slug,
+                    'sku' => $product->sku,
+                    'ref_adicional' => $this->safeStringColumn($product, 'ref_adicional'),
+                    'unit' => $this->safeStringColumn($product, 'unit', 'UND'),
                     'stock' => (int) $product->stock,
                     'reorder_point' => (int) $product->reorder_point,
-                    'allow_backorder' => (bool) $product->allow_backorder,
-                    'cost_price' => (float) ($product->cost_price ?? 0),
+                    'allow_backorder' => (bool) $this->safeNumericColumn($product, 'allow_backorder'),
+                    'cost_price' => $costPrice,
+                    'sale_price' => $salePrice,
                     'price' => (float) $product->price,
-                    'is_low_stock' => (int) $product->stock <= $limit,
+                    'price_with_iva' => $priceWithIva,
+                    'total_cost' => round($costPrice * $stock, 2),
+                    'total_sale' => round($salePrice * $stock, 2),
+                    'total_sale_with_iva' => round($priceWithIva * $stock, 2),
+                    'stock_status' => $stockStatus,
+                    'is_low_stock' => $isLowStock,
                     'deficit' => max(0, $limit - (int) $product->stock),
                 ];
             }),
-            'stats' => [
-                'total_products' => (int) $allProducts->count(),
-                'low_stock_products' => (int) $lowStockCount,
-                'out_of_stock_products' => (int) $outOfStockCount,
-                'inventory_value' => round((float) $inventoryValue, 2),
-            ],
+            'stats' => $stats,
             'meta' => [
                 'current_page' => $products->currentPage(),
                 'last_page' => $products->lastPage(),
                 'total' => $products->total(),
                 'per_page' => $products->perPage(),
-                'stats' => [
-                    'total_products' => (int) $allProducts->count(),
-                    'low_stock_products' => (int) $lowStockCount,
-                    'out_of_stock_products' => (int) $outOfStockCount,
-                    'inventory_value' => round((float) $inventoryValue, 2),
-                ],
+                'stats' => $stats,
+            ],
+        ]);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $store = $this->resolveMerchantStore();
+        $thresholdOverride = $request->integer('threshold');
+
+        $products = Product::query()
+            ->where('store_id', $store->id)
+            ->get($this->inventoryStatsSelectColumns());
+
+        $productsWithInventory = $products->filter(fn ($product) => (int) $product->stock > 0)->count();
+        $outOfStockCount = $products->filter(fn ($product) => (int) $product->stock <= 0)->count();
+        $lowStockCount = $products->filter(function ($product) use ($thresholdOverride) {
+            $stock = (int) $product->stock;
+            $threshold = $thresholdOverride > 0 ? $thresholdOverride : (int) $product->reorder_point;
+            return $stock > 0 && $stock <= max(0, $threshold);
+        })->count();
+        $normalStockCount = max(0, $productsWithInventory - $lowStockCount);
+
+        $inventoryTotalValue = $products->sum(function ($product) {
+            $stock = max(0, (int) $product->stock);
+            $unitCost = $this->safeNumericColumn($product, 'cost_price');
+            if ($unitCost <= 0) {
+                $unitCost = $this->safeNumericColumn($product, 'sale_price', (float) ($product->price ?? 0));
+            }
+            return $unitCost * $stock;
+        });
+
+        return response()->json([
+            'message' => 'KPIs profesionales de inventario',
+            'data' => [
+                'products_with_inventory' => (int) $productsWithInventory,
+                'normal_stock_products' => (int) $normalStockCount,
+                'low_stock_products' => (int) $lowStockCount,
+                'out_of_stock_products' => (int) $outOfStockCount,
+                'inventory_total_value' => round((float) $inventoryTotalValue, 2),
+                // Compatibilidad con frontend previo.
+                'total_products' => (int) $products->count(),
+                'inventory_value' => round((float) $inventoryTotalValue, 2),
             ],
         ]);
     }
@@ -175,7 +251,7 @@ class InventoryController extends Controller
         $movements = $query->paginate($request->integer('per_page', 25));
 
         return response()->json([
-            'message' => 'Kardex de inventario',
+            'message' => 'Movimientos de inventario',
             'data' => $movements->map(fn (InventoryMovement $movement) => $this->formatMovement($movement)),
             'meta' => [
                 'current_page' => $movements->currentPage(),
@@ -217,6 +293,68 @@ class InventoryController extends Controller
                 'stock_ahora' => (int) $movement->stock_after,
                 'movement_id' => (int) $movement->id,
             ],
+        ]);
+    }
+
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        $store = $this->resolveMerchantStore();
+
+        $validated = $request->validate([
+            'all' => ['nullable', 'boolean'],
+            'confirm' => ['nullable', 'string', 'max:50'],
+            'ids' => ['nullable', 'array'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $deleteAll = (bool) ($validated['all'] ?? false);
+        $selectedIds = collect($validated['ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if (!$deleteAll && $selectedIds->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No seleccionaste productos para eliminar.',
+            ], 422);
+        }
+
+        if ($deleteAll) {
+            $confirm = Str::upper(trim((string) ($validated['confirm'] ?? '')));
+            if ($confirm !== 'ELIMINAR') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Confirmacion invalida. Escribe ELIMINAR para borrar todo el inventario.',
+                ], 422);
+            }
+        }
+
+        $query = Product::query()->where('store_id', (int) $store->id);
+        if (!$deleteAll) {
+            $query->whereIn('id', $selectedIds->all());
+        }
+
+        $total = (clone $query)->count();
+        if ($total <= 0) {
+            return response()->json([
+                'success' => true,
+                'deleted' => 0,
+                'message' => 'No hay productos para eliminar.',
+            ]);
+        }
+
+        DB::transaction(function () use ($query) {
+            $query->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'deleted' => (int) $total,
+            'message' => $deleteAll
+                ? 'Inventario eliminado correctamente.'
+                : 'Productos seleccionados eliminados correctamente.',
         ]);
     }
 
@@ -313,7 +451,7 @@ class InventoryController extends Controller
         $movements = $query->paginate($request->integer('per_page', 25));
 
         return response()->json([
-            'message' => 'Kardex de inventario',
+            'message' => 'Movimientos de inventario',
             'data' => $movements->map(fn (InventoryMovement $movement) => $this->formatMovement($movement)),
             'meta' => [
                 'current_page' => $movements->currentPage(),
@@ -389,5 +527,48 @@ class InventoryController extends Controller
         if ((int) $store->user_id !== (int) auth()->id()) {
             abort(403, 'No tienes permiso para acceder a esta tienda.');
         }
+    }
+
+    private function inventoryStatsSelectColumns(): array
+    {
+        $columns = ['id', 'stock', 'reorder_point', 'price'];
+
+        foreach (['sale_price', 'cost_price', 'ref_adicional', 'unit', 'allow_backorder'] as $column) {
+            if ($this->hasProductColumn($column)) {
+                $columns[] = $column;
+            }
+        }
+
+        return $columns;
+    }
+
+    private function safeNumericColumn(Product $product, string $column, float $fallback = 0.0): float
+    {
+        if (!$this->hasProductColumn($column)) {
+            return $fallback;
+        }
+
+        return (float) ($product->{$column} ?? $fallback);
+    }
+
+    private function safeStringColumn(Product $product, string $column, string $fallback = ''): string
+    {
+        if (!$this->hasProductColumn($column)) {
+            return $fallback;
+        }
+
+        $value = trim((string) ($product->{$column} ?? ''));
+        return $value !== '' ? $value : $fallback;
+    }
+
+    private function hasProductColumn(string $column): bool
+    {
+        static $cache = [];
+
+        if (!array_key_exists($column, $cache)) {
+            $cache[$column] = Schema::hasColumn('products', $column);
+        }
+
+        return (bool) $cache[$column];
     }
 }

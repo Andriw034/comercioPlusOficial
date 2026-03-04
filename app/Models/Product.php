@@ -20,6 +20,8 @@ class Product extends Model
         'store_id',
         'user_id',
         'stock',
+        'unit',
+        'ref_adicional',
         'status',
         'slug',
         'is_promo',
@@ -28,6 +30,7 @@ class Product extends Model
         'image_url',
         'image',
         'cost_price',
+        'sale_price',
         'reorder_point',
         'allow_backorder',
         'metadata',
@@ -35,6 +38,7 @@ class Product extends Model
 
     protected $casts = [
         'cost_price' => 'decimal:2',
+        'sale_price' => 'decimal:2',
         'reorder_point' => 'integer',
         'allow_backorder' => 'boolean',
         'metadata' => 'array',
@@ -76,6 +80,44 @@ class Product extends Model
     public function needsReorder(): bool
     {
         return (int) $this->stock <= (int) $this->reorder_point;
+    }
+
+    public function getPriceWithIvaAttribute(): float
+    {
+        $base = (float) ($this->sale_price ?? $this->price ?? 0);
+        return round($base * 1.19, 2);
+    }
+
+    public function getTotalCostAttribute(): float
+    {
+        return round(max(0, (int) $this->stock) * (float) ($this->cost_price ?? 0), 2);
+    }
+
+    public function getTotalSaleAttribute(): float
+    {
+        $sale = (float) ($this->sale_price ?? $this->price ?? 0);
+        return round(max(0, (int) $this->stock) * $sale, 2);
+    }
+
+    public function getTotalSaleWithIvaAttribute(): float
+    {
+        return round($this->total_sale * 1.19, 2);
+    }
+
+    public function getStockStatusAttribute(): string
+    {
+        $stock = (int) $this->stock;
+        $min = max(0, (int) $this->reorder_point);
+
+        if ($stock <= 0) {
+            return 'agotado';
+        }
+
+        if ($stock < $min) {
+            return 'bajo';
+        }
+
+        return 'normal';
     }
 
     public function getMeta(string $key, mixed $default = null): mixed

@@ -103,6 +103,104 @@ const getPrimaryProductCode = (product: Product) => {
   return codes.find((code) => code.is_primary) || codes[0]
 }
 
+function ProductThumbnail({ src, name }: { src: string; name: string }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const [previewPosition, setPreviewPosition] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [src])
+  const showImage = !!src && !imageFailed
+
+  const updatePreviewPosition = useCallback(() => {
+    const node = triggerRef.current
+    if (!node) return
+
+    const rect = node.getBoundingClientRect()
+    const previewWidth = 280
+    const previewHeight = 280
+    const margin = 10
+
+    const maxLeft = window.innerWidth - previewWidth - margin
+    const left = Math.min(Math.max(rect.left, margin), Math.max(margin, maxLeft))
+
+    let top = rect.top - previewHeight - margin
+    if (top < margin) {
+      top = rect.bottom + margin
+    }
+
+    const maxTop = window.innerHeight - previewHeight - margin
+    top = Math.min(Math.max(top, margin), Math.max(margin, maxTop))
+
+    setPreviewPosition({ top, left })
+  }, [])
+
+  useEffect(() => {
+    if (!hovered || !showImage) return
+
+    updatePreviewPosition()
+
+    const onViewportChange = () => updatePreviewPosition()
+    window.addEventListener('scroll', onViewportChange, true)
+    window.addEventListener('resize', onViewportChange)
+
+    return () => {
+      window.removeEventListener('scroll', onViewportChange, true)
+      window.removeEventListener('resize', onViewportChange)
+    }
+  }, [hovered, showImage, updatePreviewPosition])
+
+  return (
+    <div
+      ref={triggerRef}
+      className="relative h-10 w-10 overflow-visible"
+      onMouseEnter={() => {
+        if (!showImage) return
+        setHovered(true)
+        updatePreviewPosition()
+      }}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="h-10 w-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+        {showImage ? (
+          <img
+            src={src}
+            alt={name}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,#FFFFFF_0%,#F1F5F9_100%)]">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md border border-[#E2E8F0] bg-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]">
+              <Icon name="package" size={12} className="text-[#FF6B35]" />
+            </div>
+          </div>
+        )}
+      </div>
+      {showImage && hovered && previewPosition ? (
+        <div
+          className="pointer-events-none fixed z-[120] rounded-xl border border-[#D4E1F2] bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.22)]"
+          style={{ top: `${previewPosition.top}px`, left: `${previewPosition.left}px` }}
+        >
+          <div className="max-h-[280px] max-w-[280px] overflow-hidden rounded-lg bg-[#F8FAFC]">
+            <img
+              src={src}
+              alt={name}
+              className="h-auto max-h-[280px] w-auto max-w-[280px] object-contain"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 const parseScanCode = (
   rawCode: string,
   fallbackType: 'barcode' | 'qr' | 'sku',
@@ -172,7 +270,6 @@ export default function ManageProducts() {
   const [scanConsecutiveFailures, setScanConsecutiveFailures] = useState(0)
   const [scanFeedback, setScanFeedback] = useState<ScannerFeedbackState | null>(null)
   const [cameraModalOpen, setCameraModalOpen] = useState(false)
-  const [deleteCandidate, setDeleteCandidate] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const categorySeedRef = useRef(false)
@@ -630,6 +727,13 @@ export default function ManageProducts() {
   }
 
   const remove = async (item: Product) => {
+    if (deleting) return
+
+    if (!window.confirm(`Se eliminara "${item.name}". Esta accion no se puede deshacer. Deseas continuar?`)) {
+      return
+    }
+
+    setDeleting(true)
     try {
       await API.delete(`/products/${item.id}`)
       await fetchProducts()
@@ -643,26 +747,8 @@ export default function ManageProducts() {
       console.error('delete', err)
       const message = err.response?.data?.message || 'No se pudo eliminar.'
       showToast(message, 'error')
-    }
-  }
-
-  const askRemove = (item: Product) => {
-    setDeleteCandidate(item)
-  }
-
-  const cancelRemove = () => {
-    setDeleteCandidate(null)
-  }
-
-  const confirmRemove = async () => {
-    if (!deleteCandidate || deleting) return
-
-    setDeleting(true)
-    try {
-      await remove(deleteCandidate)
     } finally {
       setDeleting(false)
-      setDeleteCandidate(null)
     }
   }
 
@@ -809,23 +895,19 @@ export default function ManageProducts() {
       )}
 
       <ErpPageHeader
-        breadcrumb="Dashboard / Productos"
-        title="Catalogo ERP"
-        subtitle="Gestiona repuestos y accesorios de tu tienda."
+        breadcrumb="Panel de ventas / Productos"
+        title="Catalogo de productos"
+        subtitle="Crea, edita y elimina los productos de tu tienda."
         actions={
-          <>
-            <ErpBtn
-              variant="secondary"
-              size="md"
-              icon={<Icon name="refresh" size={14} />}
-              onClick={() => void fetchProducts()}
-            >
-              Recargar
-            </ErpBtn>
-            <ErpBtn variant="primary" size="md" icon={<Icon name="plus" size={14} />} onClick={openCreate}>
-              Nuevo producto
-            </ErpBtn>
-          </>
+          <ErpBtn
+            variant="secondary"
+            size="md"
+            icon={<Icon name="refresh" size={14} />}
+            onClick={() => void fetchProducts()}
+            className="min-w-[140px] justify-center"
+          >
+            Recargar
+          </ErpBtn>
         }
       />
 
@@ -865,7 +947,7 @@ export default function ManageProducts() {
       </div>
 
       <div ref={formSectionRef}>
-        <GlassCard className="border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-4 shadow-[0_20px_40px_rgba(15,23,42,0.08)] sm:p-5">
+        <GlassCard className="border-[#D4E1F2] bg-[linear-gradient(155deg,#FFFFFF_0%,#F8FAFC_55%,#EEF4FF_100%)] p-4 shadow-[0_24px_48px_rgba(15,23,42,0.12)] sm:p-5">
           {!showForm ? (
             <div className="flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-[linear-gradient(120deg,#FFF7ED_0%,#FFEDD5_55%,#FFE4D6_100%)] px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -998,7 +1080,7 @@ export default function ManageProducts() {
                     </Select>
 
                     {!categoriesLoading && categories.length === 0 && (
-                      <div className="space-y-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                      <div className="space-y-3 rounded-xl border border-[#D9E4F3] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_70%,#F1F5F9_100%)] p-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
                         <p className="text-[12px] font-semibold text-[#334155]">No tienes categorias. Crea una para continuar.</p>
 
                         {!storeId && (
@@ -1055,7 +1137,7 @@ export default function ManageProducts() {
                       onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
                     />
 
-                    <div className="space-y-2 rounded-xl border border-[#E2E8F0] p-3">
+                    <div className="space-y-2 rounded-xl border border-[#D9E4F3] bg-[linear-gradient(150deg,#FFFFFF_0%,#F8FAFC_100%)] p-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
                       <label className={buttonVariants('secondary', 'h-9 cursor-pointer rounded-lg px-4 text-[12px]')}>
                         <Icon name="upload" size={14} />
                         Subir imagen
@@ -1093,16 +1175,13 @@ export default function ManageProducts() {
         </GlassCard>
       </div>
 
-      <GlassCard className="flex flex-col border-[#DDE3EF] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] p-0 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+      <GlassCard className="flex flex-col border-[#D4E1F2] bg-[linear-gradient(155deg,#FFFFFF_0%,#F8FAFC_56%,#EEF4FF_100%)] p-0 shadow-[0_24px_52px_rgba(15,23,42,0.12)]">
         <div className="border-b border-[#E2E8F0] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-[28px] font-black leading-none tracking-[-0.025em] sm:text-[32px]">Inventario de productos</h2>
               <p className="mt-1 text-[13px] text-[#64748B]">Filtra, edita y elimina productos de tu catalogo.</p>
             </div>
-            <ErpBtn variant="primary" size="sm" icon={<Icon name="plus" size={14} />} onClick={openCreate}>
-              Nuevo
-            </ErpBtn>
           </div>
 
           <div className="mt-4 grid gap-2 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
@@ -1119,7 +1198,7 @@ export default function ManageProducts() {
               options={tabFilterOptions}
               placeholder="Filtro de estado"
             />
-            <div className="flex items-center justify-start gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5">
+            <div className="flex items-center justify-start gap-2 rounded-xl border border-[#D9E4F3] bg-[linear-gradient(145deg,#FFFFFF_0%,#F8FAFC_100%)] px-3 py-1.5 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
               <ErpBadge status="active" label={`${activeProducts} activos`} />
               <ErpBadge status="critical" label={`${outOfStockProducts} sin stock`} />
             </div>
@@ -1127,28 +1206,6 @@ export default function ManageProducts() {
         </div>
 
         <div className="px-4 py-3 sm:px-5">
-          {deleteCandidate && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <p className="text-[12px] font-semibold text-rose-700">
-                Confirma la eliminacion de <span className="font-black">"{deleteCandidate.name}"</span>.
-              </p>
-              <div className="flex items-center gap-2">
-                <ErpBtn variant="ghost" size="sm" onClick={cancelRemove}>
-                  Cancelar
-                </ErpBtn>
-                <ErpBtn
-                  variant="danger"
-                  size="sm"
-                  icon={<Icon name="trash" size={13} />}
-                  onClick={() => void confirmRemove()}
-                  disabled={deleting}
-                >
-                  {deleting ? 'Eliminando...' : 'Eliminar'}
-                </ErpBtn>
-              </div>
-            </div>
-          )}
-
           {loading && <p className="text-[13px] text-[#64748B]">Cargando productos...</p>}
           {error && <p className="mb-3 text-[13px] text-red-600">{error}</p>}
 
@@ -1159,7 +1216,7 @@ export default function ManageProducts() {
           )}
 
           {!loading && filteredProducts.length > 0 && (
-            <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
+            <div className="overflow-x-auto rounded-xl border border-[#D4E1F2] bg-[linear-gradient(150deg,#FFFFFF_0%,#F8FAFC_100%)] shadow-[0_14px_32px_rgba(15,23,42,0.08)]">
               <table className="w-full min-w-[920px]">
                 <thead>
                   <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
@@ -1184,15 +1241,7 @@ export default function ManageProducts() {
                       <tr key={item.id} className="border-b border-[#EEF2F7] last:border-b-0 transition-colors hover:bg-[#FAFAFA]">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="h-10 w-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]">
-                              {imageUrl ? (
-                                <img src={imageUrl} alt={item.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">
-                                  <Icon name="package" size={16} />
-                                </div>
-                              )}
-                            </div>
+                            <ProductThumbnail src={imageUrl || ''} name={item.name} />
                             <div className="min-w-0">
                               <p className="truncate text-[13px] font-semibold text-[#0F172A]">{item.name}</p>
                               <p className="truncate text-[11px] text-[#64748B]">{item.category?.name || 'Sin categoria'}</p>
@@ -1227,10 +1276,11 @@ export default function ManageProducts() {
                             <ErpBtn
                               variant="danger"
                               size="sm"
-                              onClick={() => askRemove(item)}
+                              onClick={() => void remove(item)}
                               icon={<Icon name="trash" size={13} />}
+                              disabled={deleting}
                             >
-                              Eliminar
+                              {deleting ? 'Eliminando...' : 'Eliminar'}
                             </ErpBtn>
                           </div>
                         </td>

@@ -16,26 +16,36 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class InventoryImportService
 {
-    private const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+    private const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
     private const PLACEHOLDER_IMAGE_URL = '/placeholder-product.png';
     private const STANDARD_FIELDS = [
         'name',
         'sku',
         'description',
         'price',
+        'cost_price',
+        'sale_price',
         'stock',
+        'reorder_point',
+        'unit',
+        'ref_adicional',
         'category',
         'brand',
         'image_url',
     ];
     private const STANDARD_FIELD_ALIASES = [
-        'name' => ['name', 'nombre', 'producto', 'product', 'product_name'],
-        'sku' => ['sku', 'codigo', 'codigo_sku', 'codigo_de_sku', 'product_code', 'code', 'codigosku'],
+        'name' => ['name', 'nombre', 'producto', 'product', 'product_name', 'articulo', 'item'],
+        'sku' => ['sku', 'codigo', 'codigo_sku', 'codigo_de_sku', 'product_code', 'code', 'codigosku', 'id_producto', 'referencia'],
         'description' => ['description', 'descripcion', 'detalle', 'detalles'],
-        'price' => ['price', 'precio', 'valor', 'sale_price'],
+        'price' => ['price', 'precio', 'valor'],
+        'cost_price' => ['v_compra', 'v/compra', 'vcompra', 'valor_compra', 'costo', 'costo_unitario', 'cost_price'],
+        'sale_price' => ['p_publico', 'p/publico', 'ppublico', 'precio_venta', 'sale_price', 'valor_venta'],
         'stock' => ['stock', 'inventario', 'existencias', 'cantidad', 'qty', 'quantity'],
-        'category' => ['category', 'categoria', 'cat', 'linea'],
-        'brand' => ['brand', 'marca'],
+        'reorder_point' => ['stock_minimo', 'minimo', 'stock_min', 'punto_reorden', 'reorder_point'],
+        'unit' => ['unidad', 'unit', 'u', 'medida'],
+        'ref_adicional' => ['ref_adicional', 'ref_adic', 'referencia_adicional', 'referencia_extra', 'variante'],
+        'category' => ['category', 'categoria', 'cat', 'linea', 'cod_grupo', 'grupo'],
+        'brand' => ['brand', 'marca', 'fabricante'],
         'image_url' => ['image_url', 'image', 'imagen', 'foto', 'image_link', 'imagen_url', 'url_imagen'],
     ];
 
@@ -64,13 +74,16 @@ class InventoryImportService
     public function generateTemplateCsv(Store $store): string
     {
         $headers = [
-            'nombre',
-            'sku',
-            'precio',
-            'stock',
-            'descripcion',
-            'categoria',
-            'marca',
+            'CODIGO',
+            'PRODUCTO',
+            'UNIDAD',
+            'REF ADICIONAL',
+            'CANTIDAD',
+            'V/COMPRA',
+            'P/PUBLICO',
+            'COD GRUPO',
+            'DESCRIPCION',
+            'MARCA',
         ];
 
         $headers = array_values(array_unique(array_merge(
@@ -79,13 +92,16 @@ class InventoryImportService
         )));
 
         $example = [
-            'Ejemplo producto',
             'SKU-001',
-            '50000',
-            '10',
-            'Descripcion opcional',
-            'Sin categoria',
-            'Marca ejemplo',
+            'Abrasadera metalica',
+            'UNID',
+            '25MM',
+            '12',
+            '1200',
+            '1800',
+            'General',
+            'Repuesto de ejemplo',
+            'Generica',
         ];
         $example = array_pad($example, count($headers), '');
 
@@ -186,13 +202,28 @@ class InventoryImportService
                     }
                     unset($standard['category']);
 
-                    $standard['price'] = $this->toFloat($standard['price'] ?? 0);
+                    $standard['cost_price'] = $this->toMoney($standard['cost_price'] ?? 0);
+                    $standard['sale_price'] = $this->toMoney($standard['sale_price'] ?? ($standard['price'] ?? 0));
+                    $standard['price'] = $this->toMoney($standard['price'] ?? $standard['sale_price']);
+                    if ((float) $standard['price'] <= 0 && (float) $standard['sale_price'] > 0) {
+                        $standard['price'] = (float) $standard['sale_price'];
+                    }
+                    if ((float) $standard['sale_price'] <= 0 && (float) $standard['price'] > 0) {
+                        $standard['sale_price'] = (float) $standard['price'];
+                    }
+
                     $standard['stock'] = $this->toInt($standard['stock'] ?? 0);
+                    $standard['reorder_point'] = $this->toInt($standard['reorder_point'] ?? 0);
                     $standard['status'] = 1;
                     $standard['name'] = $name;
                     $standard['sku'] = $sku;
                     $standard['description'] = (string) ($standard['description'] ?? '');
                     $standard['brand'] = (string) ($standard['brand'] ?? '');
+                    $standard['unit'] = strtoupper(trim((string) ($standard['unit'] ?? 'UND')));
+                    if ($standard['unit'] === '') {
+                        $standard['unit'] = 'UND';
+                    }
+                    $standard['ref_adicional'] = trim((string) ($standard['ref_adicional'] ?? ''));
 
                     $incomingImage = (string) ($standard['image_url'] ?? '');
                     $standard['image_url'] = $incomingImage !== ''
@@ -214,6 +245,11 @@ class InventoryImportService
                         $product->name = $standard['name'];
                         $product->description = $standard['description'];
                         $product->brand = $standard['brand'];
+                        $product->cost_price = $standard['cost_price'];
+                        $product->sale_price = $standard['sale_price'];
+                        $product->reorder_point = $standard['reorder_point'];
+                        $product->unit = $standard['unit'];
+                        $product->ref_adicional = $standard['ref_adicional'];
                         $product->category_id = (int) $standard['category_id'];
                         if ($incomingImage !== '') {
                             $product->image_url = $standard['image_url'];
@@ -278,7 +314,7 @@ class InventoryImportService
         }
 
         if ((int) $file->getSize() > self::MAX_FILE_SIZE_BYTES) {
-            throw new \RuntimeException('Archivo mayor a 5MB.');
+            throw new \RuntimeException('Archivo mayor a 10MB.');
         }
 
         $ext = Str::lower((string) $file->getClientOriginalExtension());
@@ -427,16 +463,51 @@ class InventoryImportService
         }
     }
 
-    private function toFloat(mixed $value): float
+    private function toMoney(mixed $value): float
     {
-        $normalized = str_replace([',', ' '], ['', ''], (string) $value);
-        return max(0, (float) $normalized);
+        return round(max(0, $this->parseNumber($value)), 2);
     }
 
     private function toInt(mixed $value): int
     {
-        $normalized = preg_replace('/[^0-9\-]/', '', (string) $value) ?? '0';
-        return max(0, (int) $normalized);
+        return max(0, (int) round($this->parseNumber($value)));
+    }
+
+    private function parseNumber(mixed $value): float
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return 0.0;
+        }
+
+        $normalized = str_replace(["\xC2\xA0", ' '], '', $raw);
+        $normalized = preg_replace('/[^0-9,\.\-]/', '', $normalized) ?? '';
+        if ($normalized === '' || $normalized === '-' || $normalized === ',' || $normalized === '.') {
+            return 0.0;
+        }
+
+        $lastDot = strrpos($normalized, '.');
+        $lastComma = strrpos($normalized, ',');
+        $decimalPos = max($lastDot === false ? -1 : $lastDot, $lastComma === false ? -1 : $lastComma);
+
+        if ($decimalPos >= 0) {
+            $decimals = strlen($normalized) - $decimalPos - 1;
+            if ($decimals > 0 && $decimals <= 2) {
+                $integerPart = preg_replace('/[.,]/', '', substr($normalized, 0, $decimalPos)) ?? '0';
+                $decimalPart = preg_replace('/\D/', '', substr($normalized, $decimalPos + 1)) ?? '0';
+                $normalized = $integerPart . '.' . $decimalPart;
+            } else {
+                $normalized = str_replace([',', '.'], '', $normalized);
+            }
+        } else {
+            $normalized = preg_replace('/[^0-9\-]/', '', $normalized) ?? '0';
+        }
+
+        if ($normalized === '' || $normalized === '-') {
+            return 0.0;
+        }
+
+        return (float) $normalized;
     }
 
     private function detectCsvDelimiter(string $sampleLine): string
@@ -545,8 +616,10 @@ class InventoryImportService
         $token = $this->normalizeHeaderToken($header);
 
         foreach (self::STANDARD_FIELD_ALIASES as $standard => $aliases) {
-            if (in_array($token, $aliases, true)) {
-                return $standard;
+            foreach ($aliases as $alias) {
+                if ($token === $this->normalizeHeaderToken((string) $alias)) {
+                    return $standard;
+                }
             }
         }
 

@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   ArrowDownCircle,
   ArrowUpCircle,
-  ClipboardList,
   History,
   Loader2,
   PackageSearch,
@@ -23,18 +22,31 @@ interface ApiSummaryItem {
   id?: number | string
   name?: string | null
   slug?: string | null
+  sku?: string | null
+  ref_adicional?: string | null
+  unit?: string | null
   stock?: number | string | null
   reorder_point?: number | string | null
+  stock_status?: string | null
   allow_backorder?: boolean | number | string | null
+  cost_price?: number | string | null
+  sale_price?: number | string | null
+  price_with_iva?: number | string | null
+  total_cost?: number | string | null
+  total_sale?: number | string | null
+  total_sale_with_iva?: number | string | null
   price?: number | string | null
   deficit?: number | string | null
 }
 
 interface ApiInventoryStats {
   total_products?: number
+  products_with_inventory?: number
+  normal_stock_products?: number
   low_stock_products?: number
   out_of_stock_products?: number
   inventory_value?: number
+  inventory_total_value?: number
 }
 
 interface ApiSummaryResponse {
@@ -60,20 +72,28 @@ interface ApiMovementResponse {
 interface StockItem {
   product_id: number
   product_name: string
-  sku: string
+  product_code: string
+  ref_adicional: string
+  unit: string
   current_stock: number
   reorder_point: number
-  unit: string
   allow_backorder: boolean
-  price: number
+  cost_price: number
+  sale_price: number
+  sale_price_with_iva: number
+  total_cost: number
+  total_sale: number
+  status: 'normal' | 'low' | 'out'
   deficit: number
 }
 
 interface InventoryStats {
   total_products: number
+  products_with_inventory: number
+  normal_stock_products: number
   low_stock_products: number
   out_of_stock_products: number
-  inventory_value: number
+  inventory_total_value: number
 }
 
 interface Movement {
@@ -128,16 +148,32 @@ function normalizeSummaryItem(item: ApiSummaryItem): StockItem {
   const id = toNumber(item.id)
   const currentStock = Math.max(0, toNumber(item.stock))
   const minStock = Math.max(0, toNumber(item.reorder_point))
+  const costPrice = Math.max(0, toNumber(item.cost_price))
+  const salePrice = Math.max(0, toNumber(item.sale_price, toNumber(item.price)))
+  const salePriceWithIva = Math.max(0, toNumber(item.price_with_iva, salePrice * 1.19))
+  const statusToken = String(item.stock_status || '').toLowerCase()
+  const status: StockItem['status'] =
+    statusToken === 'agotado'
+      ? 'out'
+      : statusToken === 'bajo'
+        ? 'low'
+        : getStatus(currentStock, minStock)
 
   return {
     product_id: id,
     product_name: (item.name || '').trim() || `Producto #${id || 'N/A'}`,
-    sku: ((item.slug || '').trim() || `PROD-${id || 'NA'}`).toUpperCase(),
+    product_code: ((item.sku || item.slug || '').trim() || `PROD-${id || 'NA'}`).toUpperCase(),
+    ref_adicional: (item.ref_adicional || '').trim(),
+    unit: ((item.unit || '').trim() || 'UND').toUpperCase(),
     current_stock: currentStock,
     reorder_point: minStock,
-    unit: 'u',
     allow_backorder: toBoolean(item.allow_backorder),
-    price: Math.max(0, toNumber(item.price)),
+    cost_price: costPrice,
+    sale_price: salePrice,
+    sale_price_with_iva: salePriceWithIva,
+    total_cost: Math.max(0, toNumber(item.total_cost, costPrice * currentStock)),
+    total_sale: Math.max(0, toNumber(item.total_sale_with_iva, salePriceWithIva * currentStock)),
+    status,
     deficit: Math.max(0, toNumber(item.deficit, Math.max(0, minStock - currentStock))),
   }
 }
@@ -166,7 +202,7 @@ function normalizeMovement(item: ApiMovementItem): Movement {
 
 function getStatus(current: number, min: number): 'out' | 'low' | 'normal' {
   if (current <= 0) return 'out'
-  if (current < min) return 'low'
+  if (current <= min) return 'low'
   return 'normal'
 }
 
@@ -407,9 +443,9 @@ function AdjustDrawer({
   )
 }
 
-// -- KardexDrawer --------------------------------------------------------------
+// -- MovementsDrawer -----------------------------------------------------------
 
-function KardexDrawer({
+function MovementsDrawer({
   item,
   onClose,
 }: {
@@ -434,7 +470,7 @@ function KardexDrawer({
         const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
         setMovements(rows.map(normalizeMovement))
       } catch (err) {
-        console.error('[inventory] Error al cargar kardex:', err)
+        console.error('[inventory] Error al cargar movimientos:', err)
         setMovements([])
       } finally {
         setLoading(false)
@@ -480,7 +516,7 @@ function KardexDrawer({
           {loading ? (
             <div className="flex flex-col items-center justify-center py-14 text-slate-400 dark:text-white/40">
               <Loader2 className="mb-2 h-6 w-6 animate-spin" />
-              <p className="text-[13px]">Cargando kardex...</p>
+              <p className="text-[13px]">Cargando movimientos...</p>
             </div>
           ) : movements.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 text-slate-400 dark:text-white/30">
@@ -533,8 +569,10 @@ export default function DashboardInventoryPage() {
   const [searchInput, setSearchInput] = useState('')
   const [statusFilter, setStatusFilter] = useState<StockStatus>('all')
   const [adjustItem, setAdjustItem] = useState<StockItem | null>(null)
-  const [kardexItem, setKardexItem] = useState<StockItem | null>(null)
+  const [movementItem, setMovementItem] = useState<StockItem | null>(null)
   const [sortBy, setSortBy] = useState<SortBy>('name')
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
   const debouncedSearch = useDebouncedValue(searchInput, 350)
 
   const load = async (force = false) => {
@@ -550,25 +588,59 @@ export default function DashboardInventoryPage() {
     setLoadError('')
 
     try {
-      const { data } = await API.get('/inventory/summary', {
-        params: {
-          per_page: 200,
-        },
-      })
+      const [{ data: summaryData }, statsResponse] = await Promise.all([
+        API.get('/inventory/summary', {
+          params: {
+            per_page: 200,
+          },
+        }),
+        API.get('/inventory/stats').catch(() => null),
+      ])
 
-      const payload = data as ApiSummaryResponse | ApiSummaryItem[]
+      const payload = summaryData as ApiSummaryResponse | ApiSummaryItem[]
       const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
       const mapped = rows.map(normalizeSummaryItem)
 
       setItems(mapped)
+      setSelectedIds((prev) => {
+        if (prev.size === 0) return prev
+        const validIds = new Set(mapped.map((item) => item.product_id))
+        const next = new Set<number>()
+        prev.forEach((id) => {
+          if (validIds.has(id)) next.add(id)
+        })
+        return next
+      })
+
+      let statsSource: ApiInventoryStats | null = null
+      if (!Array.isArray(payload) && payload?.stats) {
+        statsSource = payload.stats
+      }
+
+      const statsPayload = (statsResponse?.data || null) as
+        | { data?: ApiInventoryStats }
+        | ApiInventoryStats
+        | null
+
+      if (statsPayload && typeof statsPayload === 'object') {
+        const backendStats = 'data' in statsPayload && statsPayload.data ? statsPayload.data : statsPayload
+        if (backendStats) {
+          statsSource = {
+            ...statsSource,
+            ...backendStats,
+          }
+        }
+      }
 
       let nextStats: InventoryStats | null = null
-      if (!Array.isArray(payload) && payload?.stats) {
+      if (statsSource) {
         nextStats = {
-          total_products: toNumber(payload.stats.total_products),
-          low_stock_products: toNumber(payload.stats.low_stock_products),
-          out_of_stock_products: toNumber(payload.stats.out_of_stock_products),
-          inventory_value: toNumber(payload.stats.inventory_value),
+          total_products: toNumber(statsSource.total_products),
+          products_with_inventory: toNumber(statsSource.products_with_inventory, toNumber(statsSource.total_products)),
+          normal_stock_products: toNumber(statsSource.normal_stock_products),
+          low_stock_products: toNumber(statsSource.low_stock_products),
+          out_of_stock_products: toNumber(statsSource.out_of_stock_products),
+          inventory_total_value: toNumber(statsSource.inventory_total_value, toNumber(statsSource.inventory_value)),
         }
       }
 
@@ -599,25 +671,33 @@ export default function DashboardInventoryPage() {
 
   // -- Derived -----------------------------------------------------------------
 
-  const outOfStock = useMemo(() => items.filter((item) => item.current_stock <= 0), [items])
-  const lowStock = useMemo(() => items.filter((item) => item.current_stock > 0 && item.current_stock < item.reorder_point), [items])
+  const outOfStock = useMemo(() => items.filter((item) => item.status === 'out'), [items])
+  const lowStock = useMemo(() => items.filter((item) => item.status === 'low'), [items])
+  const normalStock = useMemo(() => items.filter((item) => item.status === 'normal'), [items])
 
   const totals = useMemo(() => {
     const totalProducts = stats?.total_products || items.length
+    const productsWithInventory = Math.max(
+      0,
+      stats?.products_with_inventory ?? items.filter((item) => item.current_stock > 0).length,
+    )
     const outProducts = Math.max(0, stats?.out_of_stock_products ?? outOfStock.length)
-    const lowProductsRaw = Math.max(0, stats?.low_stock_products ?? lowStock.length)
-    const lowProducts = Math.min(Math.max(0, totalProducts - outProducts), lowProductsRaw)
-    const normalProducts = Math.max(0, totalProducts - lowProducts - outProducts)
-    const inventoryValue = stats?.inventory_value ?? items.reduce((acc, item) => acc + item.price * item.current_stock, 0)
+    const lowProducts = Math.max(0, stats?.low_stock_products ?? lowStock.length)
+    const normalProducts = Math.max(
+      0,
+      stats?.normal_stock_products ?? normalStock.length ?? (productsWithInventory - lowProducts),
+    )
+    const inventoryValue = stats?.inventory_total_value ?? items.reduce((acc, item) => acc + item.total_cost, 0)
 
     return {
       totalProducts,
+      productsWithInventory,
       lowProducts,
       outProducts,
       normalProducts,
       inventoryValue,
     }
-  }, [items, lowStock.length, outOfStock.length, stats])
+  }, [items, lowStock.length, normalStock.length, outOfStock.length, stats])
 
   const displayed = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase()
@@ -626,13 +706,14 @@ export default function DashboardInventoryPage() {
       const matchesSearch =
         !query ||
         item.product_name.toLowerCase().includes(query) ||
-        item.sku.toLowerCase().includes(query)
+        item.product_code.toLowerCase().includes(query) ||
+        item.ref_adicional.toLowerCase().includes(query)
 
       const matchesStatus =
         statusFilter === 'all' ||
-        (statusFilter === 'out' && item.current_stock <= 0) ||
-        (statusFilter === 'low' && item.current_stock > 0 && item.current_stock < item.reorder_point) ||
-        (statusFilter === 'ok' && item.current_stock >= item.reorder_point)
+        (statusFilter === 'out' && item.status === 'out') ||
+        (statusFilter === 'low' && item.status === 'low') ||
+        (statusFilter === 'ok' && item.status === 'normal')
 
       return matchesSearch && matchesStatus
     })
@@ -648,8 +729,8 @@ export default function DashboardInventoryPage() {
   const statusFilters: Array<{ key: StockStatus; label: string; count: number }> = [
     { key: 'all', label: 'Todos', count: items.length },
     { key: 'out', label: 'Agotados', count: outOfStock.length },
-    { key: 'low', label: 'Bajo', count: lowStock.length },
-    { key: 'ok', label: 'Normal', count: Math.max(0, items.length - outOfStock.length - lowStock.length) },
+    { key: 'low', label: 'Stock bajo', count: lowStock.length },
+    { key: 'ok', label: 'Stock normal', count: normalStock.length },
   ]
 
   const statusFilterValue = statusFilter === 'all' ? '' : statusFilter
@@ -664,8 +745,83 @@ export default function DashboardInventoryPage() {
     { value: 'name', label: 'Nombre (A-Z)' },
     { value: 'stock_asc', label: 'Stock ascendente' },
     { value: 'stock_desc', label: 'Stock descendente' },
-    { value: 'deficit', label: 'Mayor deficit' },
+    { value: 'deficit', label: 'Mayor faltante' },
   ]
+
+  const displayedIds = useMemo(() => displayed.map((item) => item.product_id), [displayed])
+  const selectedCount = selectedIds.size
+  const allDisplayedSelected = displayedIds.length > 0 && displayedIds.every((id) => selectedIds.has(id))
+
+  const toggleSelectAllDisplayed = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      const everySelected = displayedIds.length > 0 && displayedIds.every((id) => next.has(id))
+
+      if (everySelected) {
+        displayedIds.forEach((id) => next.delete(id))
+      } else {
+        displayedIds.forEach((id) => next.add(id))
+      }
+
+      return next
+    })
+  }
+
+  const toggleSelectOne = (productId: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(productId)) {
+        next.delete(productId)
+      } else {
+        next.add(productId)
+      }
+      return next
+    })
+  }
+
+  const deleteInventory = async (deleteAll: boolean) => {
+    if (deleting) return
+
+    if (!deleteAll && selectedCount <= 0) {
+      alert('Selecciona al menos un producto para eliminar.')
+      return
+    }
+
+    let payload: Record<string, unknown>
+    if (deleteAll) {
+      const confirmToken = window.prompt('Escribe ELIMINAR para borrar TODO el inventario de esta tienda:')
+      if (confirmToken === null) return
+      if (confirmToken.trim().toUpperCase() !== 'ELIMINAR') {
+        alert('Confirmacion invalida. No se elimino inventario.')
+        return
+      }
+
+      if (!window.confirm('Se borrara todo el inventario de esta tienda. Esta accion no se puede deshacer.')) {
+        return
+      }
+
+      payload = { all: true, confirm: 'ELIMINAR' }
+    } else {
+      if (!window.confirm(`Se eliminaran ${selectedCount} producto(s) seleccionados. Deseas continuar?`)) {
+        return
+      }
+
+      payload = { ids: Array.from(selectedIds) }
+    }
+
+    setDeleting(true)
+    try {
+      const { data } = await API.post('/inventory/bulk-delete', payload)
+      alert(data?.message || 'Inventario actualizado correctamente.')
+      setSelectedIds(new Set())
+      await load(true)
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'No se pudo eliminar inventario.'
+      alert(message)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -713,9 +869,9 @@ export default function DashboardInventoryPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <ErpKpiCard
-          label="Total productos"
-          value={totals.totalProducts}
-          hint="SKUs con inventario"
+          label="Productos con inventario"
+          value={totals.productsWithInventory}
+          hint={`Total catalogo: ${totals.totalProducts}`}
           icon="package"
           iconBg="rgba(59,130,246,0.12)"
           iconColor="#3B82F6"
@@ -723,7 +879,7 @@ export default function DashboardInventoryPage() {
         <ErpKpiCard
           label="Stock normal"
           value={totals.normalProducts}
-          hint="Sin riesgo de ruptura"
+          hint="Sin riesgo inmediato"
           icon="check-circle"
           iconBg="rgba(16,185,129,0.12)"
           iconColor="#10B981"
@@ -731,7 +887,7 @@ export default function DashboardInventoryPage() {
         <ErpKpiCard
           label="Stock bajo"
           value={totals.lowProducts}
-          hint="Debajo de reorder point"
+          hint="Requiere reposicion"
           icon="alert"
           iconBg="rgba(245,158,11,0.12)"
           iconColor="#F59E0B"
@@ -745,9 +901,9 @@ export default function DashboardInventoryPage() {
           iconColor="#EF4444"
         />
         <ErpKpiCard
-          label="Valor inventario"
+          label="Valor inventario total"
           value={fmtCurrency(totals.inventoryValue)}
-          hint="Stock valorizado COP"
+          hint="Valorizado en COP"
           icon="dollar"
           iconBg="rgba(255,161,79,0.12)"
           iconColor="#FFA14F"
@@ -787,6 +943,35 @@ export default function DashboardInventoryPage() {
             options={sortOptions}
             placeholder="Ordenar por"
           />
+
+          <ErpBtn
+            variant="secondary"
+            size="sm"
+            onClick={toggleSelectAllDisplayed}
+            disabled={displayed.length === 0 || deleting}
+          >
+            {allDisplayedSelected ? 'Quitar seleccion' : 'Seleccionar todo'}
+          </ErpBtn>
+
+          <ErpBtn
+            variant="secondary"
+            size="sm"
+            className="!border-red-300 !text-red-600 hover:!bg-red-50"
+            onClick={() => deleteInventory(false)}
+            disabled={selectedCount === 0 || deleting}
+          >
+            {deleting ? 'Eliminando...' : `Eliminar seleccionados (${selectedCount})`}
+          </ErpBtn>
+
+          <ErpBtn
+            variant="secondary"
+            size="sm"
+            className="!border-red-500 !text-red-700 hover:!bg-red-50"
+            onClick={() => deleteInventory(true)}
+            disabled={items.length === 0 || deleting}
+          >
+            Eliminar todo inventario
+          </ErpBtn>
         </div>
 
         {loading ? (
@@ -813,85 +998,65 @@ export default function DashboardInventoryPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px]">
+            <table className="w-full min-w-[1400px]">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/80 dark:border-white/5 dark:bg-white/5">
+                  <th className="px-3 py-2.5 text-left">
+                    <input
+                      type="checkbox"
+                      checked={allDisplayedSelected}
+                      onChange={toggleSelectAllDisplayed}
+                      aria-label="Seleccionar todos los productos visibles"
+                    />
+                  </th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Producto</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Stock actual</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Stock minimo</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Backorder</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Codigo</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Ref.Ad.</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Unidad</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Stock</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Compra Unit.</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Venta s/IVA</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Venta c/IVA</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Total Compra</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Total Venta</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Estado</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-white/30">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {displayed.map((item) => {
-                  const status = getStatus(item.current_stock, item.reorder_point)
-                  const stockRatio = item.reorder_point > 0
-                    ? Math.min(100, Math.round((item.current_stock / item.reorder_point) * 100))
-                    : item.current_stock > 0
-                      ? 100
-                      : 0
-
-                  const badgeStatus = status === 'out' ? 'critical' : status === 'low' ? 'low' : 'ok'
-                  const badgeLabel = status === 'out' ? 'Agotado' : status === 'low' ? 'Bajo' : 'Normal'
+                {displayed.map((item, index) => {
+                  const badgeStatus = item.status === 'out' ? 'critical' : item.status === 'low' ? 'low' : 'ok'
+                  const badgeLabel = item.status === 'out' ? 'Agotado' : item.status === 'low' ? 'Stock bajo' : 'Normal'
 
                   return (
                     <tr
-                      key={item.product_id}
+                      key={`${item.product_id}-${index}`}
                       className="border-b border-slate-100 transition-colors hover:bg-slate-50/80 dark:border-white/5 dark:hover:bg-white/5"
                     >
-                      <td className="px-4 py-3">
-                        <p className="text-[13px] font-semibold text-slate-900 dark:text-white">{item.product_name}</p>
-                        <p className="mt-0.5 font-mono text-[11px] text-slate-400 dark:text-white/30">{item.sku}</p>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="min-w-[130px]">
-                          <div className="flex items-end gap-1">
-                            <p
-                              className={`text-[18px] font-black ${
-                                item.current_stock <= 0
-                                  ? 'text-red-600 dark:text-red-300'
-                                  : item.current_stock < item.reorder_point
-                                    ? 'text-amber-600 dark:text-amber-300'
-                                    : 'text-slate-900 dark:text-white'
-                              }`}
-                            >
-                              {item.current_stock}
-                            </p>
-                            <span className="mb-0.5 text-[11px] text-slate-400 dark:text-white/30">{item.unit}</span>
-                          </div>
-                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
-                            <div
-                              className={`h-full rounded-full ${
-                                item.current_stock <= 0
-                                  ? 'bg-red-500'
-                                  : item.current_stock < item.reorder_point
-                                    ? 'bg-amber-500'
-                                    : 'bg-emerald-500'
-                              }`}
-                              style={{ width: `${stockRatio}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3 text-[12px] font-semibold text-slate-700 dark:text-white/70">
-                        {item.reorder_point} {item.unit}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <ErpBadge
-                          status={item.allow_backorder ? 'active' : 'inactive'}
-                          label={item.allow_backorder ? 'Permitido' : 'Bloqueado'}
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(item.product_id)}
+                          onChange={() => toggleSelectOne(item.product_id)}
+                          aria-label={`Seleccionar ${item.product_name}`}
                         />
                       </td>
-
+                      <td className="px-4 py-3">
+                        <p className="text-[13px] font-semibold text-slate-900 dark:text-white">{item.product_name}</p>
+                        <p className="mt-0.5 text-[11px] text-slate-400 dark:text-white/30">Min: {item.reorder_point} {item.unit}</p>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[12px] text-slate-700 dark:text-white/70">{item.product_code}</td>
+                      <td className="px-4 py-3 text-[12px] text-slate-700 dark:text-white/70">{item.ref_adicional || '-'}</td>
+                      <td className="px-4 py-3 text-[12px] font-semibold text-slate-700 dark:text-white/70">{item.unit}</td>
+                      <td className="px-4 py-3 text-[13px] font-bold text-slate-900 dark:text-white">{item.current_stock}</td>
+                      <td className="px-4 py-3 text-right text-[12px] font-semibold text-slate-700 dark:text-white/70">{fmtCurrency(item.cost_price)}</td>
+                      <td className="px-4 py-3 text-right text-[12px] font-semibold text-slate-700 dark:text-white/70">{fmtCurrency(item.sale_price)}</td>
+                      <td className="px-4 py-3 text-right text-[12px] font-semibold text-slate-700 dark:text-white/70">{fmtCurrency(item.sale_price_with_iva)}</td>
+                      <td className="px-4 py-3 text-right text-[12px] font-semibold text-slate-900 dark:text-white">{fmtCurrency(item.total_cost)}</td>
+                      <td className="px-4 py-3 text-right text-[12px] font-semibold text-slate-900 dark:text-white">{fmtCurrency(item.total_sale)}</td>
                       <td className="px-4 py-3">
                         <ErpBadge status={badgeStatus} label={badgeLabel} />
                       </td>
-
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <ErpBtn
@@ -905,10 +1070,10 @@ export default function DashboardInventoryPage() {
                           <ErpBtn
                             variant="secondary"
                             size="sm"
-                            icon={<ClipboardList size={12} />}
-                            onClick={() => setKardexItem(item)}
+                            icon={<History size={12} />}
+                            onClick={() => setMovementItem(item)}
                           >
-                            Kardex
+                            Movimientos
                           </ErpBtn>
                         </div>
                       </td>
@@ -922,7 +1087,7 @@ export default function DashboardInventoryPage() {
 
         {displayed.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-[12px] text-slate-500 dark:border-white/5 dark:text-white/40">
-            <span>Mostrando {displayed.length} de {items.length} productos</span>
+            <span>Mostrando {displayed.length} de {items.length} productos | Seleccionados: {selectedCount}</span>
             <span className="font-semibold text-slate-700 dark:text-white/70">
               Valor total inventario: {fmtCurrency(totals.inventoryValue)}
             </span>
@@ -933,8 +1098,8 @@ export default function DashboardInventoryPage() {
       {adjustItem && (
         <AdjustDrawer item={adjustItem} onClose={() => setAdjustItem(null)} onSaved={() => load(true)} />
       )}
-      {kardexItem && (
-        <KardexDrawer item={kardexItem} onClose={() => setKardexItem(null)} />
+      {movementItem && (
+        <MovementsDrawer item={movementItem} onClose={() => setMovementItem(null)} />
       )}
     </div>
   )

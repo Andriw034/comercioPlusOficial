@@ -21,11 +21,12 @@ export function ErpKpiCard({ label, value, hint, icon, iconBg, iconColor, trend 
     <div
       className="relative flex flex-col justify-between overflow-hidden rounded-2xl p-5"
       style={{
-        background: '#FFFFFF',
-        border: '1px solid rgba(0,0,0,0.07)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        background: 'linear-gradient(160deg,#FFFFFF 0%,#F8FAFC 58%,#EEF4FF 100%)',
+        border: '1px solid rgba(148,163,184,0.26)',
+        boxShadow: '0 16px 34px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.95)',
       }}
     >
+      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(115%_75%_at_0%_0%,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0)_65%)]" />
       <div className="mb-3 flex items-start justify-between">
         <span className="text-[12px] font-semibold text-slate-500">{label}</span>
         <div
