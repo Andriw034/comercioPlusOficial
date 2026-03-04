@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);
 
-        // Middleware para el grupo 'web', se añade al final de la pila.
+        // Middleware para el grupo 'web', se a�ade al final de la pila.
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
@@ -33,13 +33,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'has.store' => \App\Http\Middleware\HasStore::class,
             'redirect.after.login' => \App\Http\Middleware\RedirectAfterLogin::class,
             'role.key' => \App\Http\Middleware\EnsureRole::class,
-            // Aquí puedes añadir otros alias que necesites en el futuro.
+            // Aqui puedes a�adir otros alias que necesites en el futuro.
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Configuración para el manejo de excepciones.
-        // Puedes personalizar cómo se reportan o renderizan las excepciones aquí.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $exception, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            return null;
+        });
     })->create();
-
-
-
