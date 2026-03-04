@@ -77,8 +77,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            // En produccion invalidamos tokens anteriores antes de emitir uno nuevo.
-            $user->tokens()->delete();
+            // Evita invalidar sesiones activas en otras pestañas/dispositivos en cada login.
             $token = $this->createAccessToken($user);
         } catch (ValidationException $e) {
             throw $e;

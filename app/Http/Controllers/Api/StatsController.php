@@ -28,12 +28,15 @@ class StatsController extends Controller
             $query->where('store_id', $storeId);
         }
 
-        $stats = $query->selectRaw('
+        $stats = $query->selectRaw(
+                '
                 COUNT(*) as total_pedidos,
-                SUM(CASE WHEN status = "paid" THEN 1 ELSE 0 END) as ventas_pagadas,
-                SUM(CASE WHEN status = "paid" THEN '.$amountColumn.' ELSE 0 END) as ingresos,
-                AVG(CASE WHEN status = "paid" THEN '.$amountColumn.' ELSE NULL END) as ticket_promedio
-            ')
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as ventas_pagadas,
+                SUM(CASE WHEN status = ? THEN '.$amountColumn.' ELSE 0 END) as ingresos,
+                AVG(CASE WHEN status = ? THEN '.$amountColumn.' ELSE NULL END) as ticket_promedio
+            ',
+                ['paid', 'paid', 'paid']
+            )
             ->first();
 
         return response()->json([
