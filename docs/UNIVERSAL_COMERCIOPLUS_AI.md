@@ -1,4 +1,7 @@
-﻿# UNIVERSAL_COMERCIOPLUS
+﻿<!-- Documento generado para consumo de IA/Claude -->
+<!-- Fuente: docs/UNIVERSAL_COMERCIOPLUS.md -->
+<!-- Regla: contiene solo estado vigente del proyecto; sin dumps historicos -->
+# UNIVERSAL_COMERCIOPLUS
 
 Estado: ACTIVO (fuente unica de verdad)
 Ultima actualizacion: 2026-03-04

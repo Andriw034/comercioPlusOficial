@@ -2,13 +2,13 @@
 
 Estado: ACTIVO (indice de referencia)
 
-Fuente oficial unica del proyecto:
+Fuente oficial del proyecto:
 
-- `../../docs/UNIVERSAL_COMERCIOPLUS.md`
+- `../../docs/UNIVERSAL_COMERCIOPLUS_AI.md` (recomendado para IA/reportes)
+- `../../docs/UNIVERSAL_COMERCIOPLUS.md` (completo)
 - `../../docs/DOC_GOVERNANCE.md`
+- `../../docs/README.md`
 
-Estado de `repo-md/`:
+Estado de `repo-md` y legacy:
 
-- `repo-md/` se considera historico.
-- No es fuente oficial para decisiones tecnicas actuales.
-- Su migracion a `docs/_archive/repo-md/` ya fue completada.
+- No son fuente oficial activa para decisiones tecnicas actuales.

@@ -1,13 +1,20 @@
 # Documentacion Oficial ComercioPlus
 
-Fuente oficial unica:
+Documentos activos y funcionales:
 
-- `docs/UNIVERSAL_COMERCIOPLUS.md`
+- `docs/UNIVERSAL_COMERCIOPLUS_AI.md` (recomendado para IA/reportes, sin dumps historicos)
+- `docs/UNIVERSAL_COMERCIOPLUS.md` (version completa con trazabilidad historica)
+- `docs/DOC_GOVERNANCE.md` (politica de mantenimiento documental)
+- `docs/README_VALIDADOR.md` (guia de validacion tecnica pre-ejecucion)
 
-Politica de mantenimiento:
+Entregables de distribucion:
 
-- `docs/DOC_GOVERNANCE.md`
+- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part1.zip`
+- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part2.zip`
+- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part3.zip`
+- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part4.zip`
+- `docs/UNIVERSAL_FILE_INDEX.txt`
 
-Archivo historico:
+Nota:
 
-- `docs/_archive/`
+- `repo-md` y `_archive` no son fuente oficial activa para decisiones tecnicas.
