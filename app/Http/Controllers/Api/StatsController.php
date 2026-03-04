@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class StatsController extends Controller
 {
@@ -19,6 +19,7 @@ class StatsController extends Controller
         $from = $request->get('from', now()->subDays(30)->toDateString());
         $to = $request->get('to', now()->toDateString());
         $storeId = $request->get('store_id');
+        $amountColumn = $this->resolveOrderAmountColumn();
 
         $query = DB::table('orders')
             ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
@@ -30,8 +31,8 @@ class StatsController extends Controller
         $stats = $query->selectRaw('
                 COUNT(*) as total_pedidos,
                 SUM(CASE WHEN status = "paid" THEN 1 ELSE 0 END) as ventas_pagadas,
-                SUM(CASE WHEN status = "paid" THEN total_amount ELSE 0 END) as ingresos,
-                AVG(CASE WHEN status = "paid" THEN total_amount ELSE NULL END) as ticket_promedio
+                SUM(CASE WHEN status = "paid" THEN '.$amountColumn.' ELSE 0 END) as ingresos,
+                AVG(CASE WHEN status = "paid" THEN '.$amountColumn.' ELSE NULL END) as ticket_promedio
             ')
             ->first();
 
@@ -48,11 +49,12 @@ class StatsController extends Controller
         $from = $request->get('from', now()->subDays(30)->toDateString());
         $to = $request->get('to', now()->toDateString());
         $storeId = $request->get('store_id');
+        $amountColumn = $this->resolveOrderAmountColumn();
 
         $query = DB::table('orders')
             ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->where('status', 'paid')
-            ->selectRaw('DATE(created_at) as dia, SUM(total_amount) as ingresos')
+            ->selectRaw('DATE(created_at) as dia, SUM('.$amountColumn.') as ingresos')
             ->groupBy('dia')
             ->orderBy('dia');
 
@@ -63,6 +65,19 @@ class StatsController extends Controller
         $data = $query->get();
 
         return response()->json($data);
+    }
+
+    private function resolveOrderAmountColumn(): string
+    {
+        if (Schema::hasColumn('orders', 'total')) {
+            return 'total';
+        }
+
+        if (Schema::hasColumn('orders', 'total_amount')) {
+            return 'total_amount';
+        }
+
+        return '0';
     }
 
     public function topProducts(Request $request)
