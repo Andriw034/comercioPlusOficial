@@ -38,7 +38,7 @@ class BasicApiTest extends TestCase
     {
         $user = User::factory()->create();
         $payload = ['name' => 'Test Store', 'description' => 'Test store description'];
-        $this->postJson('/api/public-stores', $payload)->assertStatus(405); // Method Not Allowed
+        $this->postJson('/api/public/stores', $payload)->assertStatus(405); // Method Not Allowed
     }
 
     // This test now correctly asserts that creating a subscription requires authentication.
@@ -51,7 +51,22 @@ class BasicApiTest extends TestCase
 
     public function test_public_stores_endpoint()
     {
-        $this->getJson('/api/public-stores')->assertStatus(200);
+        $this->getJson('/api/public/stores')->assertStatus(200);
+    }
+
+    public function test_public_hero_images_endpoint()
+    {
+        $this->getJson('/api/hero-images')
+            ->assertStatus(200)
+            ->assertJsonStructure(['data']);
+    }
+
+    public function test_public_barcode_search_returns_not_found_shape()
+    {
+        $this->getJson('/api/public/barcode/search?code=NO_EXISTE_123')
+            ->assertStatus(404)
+            ->assertJsonPath('error_code', 'PRODUCT_NOT_FOUND')
+            ->assertJsonPath('data.found', false);
     }
 
     public function test_protected_users_endpoint_requires_auth()

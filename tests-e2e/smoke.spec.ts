@@ -189,7 +189,9 @@ test.describe.serial('Smoke E2E ComercioPlus', () => {
     expect(orderIds).toContain(orderId)
 
     await page.goto('/dashboard/orders')
-    await expect(page.getByRole('heading', { name: /Pedidos/i }).first()).toBeVisible()
-    await expect(page.locator('table')).toContainText(String(orderId))
+    await expect(page).toHaveURL(/\/dashboard\/orders/, { timeout: 20_000 })
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('h1').filter({ hasText: /Pedidos/i })).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('table')).toContainText(String(orderId), { timeout: 20_000 })
   })
 })
