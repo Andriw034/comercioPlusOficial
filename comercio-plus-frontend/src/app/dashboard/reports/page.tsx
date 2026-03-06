@@ -4,7 +4,7 @@ import { Icon } from '@/components/Icon'
 import { ErpBtn, ErpKpiCard, ErpPageHeader } from '@/components/erp'
 
 type ReportStatus = 'all' | 'pending' | 'processing' | 'paid' | 'approved' | 'completed' | 'cancelled'
-type ReportView = 'overview' | 'sales' | 'tax' | 'products' | 'inventory'
+type ReportView = 'overview' | 'sales' | 'tax' | 'products' | 'inventory' | 'alerts' | 'trends'
 
 type Filters = {
   from: string
@@ -59,6 +59,46 @@ type InventoryData = {
   top_out_products: InventoryTopOut[]
 }
 
+type LowStockItem = {
+  product_id: number
+  name: string
+  stock: number
+  reorder_point: number
+}
+
+type NoMovementItem = {
+  product_id: number
+  name: string
+  last_sale: string | null
+}
+
+type TopGrowthItem = {
+  product_id: number
+  name: string
+  growth_pct: number
+}
+
+type AlertsData = {
+  low_stock: LowStockItem[]
+  no_movement_30d: NoMovementItem[]
+  top_growth: TopGrowthItem[]
+}
+
+type MonthSale = {
+  month: string
+  total: number
+}
+
+type CategoryTotal = {
+  name: string
+  total: number
+}
+
+type TrendsData = {
+  sales_by_month: MonthSale[]
+  top_categories: CategoryTotal[]
+}
+
 const STATUS_OPTIONS: Array<{ value: ReportStatus; label: string }> = [
   { value: 'all', label: 'Todos' },
   { value: 'pending', label: 'Pendiente' },
@@ -69,12 +109,14 @@ const STATUS_OPTIONS: Array<{ value: ReportStatus; label: string }> = [
   { value: 'cancelled', label: 'Cancelado' },
 ]
 
-const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trending' | 'file-text' | 'package' | 'users' }> = [
+const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trending' | 'file-text' | 'package' | 'users' | 'bell' | 'pie-chart' }> = [
   { key: 'overview', label: 'Resumen IA', icon: 'chart' },
   { key: 'sales', label: 'Ventas', icon: 'trending' },
   { key: 'tax', label: 'Impuestos', icon: 'file-text' },
   { key: 'products', label: 'Top productos', icon: 'package' },
   { key: 'inventory', label: 'Inventario', icon: 'users' },
+  { key: 'alerts', label: 'Alertas', icon: 'bell' },
+  { key: 'trends', label: 'Tendencias', icon: 'pie-chart' },
 ]
 
 function toDateInput(value: Date): string {
@@ -182,6 +224,66 @@ function normalizeInventory(payload: unknown): InventoryData {
   }
 }
 
+function normalizeAlerts(payload: unknown): AlertsData {
+  const row = (payload ?? {}) as Record<string, unknown>
+
+  const lowStock = Array.isArray(row.low_stock)
+    ? row.low_stock.map((item): LowStockItem => {
+        const e = (item ?? {}) as Record<string, unknown>
+        return {
+          product_id: toNumber(e.product_id),
+          name: toText(e.name, 'Producto'),
+          stock: toNumber(e.stock),
+          reorder_point: toNumber(e.reorder_point),
+        }
+      })
+    : []
+
+  const noMovement = Array.isArray(row.no_movement_30d)
+    ? row.no_movement_30d.map((item): NoMovementItem => {
+        const e = (item ?? {}) as Record<string, unknown>
+        return {
+          product_id: toNumber(e.product_id),
+          name: toText(e.name, 'Producto'),
+          last_sale: typeof e.last_sale === 'string' ? e.last_sale : null,
+        }
+      })
+    : []
+
+  const topGrowth = Array.isArray(row.top_growth)
+    ? row.top_growth.map((item): TopGrowthItem => {
+        const e = (item ?? {}) as Record<string, unknown>
+        return {
+          product_id: toNumber(e.product_id),
+          name: toText(e.name, 'Producto'),
+          growth_pct: toNumber(e.growth_pct),
+        }
+      })
+    : []
+
+  return { low_stock: lowStock, no_movement_30d: noMovement, top_growth: topGrowth }
+}
+
+function normalizeTrends(payload: unknown): TrendsData {
+  const row = (payload ?? {}) as Record<string, unknown>
+
+  const salesByMonth = Array.isArray(row.sales_by_month)
+    ? row.sales_by_month.map((item): MonthSale => {
+        const e = (item ?? {}) as Record<string, unknown>
+        return { month: toText(e.month, '-'), total: toNumber(e.total) }
+      })
+    : []
+
+  const topCategories = Array.isArray(row.top_categories)
+    ? row.top_categories.map((item): CategoryTotal => {
+        const e = (item ?? {}) as Record<string, unknown>
+        return { name: toText(e.name, 'Sin categoría'), total: toNumber(e.total) }
+      })
+    : []
+
+  return { sales_by_month: salesByMonth, top_categories: topCategories }
+}
+
 async function downloadCsv(endpoint: string, params: Record<string, string>, filenamePrefix: string): Promise<void> {
   const response = await API.get(endpoint, { params, responseType: 'blob' })
   const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
@@ -220,6 +322,11 @@ export default function DashboardReportsPage() {
   const [taxData, setTaxData] = useState<TaxData | null>(null)
   const [topProducts, setTopProducts] = useState<TopProduct[]>([])
   const [inventory, setInventory] = useState<InventoryData | null>(null)
+
+  const [alertsData, setAlertsData] = useState<AlertsData | null>(null)
+  const [alertsLoading, setAlertsLoading] = useState(true)
+  const [trendsData, setTrendsData] = useState<TrendsData | null>(null)
+  const [trendsLoading, setTrendsLoading] = useState(true)
 
   const params = useMemo(() => {
     const next: Record<string, string> = {}
@@ -260,9 +367,37 @@ export default function DashboardReportsPage() {
     }
   }, [params])
 
+  const loadAlertsAndTrends = useCallback(async () => {
+    setAlertsLoading(true)
+    setTrendsLoading(true)
+
+    const [alertsResult, trendsResult] = await Promise.allSettled([
+      API.get('/reports/alerts'),
+      API.get('/reports/trends'),
+    ])
+
+    if (alertsResult.status === 'fulfilled') {
+      setAlertsData(normalizeAlerts(alertsResult.value.data?.data))
+    } else {
+      setAlertsData({ low_stock: [], no_movement_30d: [], top_growth: [] })
+    }
+    setAlertsLoading(false)
+
+    if (trendsResult.status === 'fulfilled') {
+      setTrendsData(normalizeTrends(trendsResult.value.data?.data))
+    } else {
+      setTrendsData({ sales_by_month: [], top_categories: [] })
+    }
+    setTrendsLoading(false)
+  }, [])
+
   useEffect(() => {
     void loadReports()
   }, [loadReports])
+
+  useEffect(() => {
+    void loadAlertsAndTrends()
+  }, [loadAlertsAndTrends])
 
   const applyFilters = (): void => {
     setAppliedFilters(draftFilters)
@@ -282,6 +417,9 @@ export default function DashboardReportsPage() {
       ? '-'
       : inventory.rotation_approx.toFixed(2)
 
+  const maxMonthTotal = Math.max(...(trendsData?.sales_by_month.map((r) => r.total) ?? [1]), 1)
+  const totalCategoryRevenue = (trendsData?.top_categories ?? []).reduce((sum, c) => sum + c.total, 0) || 1
+
   return (
     <div className="space-y-4 text-[#0F172A]">
       <ErpPageHeader
@@ -290,7 +428,7 @@ export default function DashboardReportsPage() {
         subtitle="Analitica real conectada al backend para ventas, IVA, productos e inventario."
         actions={
           <>
-            <ErpBtn variant="secondary" size="md" icon={<Icon name="refresh" size={14} />} onClick={() => void loadReports()}>
+            <ErpBtn variant="secondary" size="md" icon={<Icon name="refresh" size={14} />} onClick={() => { void loadReports(); void loadAlertsAndTrends() }}>
               Recargar
             </ErpBtn>
             <ErpBtn
@@ -430,13 +568,13 @@ export default function DashboardReportsPage() {
           </div>
 
           <div className="rounded-2xl border border-[#E2E8F0] bg-white p-1.5">
-            <div className="grid gap-1 md:grid-cols-5">
+            <div className="flex flex-wrap gap-1">
               {VIEW_TABS.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveView(tab.key)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition ${
                     activeView === tab.key
                       ? 'border border-orange-200 bg-orange-50 text-orange-700'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
@@ -640,6 +778,180 @@ export default function DashboardReportsPage() {
                 </div>
               ) : null}
             </section>
+          ) : null}
+
+          {activeView === 'alerts' ? (
+            alertsLoading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-14 text-center">
+                <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+                <p className="text-[13px] text-slate-500">Cargando alertas...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Stock crítico */}
+                <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_8px_20px_rgba(15,23,42,0.05)]">
+                  <div className="border-b border-rose-100 bg-rose-50 px-4 py-3">
+                    <h3 className="text-[14px] font-black text-rose-800">Stock crítico</h3>
+                    <p className="text-[12px] text-rose-600">Productos por debajo del punto de reorden.</p>
+                  </div>
+                  {alertsData?.low_stock.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-[13px] text-slate-400">Sin productos en stock crítico. ¡Todo en orden!</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {alertsData?.low_stock.map((item) => (
+                        <div key={`low-${item.product_id}`} className="flex items-center justify-between border-l-4 border-rose-400 px-4 py-3">
+                          <span className="truncate text-[12px] font-semibold text-slate-800">{item.name}</span>
+                          <div className="ml-3 flex shrink-0 items-center gap-3">
+                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700">
+                              Stock: {item.stock}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              Mín: {item.reorder_point}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Sin movimiento 30 días */}
+                <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_8px_20px_rgba(15,23,42,0.05)]">
+                  <div className="border-b border-amber-100 bg-amber-50 px-4 py-3">
+                    <h3 className="text-[14px] font-black text-amber-800">Sin movimiento 30 días</h3>
+                    <p className="text-[12px] text-amber-600">Productos sin ventas en el último mes.</p>
+                  </div>
+                  {alertsData?.no_movement_30d.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-[13px] text-slate-400">Todos los productos tuvieron movimiento reciente.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {alertsData?.no_movement_30d.map((item) => (
+                        <div key={`nm-${item.product_id}`} className="flex items-center justify-between border-l-4 border-amber-400 px-4 py-3">
+                          <span className="truncate text-[12px] font-semibold text-slate-800">{item.name}</span>
+                          <span className="ml-3 shrink-0 text-[11px] text-slate-400">
+                            {item.last_sale
+                              ? `Última venta: ${item.last_sale.slice(0, 10)}`
+                              : 'Nunca vendido'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Mayor crecimiento */}
+                <section className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_8px_20px_rgba(15,23,42,0.05)]">
+                  <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3">
+                    <h3 className="text-[14px] font-black text-emerald-800">Mayor crecimiento</h3>
+                    <p className="text-[12px] text-emerald-600">Productos con mayor alza este mes vs. el anterior.</p>
+                  </div>
+                  {alertsData?.top_growth.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-[13px] text-slate-400">No hay datos de crecimiento para este mes aún.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {alertsData?.top_growth.map((item) => (
+                        <div key={`gr-${item.product_id}`} className="flex items-center justify-between border-l-4 border-emerald-400 px-4 py-3">
+                          <span className="truncate text-[12px] font-semibold text-slate-800">{item.name}</span>
+                          <span className="ml-3 shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                            +{item.growth_pct}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )
+          ) : null}
+
+          {activeView === 'trends' ? (
+            trendsLoading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-14 text-center">
+                <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+                <p className="text-[13px] text-slate-500">Cargando tendencias...</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Ventas por mes */}
+                <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.05)]">
+                  <div className="mb-4 flex items-center gap-2 border-b border-[#E2E8F0] pb-2">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 text-[14px]">📊</span>
+                    <div>
+                      <h3 className="text-[14px] font-black text-[#0F172A]">Ventas por mes</h3>
+                      <p className="text-[11px] text-slate-400">Últimos 12 meses</p>
+                    </div>
+                  </div>
+                  {trendsData?.sales_by_month.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <p className="text-[13px] text-slate-400">Sin datos de ventas para los últimos 12 meses.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {trendsData?.sales_by_month.map((row) => {
+                        const widthPct = Math.max(2, (row.total / maxMonthTotal) * 100)
+                        return (
+                          <div key={row.month} className="flex items-center gap-3">
+                            <span className="w-16 shrink-0 text-right text-[11px] font-semibold text-slate-500">{row.month}</span>
+                            <div className="flex-1 overflow-hidden rounded-full bg-slate-100">
+                              <div
+                                className="h-5 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-500"
+                                style={{ width: `${widthPct}%` }}
+                              />
+                            </div>
+                            <span className="w-24 shrink-0 text-right text-[11px] font-bold text-orange-600">
+                              {formatMoney(row.total)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
+
+                {/* Top categorías */}
+                <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.05)]">
+                  <div className="mb-4 flex items-center gap-2 border-b border-[#E2E8F0] pb-2">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-[14px]">🗂️</span>
+                    <div>
+                      <h3 className="text-[14px] font-black text-[#0F172A]">Top categorías</h3>
+                      <p className="text-[11px] text-slate-400">Últimos 12 meses</p>
+                    </div>
+                  </div>
+                  {trendsData?.top_categories.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <p className="text-[13px] text-slate-400">Sin datos de categorías.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {trendsData?.top_categories.map((cat) => {
+                        const pct = Math.round((cat.total / totalCategoryRevenue) * 100)
+                        return (
+                          <div key={cat.name}>
+                            <div className="mb-1 flex items-center justify-between">
+                              <span className="truncate text-[12px] font-semibold text-slate-700">{cat.name}</span>
+                              <span className="ml-2 shrink-0 text-[11px] font-bold text-slate-500">{pct}%</span>
+                            </div>
+                            <div className="overflow-hidden rounded-full bg-slate-100">
+                              <div
+                                className="h-2 rounded-full bg-gradient-to-r from-slate-400 to-slate-600 transition-all duration-500"
+                                style={{ width: `${Math.max(2, pct)}%` }}
+                              />
+                            </div>
+                            <p className="mt-0.5 text-right text-[11px] text-orange-500">{formatMoney(cat.total)}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )
           ) : null}
         </>
       )}

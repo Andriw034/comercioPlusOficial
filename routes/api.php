@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\ProductAlertController;
 use App\Http\Controllers\Api\PublicCategoryController;
 use App\Http\Controllers\Api\PublicProductController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ReportsAlertsController;
+use App\Http\Controllers\Api\ReportsTrendsController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\StoreVerificationController;
@@ -188,6 +190,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/inventory', [ReportController::class, 'inventory']);
     Route::get('/reports/export/sales.csv', [ReportController::class, 'exportSalesCsv']);
     Route::get('/reports/export/tax.csv', [ReportController::class, 'exportTaxCsv']);
+    Route::get('/reports/alerts', [ReportsAlertsController::class, 'alerts']);
+    Route::get('/reports/trends', [ReportsTrendsController::class, 'trends']);
     Route::get('/inventory/summary', [InventoryController::class, 'summary']);
     Route::get('/inventory/stats', [InventoryController::class, 'stats']);
     Route::get('/inventory/movements', [InventoryController::class, 'merchantMovements']);
