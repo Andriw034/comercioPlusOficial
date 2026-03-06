@@ -47,6 +47,6 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
 # Railway will provide $PORT; keep 8080 as default
 EXPOSE 8080
 
-# ---- Start command (keep it simple for Railway) ----
-# Do NOT run migrate/cache clear on boot. Run those in CI/deploy when needed.
-CMD ["sh", "-lc", "php artisan optimize:clear && php -S 0.0.0.0:${PORT:-8080} -t public public/index.php"]
+# ---- Start command ----
+# Runs migrations on every deploy, then starts the built-in PHP server.
+CMD ["sh", "-lc", "php artisan migrate --force && php artisan optimize:clear && php -S 0.0.0.0:${PORT:-8080} -t public public/index.php"]
