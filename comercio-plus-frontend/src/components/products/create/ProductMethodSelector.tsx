@@ -12,27 +12,25 @@ const METHODS: Array<{
   id: InputMethod
   label: string
   description: string
-  badge?: string
   iconName: 'edit' | 'camera' | 'grid'
 }> = [
   {
-    id: 'manual',
-    label: 'Manual',
-    description: 'Escribe los datos',
-    iconName: 'edit',
+    id: 'keyboard',
+    label: 'Escaner USB',
+    description: 'Lector fisico',
+    iconName: 'grid',
   },
   {
     id: 'camera',
     label: 'Camara',
-    description: 'Escanea con el celular',
-    badge: 'Rapido',
+    description: 'Escaneo movil',
     iconName: 'camera',
   },
   {
-    id: 'keyboard',
-    label: 'Lector fisico',
-    description: 'USB / Bluetooth',
-    iconName: 'grid',
+    id: 'manual',
+    label: 'Manual',
+    description: 'Escritura asistida',
+    iconName: 'edit',
   },
 ]
 
@@ -41,8 +39,9 @@ export default function ProductMethodSelector({ active, onChange, disabled = fal
     <div
       role="group"
       aria-label="Elige como ingresar el producto"
-      className="grid grid-cols-3 gap-1.5 rounded-2xl border border-slate-200 bg-slate-100 p-1.5 dark:border-white/10 dark:bg-white/5"
+      className="rounded-[11px] border border-[#E2E8F0] bg-white p-1"
     >
+      <div className="grid grid-cols-1 gap-1 sm:grid-cols-3">
       {METHODS.map((method) => {
         const isActive = active === method.id
 
@@ -53,49 +52,32 @@ export default function ProductMethodSelector({ active, onChange, disabled = fal
             disabled={disabled}
             aria-pressed={isActive}
             onClick={() => onChange(method.id)}
-            className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`relative flex items-center justify-center gap-2 rounded-[8px] border px-3 py-2.5 text-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-50 ${
               isActive
-                ? 'border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800'
-                : 'border-transparent bg-transparent hover:bg-white/60 dark:hover:bg-white/5'
+                ? 'border-[#FF6A00] bg-[#FF6A00] text-white shadow-[0_3px_10px_rgba(255,106,0,0.28)]'
+                : 'border-transparent bg-transparent text-[#64748B] hover:bg-[#F8FAFC]'
             }`}
           >
-            {method.badge && (
-              <span className="absolute -top-1.5 right-0 rounded-full bg-gradient-to-r from-[#FF6B35] to-[#E65A2B] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                {method.badge}
-              </span>
-            )}
-
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${
                 isActive
-                  ? 'bg-gradient-to-br from-[#FF6B35] to-[#E65A2B] text-white shadow-[0_3px_8px_rgba(255,107,53,0.35)]'
-                  : 'bg-slate-200/70 text-slate-400 dark:bg-white/10 dark:text-slate-500'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-[#F1F5F9] text-[#94A3B8]'
               }`}
             >
               <Icon name={method.iconName} size={16} />
             </div>
 
-            <span
-              className={`text-[11px] leading-none ${
-                isActive ? 'font-bold text-slate-900 dark:text-white' : 'font-semibold text-slate-500 dark:text-slate-500'
-              }`}
-            >
+            <span className={`text-[12px] font-bold leading-none ${isActive ? 'text-white' : 'text-[#475569]'}`}>
               {method.label}
             </span>
-
-            <span
-              className={`hidden text-[10px] leading-tight sm:block ${
-                isActive ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-600'
-              }`}
-            >
+            <span className={`hidden text-[10px] leading-none sm:block ${isActive ? 'text-white/90' : 'text-[#94A3B8]'}`}>
               {method.description}
             </span>
-
-            {isActive && <span className="absolute bottom-1.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-orange-500" />}
           </button>
         )
       })}
+      </div>
     </div>
   )
 }
-

@@ -2,47 +2,14 @@ import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import AppShell from './AppShell'
-
-type HeroImage = {
-  id: string
-  urls: { regular: string }
-  alt_description: string
-}
-
-const HERO_IMAGES: HeroImage[] = [
-  {
-    id: '1',
-    urls: { regular: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1200&q=80' },
-    alt_description: 'Motociclista en carretera',
-  },
-  {
-    id: '2',
-    urls: { regular: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=1200&q=80' },
-    alt_description: 'Moto deportiva',
-  },
-  {
-    id: '3',
-    urls: { regular: 'https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=1200&q=80' },
-    alt_description: 'Motociclista en ruta',
-  },
-  {
-    id: '4',
-    urls: { regular: 'https://images.unsplash.com/photo-1580310614729-ccd69652491d?w=1200&q=80' },
-    alt_description: 'Moto custom',
-  },
-  {
-    id: '5',
-    urls: { regular: 'https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?w=1200&q=80' },
-    alt_description: 'Moto clasica',
-  },
-]
+import { MOTO_HERO_IMAGES } from '@/constants/motoHeroImages'
 
 export default function AuthLayout() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length)
+      setCurrentImageIndex((prev) => (prev + 1) % MOTO_HERO_IMAGES.length)
     }, 5000)
 
     return () => clearInterval(interval)
@@ -63,8 +30,8 @@ export default function AuthLayout() {
                 className="absolute inset-0"
               >
                 <img
-                  src={HERO_IMAGES[currentImageIndex].urls.regular}
-                  alt={HERO_IMAGES[currentImageIndex].alt_description}
+                  src={MOTO_HERO_IMAGES[currentImageIndex].url}
+                  alt={MOTO_HERO_IMAGES[currentImageIndex].alt}
                   className="h-full w-full object-cover"
                   loading="eager"
                   decoding="async"
@@ -81,7 +48,7 @@ export default function AuthLayout() {
                 </p>
 
                 <div className="mt-6 flex gap-2">
-                  {HERO_IMAGES.map((_, index) => (
+                  {MOTO_HERO_IMAGES.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}

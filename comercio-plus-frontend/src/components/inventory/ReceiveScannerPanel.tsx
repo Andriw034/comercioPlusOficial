@@ -1,5 +1,5 @@
 import type { RefObject } from 'react'
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { Camera, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 
 export type ReceiveFeedback = {
   type: 'ok' | 'error' | 'warn'
@@ -21,6 +21,7 @@ type Props = {
   onQtyChange: (value: number) => void
   onReasonChange: (value: string) => void
   onReferenceChange: (value: string) => void
+  onOpenCamera: () => void
   onToggleAdvanced: () => void
   onSubmit: () => void
 }
@@ -40,6 +41,7 @@ export default function ReceiveScannerPanel({
   onQtyChange,
   onReasonChange,
   onReferenceChange,
+  onOpenCamera,
   onToggleAdvanced,
   onSubmit,
 }: Props) {
@@ -66,6 +68,17 @@ export default function ReceiveScannerPanel({
           autoFocus
           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-[16px] font-medium text-slate-900 outline-none transition-colors focus:border-orange-400 focus:ring-2 focus:ring-orange-200 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:ring-orange-500/30"
         />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onOpenCamera}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white"
+          >
+            <Camera size={14} />
+            Escanear con camara
+          </button>
+        </div>
 
         <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
           <div className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">

@@ -40,6 +40,7 @@ export interface ProductCode {
 export interface Product {
   id: number
   name: string
+  sku?: string
   slug?: string
   description?: string
   price: number

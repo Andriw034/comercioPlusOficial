@@ -14,22 +14,27 @@ class PurchaseRequest extends Model
     protected $fillable = [
         'store_id',
         'status',
+        'generation_type',
         'period_tag',
         'notes',
         'expected_date',
         'received_at',
+        'generated_at',
         'created_by',
     ];
 
     protected $casts = [
         'expected_date' => 'date',
         'received_at' => 'datetime',
+        'generated_at' => 'datetime',
     ];
 
     public const STATUS_DRAFT = 'draft';
     public const STATUS_SENT = 'sent';
     public const STATUS_RECEIVED = 'received';
     public const STATUS_CANCELLED = 'cancelled';
+    public const GENERATION_MANUAL = 'manual';
+    public const GENERATION_AUTOMATIC = 'automatic';
 
     public function store(): BelongsTo
     {
@@ -54,6 +59,11 @@ class PurchaseRequest extends Model
     public function isDraft(): bool
     {
         return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function isAutomatic(): bool
+    {
+        return $this->generation_type === self::GENERATION_AUTOMATIC;
     }
 
     public function getStatusLabelAttribute(): string

@@ -1,12 +1,13 @@
 # ComercioPlus
 
-Documentacion oficial del proyecto:
+Documentacion oficial activa:
 
-- [UNIVERSAL_COMERCIOPLUS_AI](docs/UNIVERSAL_COMERCIOPLUS_AI.md)
-- [UNIVERSAL_COMERCIOPLUS](docs/UNIVERSAL_COMERCIOPLUS.md)
-- [DOC_GOVERNANCE](docs/DOC_GOVERNANCE.md)
-- [README docs](docs/README.md)
+- Canonico unico: `docs/UNIVERSAL_COMERCIOPLUS.md`
+- QA release report: `docs/QA_RELEASE_REPORT.md`
+- Dossier exposicion: `docs/EXPO_DOSSIER.md`
+- Gobierno documental: `docs/DOC_GOVERNANCE.md`
 
-Nota:
+Alias para IA (derivado, no canonico):
 
-- Para consumo de IA/reporte usa `docs/UNIVERSAL_COMERCIOPLUS_AI.md`.
+- `docs/UNIVERSAL_COMERCIOPLUS_AI.md`
+

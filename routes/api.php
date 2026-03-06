@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CartProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\BarcodeController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\ProductController;
@@ -85,13 +86,13 @@ Route::get('/register', fn () => response()->json([
     'message' => 'Metodo no permitido. Usa POST /api/register para crear cuenta.',
 ], 405));
 
-// Public aliases used by frontend and tests.
-Route::get('/public-stores', [StoreController::class, 'publicStores']);
-Route::get('/public-stores/{store}', [StoreController::class, 'show']);
+// Public catalog endpoints.
+Route::get('/hero-images', [StoreController::class, 'heroImages'])->middleware('throttle:60,1');
 Route::get('/public/products', [PublicProductController::class, 'index']);
 Route::get('/public/categories', [PublicCategoryController::class, 'index']);
 Route::get('/public/stores', [StoreController::class, 'publicStores']);
 Route::get('/public/stores/{store}', [StoreController::class, 'show']);
+Route::get('/public/barcode/search', [BarcodeController::class, 'publicSearch'])->middleware('throttle:60,1');
 
 // Public catalog used by frontend.
 Route::get('/products', [ProductController::class, 'index']);
@@ -192,6 +193,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/merchant/inventory/create-from-scan', [InventoryReceiveController::class, 'createFromScan']);
     Route::get('/merchant/inventory/movements', [InventoryReceiveController::class, 'movements']);
     Route::post('/merchant/products/lookup-code', [ProductCodeLookupController::class, 'lookup']);
+    Route::get('/products/{product}/barcode', [BarcodeController::class, 'show']);
+    Route::get('/barcode/search', [BarcodeController::class, 'search']);
+    Route::post('/barcode/generate-batch', [BarcodeController::class, 'generateBatch']);
 
     // Product/category management.
     Route::post('/products', [ProductController::class, 'store']);

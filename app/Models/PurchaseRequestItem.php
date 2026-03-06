@@ -16,6 +16,8 @@ class PurchaseRequestItem extends Model
         'suggested_qty',
         'ordered_qty',
         'last_cost',
+        'ai_reasoning',
+        'prediction_data',
     ];
 
     protected $casts = [
@@ -23,6 +25,7 @@ class PurchaseRequestItem extends Model
         'suggested_qty' => 'integer',
         'ordered_qty' => 'integer',
         'last_cost' => 'decimal:2',
+        'prediction_data' => 'array',
     ];
 
     public function purchaseRequest(): BelongsTo

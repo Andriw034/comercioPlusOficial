@@ -1,20 +1,14 @@
 # Documentacion Oficial ComercioPlus
 
-Documentos activos y funcionales:
+Estado documental desde 2026-03-05:
 
-- `docs/UNIVERSAL_COMERCIOPLUS_AI.md` (recomendado para IA/reportes, sin dumps historicos)
-- `docs/UNIVERSAL_COMERCIOPLUS.md` (version completa con trazabilidad historica)
-- `docs/DOC_GOVERNANCE.md` (politica de mantenimiento documental)
-- `docs/README_VALIDADOR.md` (guia de validacion tecnica pre-ejecucion)
+- Documento canonico unico: `docs/UNIVERSAL_COMERCIOPLUS.md`
+- Alias para IA (sin autoridad propia): `docs/UNIVERSAL_COMERCIOPLUS_AI.md`
+- Politica de gobierno documental: `docs/DOC_GOVERNANCE.md`
+- Plan/Reporte QA de release: `docs/QA_RELEASE_REPORT.md`
+- Dossier para exposicion: `docs/EXPO_DOSSIER.md`
 
-Entregables de distribucion:
+Regla:
 
-- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part1.zip`
-- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part2.zip`
-- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part3.zip`
-- `docs/UNIVERSAL_COMERCIOPLUS_FULL.part4.zip`
-- `docs/UNIVERSAL_FILE_INDEX.txt`
+- Si hay conflicto entre documentos, manda `docs/UNIVERSAL_COMERCIOPLUS.md`.
 
-Nota:
-
-- `repo-md` y `_archive` no son fuente oficial activa para decisiones tecnicas.

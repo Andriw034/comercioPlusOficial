@@ -54,7 +54,7 @@ export default function StoreProducts() {
     const loadStoreData = async () => {
       setIsLoading(true)
       try {
-        const storesResponse = await API.get('/public-stores', {
+        const storesResponse = await API.get('/public/stores', {
           params: { _t: Date.now() },
         })
         const allStores = extractList<StoreWithMeta>(storesResponse.data)

@@ -66,6 +66,49 @@ class StoreController extends Controller
         }
     }
 
+    /**
+     * Imagenes publicas para Home hero/slider.
+     */
+    public function heroImages(Request $request)
+    {
+        $limit = (int) $request->query('limit', 8);
+        $limit = max(1, min($limit, 12));
+
+        try {
+            $images = Store::query()
+                ->where('is_visible', true)
+                ->latest('updated_at')
+                ->limit($limit)
+                ->get()
+                ->map(function (Store $store) {
+                    $store = $this->withMediaUrls($store);
+                    $url = (string) ($store->cover_url ?: $store->background_url ?: $store->logo_url ?: '');
+
+                    return [
+                        'url' => $url,
+                        'title' => (string) $store->name,
+                        'store_id' => (int) $store->id,
+                    ];
+                })
+                ->filter(fn (array $item) => $item['url'] !== '')
+                ->values();
+
+            return response()->json([
+                'data' => $images,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Hero images listing failed', [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
+            return response()->json([
+                'message' => 'No fue posible cargar imagenes de portada.',
+                'data' => [],
+            ], 503);
+        }
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Create store

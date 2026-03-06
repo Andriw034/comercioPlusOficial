@@ -1,0 +1,947 @@
+﻿<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cliente-flow-hibrido</title>
+<!-- TOKENS -->
+<!-- BASE COMPONENTS -->
+<style>
+/* TOKENS */
+:root{--cp-bg:#f3f5f9;--cp-card:#fff;--cp-text:#0f172a;--cp-muted:#64748b;--cp-primary:#ff6a00;--cp-primary-600:#e65d00;--cp-border:#dbe2ee;--ok:#10b981;--err:#ef4444;--info:#2563eb;--radius-lg:16px;--radius-md:12px;--radius-sm:10px;--shadow-sm:0 2px 8px rgba(15,23,42,.06);--shadow-md:0 12px 30px rgba(15,23,42,.14);--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--font-sans:"Plus Jakarta Sans","Segoe UI",Arial,sans-serif;--text-sm:12px;--text-base:14px;--text-lg:18px;--text-xl:24px;--text-2xl:32px;--focus-ring:0 0 0 3px rgba(255,106,0,.2);--nav-h:58px;--z-nav:40;--z-toast:70;--z-modal:80}
+[data-theme="dark"]{--cp-bg:#0b1220;--cp-card:#0f172a;--cp-text:#e5e7eb;--cp-muted:#94a3b8;--cp-primary:#ff7f2a;--cp-primary-600:#ff6a00;--cp-border:#1f2a44;--shadow-sm:0 2px 8px rgba(2,6,23,.35);--shadow-md:0 12px 32px rgba(2,6,23,.55)}
+/* BASE COMPONENTS */
+*{box-sizing:border-box;margin:0;padding:0}html,body{min-height:100%;background:var(--cp-bg);color:var(--cp-text);font-family:var(--font-sans);line-height:1.4}body{font-size:var(--text-base)}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:none;background:transparent}a{text-decoration:none;color:inherit}:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.Container{width:min(1240px,100% - 32px);margin:0 auto}.Card{background:var(--cp-card);border:1px solid var(--cp-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+.is-hidden{display:none!important}
+.Button{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);border-radius:var(--radius-sm);font-weight:700;font-size:var(--text-base);padding:10px 14px;border:1px solid transparent;min-height:40px;transition:.18s}.Button--primary{background:var(--cp-primary);color:#fff}.Button--primary:hover{background:var(--cp-primary-600)}.Button--secondary{background:var(--cp-card);border-color:var(--cp-border);color:var(--cp-text)}.Button--ghost{background:transparent;border-color:var(--cp-border);color:var(--cp-muted)}
+.Badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;border:1px solid transparent;text-transform:uppercase;letter-spacing:.04em}.Badge--orange{background:#fff5ec;color:#b45309;border-color:#fed7aa}.Badge--green{background:#ecfdf5;color:#047857;border-color:#a7f3d0}.Badge--blue{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.Input{width:100%;min-height:40px;border-radius:var(--radius-sm);border:1px solid var(--cp-border);padding:10px 12px;background:var(--cp-card);color:var(--cp-text)}.Input::placeholder{color:#94a3b8}
+.Skeleton{background:linear-gradient(90deg,#eef2f7 25%,#f8fafc 37%,#eef2f7 63%);background-size:400% 100%;animation:shimmer 1.2s ease-in-out infinite;border-radius:var(--radius-md)}[data-theme="dark"] .Skeleton{background:linear-gradient(90deg,#1a253c 25%,#243554 37%,#1a253c 63%);background-size:400% 100%}@keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+.Screen{display:none;min-height:calc(100vh - var(--nav-h));padding:24px 0 48px}.Screen.is-active{display:block}.ScreenTitle{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);margin-bottom:var(--space-5)}.ScreenTitle h1{font-size:var(--text-xl);font-weight:900}.ScreenSubtitle{color:var(--cp-muted);font-size:var(--text-base)}
+.Grid{display:grid;gap:var(--space-4)}.Grid--2,.Grid--3,.Grid--4,.Grid--5{grid-template-columns:1fr}
+.Nav{position:sticky;top:0;z-index:var(--z-nav);backdrop-filter:blur(12px);background:color-mix(in srgb,var(--cp-card) 88%,transparent);border-bottom:1px solid var(--cp-border);height:var(--nav-h)}.Nav-inner{height:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:var(--space-4)}.Nav-brand{display:inline-flex;align-items:center;gap:var(--space-2);font-weight:900;color:var(--cp-primary)}.Nav-brandMark{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#ff9838,#ff6a00);color:#fff;display:grid;place-items:center;font-size:13px}.Nav-links{display:flex;gap:4px;overflow:auto;scrollbar-width:none}.Nav-links::-webkit-scrollbar{display:none}.Nav-link{padding:7px 10px;border-radius:9px;font-size:var(--text-sm);font-weight:700;color:var(--cp-muted);white-space:nowrap}.Nav-link.is-active,.Nav-link:hover{background:#fff2e8;color:var(--cp-primary)}[data-theme="dark"] .Nav-link.is-active,[data-theme="dark"] .Nav-link:hover{background:rgba(255,106,0,.16)}.Nav-actions{display:inline-flex;align-items:center;gap:var(--space-2)}.Nav-cart,.ThemeToggle{width:36px;height:36px;border-radius:10px;border:1px solid var(--cp-border);display:grid;place-items:center;background:var(--cp-card);color:var(--cp-muted)}.Nav-cart{position:relative}.Nav-cartCount{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:999px;background:var(--cp-primary);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.HomeHero{display:grid;grid-template-columns:1fr;gap:var(--space-4);padding:var(--space-5);margin-bottom:var(--space-5)}.HomeHero-copy h1{font-size:var(--text-2xl);font-weight:900;line-height:1.1;margin-bottom:var(--space-3)}.HomeHero-copy p{color:var(--cp-muted);margin-bottom:var(--space-4)}.HomeMetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);margin-top:var(--space-4)}.HomeMetric{border:1px solid var(--cp-border);border-radius:var(--radius-md);padding:var(--space-3)}.HomeMetric strong{display:block;font-size:var(--text-lg);font-weight:900}.HomeMetric span{color:var(--cp-muted);font-size:var(--text-sm)}
+.HomeHero-media{position:relative;min-height:230px;border:1px solid var(--cp-border);border-radius:var(--radius-lg);overflow:hidden;background:#111827}.HomeHero-image{width:100%;height:100%;object-fit:cover;display:block}.HomeHero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(2,6,23,.78),rgba(2,6,23,.24) 70%,rgba(2,6,23,.1))}.HomeHero-caption{position:absolute;left:0;right:0;bottom:0;padding:var(--space-4);color:#fff;z-index:2}.HomeHero-caption h3{font-size:var(--text-lg);font-weight:900}.HomeHero-caption p{font-size:var(--text-sm);opacity:.9;margin-top:var(--space-1)}.HomeHero-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);margin-top:var(--space-3)}.HomeHero-thumb{border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--cp-border);min-height:68px;background:var(--cp-card)}.HomeHero-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.HomeImageSkeleton{height:100%;min-height:220px}.HomeHero-thumb .Skeleton{width:100%;height:100%}
+.StoreCard{overflow:hidden;display:flex;flex-direction:column}.StoreCard-cover{height:110px;position:relative;background:linear-gradient(135deg,#1e293b,#334155)}.StoreCard-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(2,6,23,.66),rgba(2,6,23,.2))}.StoreCard-logo{position:absolute;left:var(--space-4);bottom:-20px;width:52px;height:52px;border-radius:13px;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.14);display:grid;place-items:center;color:#fff;font-weight:900}.StoreCard-body{padding:28px var(--space-4) var(--space-4);display:grid;gap:var(--space-2)}.StoreCard-body h3{font-size:var(--text-lg);font-weight:900}.StoreCard-body p{color:var(--cp-muted);font-size:var(--text-sm)}
+.StoreHeader{overflow:hidden;margin-bottom:var(--space-4)}.StoreHeader-cover{height:220px;position:relative;background:linear-gradient(135deg,#0f172a,#334155)}.StoreHeader-scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(2,6,23,.82),rgba(2,6,23,.34) 60%,rgba(2,6,23,.2))}.StoreHeader-content{position:absolute;left:var(--space-5);right:var(--space-5);bottom:var(--space-4);display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4);color:#fff;z-index:2}.StoreHeader-brand{display:flex;align-items:center;gap:var(--space-3)}.StoreHeader-logo{width:64px;height:64px;border-radius:15px;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:22px;font-weight:900}.StoreHeader-copy h2{font-size:var(--text-xl);font-weight:900;margin-bottom:var(--space-1)}.StoreHeader-copy p{font-size:var(--text-sm);opacity:.92}
+.Catalog-layout{display:grid;grid-template-columns:1fr;gap:var(--space-4);align-items:start}.Catalog-filtersToggle{display:inline-flex;margin-bottom:var(--space-3)}.Catalog-filters{display:none;gap:var(--space-4);padding:var(--space-4)}.Catalog-filters.is-open{display:grid}.FilterBlock h3{font-size:var(--text-sm);font-weight:900;text-transform:uppercase;color:var(--cp-muted);margin-bottom:var(--space-2);letter-spacing:.05em}.FilterList{list-style:none;display:grid;gap:var(--space-2)}.FilterItem{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}
+.ProductGrid{display:grid;grid-template-columns:1fr;gap:var(--space-4)}.ProductCard{display:grid;grid-template-rows:auto 1fr;overflow:hidden}.ProductCard-media{min-height:160px;border-bottom:1px solid var(--cp-border);background:linear-gradient(130deg,#f8fafc,#e2e8f0);display:grid;place-items:center;color:#94a3b8;font-weight:800;font-size:var(--text-sm);position:relative}[data-theme="dark"] .ProductCard-media{background:linear-gradient(130deg,#0b1220,#1f2a44);color:#64748b}.ProductCard-code{position:absolute;top:var(--space-2);right:var(--space-2)}.ProductCard-body{padding:var(--space-3);display:grid;gap:var(--space-2)}.ProductCard-store{font-size:11px;color:var(--cp-primary);font-weight:800;text-transform:uppercase;letter-spacing:.04em}.ProductCard-title{font-size:var(--text-base);font-weight:800}.ProductCard-price{font-size:var(--text-lg);font-weight:900;color:var(--cp-primary)}
+.ProductDetail{display:grid;grid-template-columns:1fr;gap:var(--space-4)}.ProductDetail-gallery{min-height:320px;border:1px solid var(--cp-border);border-radius:var(--radius-lg);background:linear-gradient(135deg,#f8fafc,#e2e8f0);display:grid;place-items:center;color:#94a3b8;font-size:44px}[data-theme="dark"] .ProductDetail-gallery{background:linear-gradient(135deg,#0b1220,#1f2a44)}.ProductDetail-info{padding:var(--space-4);display:grid;gap:var(--space-3)}.ProductDetail-title{font-size:var(--text-xl);font-weight:900}.ProductDetail-price{font-size:36px;color:var(--cp-primary);font-weight:900}.ProductCodeCard{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--cp-border);border-radius:var(--radius-md)}.ProductCodeValue{font-family:"Cascadia Code",Consolas,monospace;font-weight:800;letter-spacing:.03em}
+.CartLayout{display:grid;grid-template-columns:1fr;gap:var(--space-4)}.CartGroups{display:grid;gap:var(--space-4)}.CartStoreGroup{overflow:hidden;border-radius:var(--radius-lg);border:1px solid var(--cp-border);background:var(--cp-card);box-shadow:var(--shadow-sm)}.CartStoreGroup-header{padding:var(--space-4);background:linear-gradient(135deg,#1e293b,#334155);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:var(--space-3)}.CartStoreGroup-title{font-size:var(--text-lg);font-weight:900}.CartStoreGroup-items{display:grid;gap:var(--space-3);padding:var(--space-4)}.CartItem{display:grid;grid-template-columns:auto 1fr auto;gap:var(--space-3);align-items:center;padding:var(--space-3);border:1px solid var(--cp-border);border-radius:var(--radius-md)}.CartItem-thumb{width:62px;height:62px;border-radius:var(--radius-sm);background:linear-gradient(130deg,#f8fafc,#e2e8f0);border:1px solid var(--cp-border)}.CartItem-name{font-weight:800;margin-bottom:var(--space-1)}.CartItem-meta{color:var(--cp-muted);font-size:var(--text-sm)}.CartItem-total{font-weight:900;color:var(--cp-primary);text-align:right}
+.SummaryCard{padding:var(--space-4);display:grid;gap:var(--space-3);align-self:start}.SummaryLine{display:flex;justify-content:space-between;font-size:var(--text-base);color:var(--cp-muted)}.SummaryLine strong{color:var(--cp-text)}.SummaryTotal{display:flex;justify-content:space-between;align-items:baseline;padding-top:var(--space-3);border-top:1px solid var(--cp-border)}.SummaryTotal strong{font-size:var(--text-xl);color:var(--cp-primary)}
+.Stepper{display:flex;align-items:center;gap:var(--space-2);overflow:auto;padding-bottom:var(--space-2);margin-bottom:var(--space-4)}.Stepper-step{width:30px;height:30px;border-radius:999px;border:1px solid var(--cp-border);display:grid;place-items:center;font-size:11px;font-weight:900;color:var(--cp-muted);background:var(--cp-card);flex-shrink:0}.Stepper-step.is-done{background:var(--ok);border-color:var(--ok);color:#fff}.Stepper-step.is-active{background:var(--cp-primary);border-color:var(--cp-primary);color:#fff}.Stepper-line{width:44px;height:2px;background:var(--cp-border);flex-shrink:0}.Stepper-line.is-done{background:var(--ok)}
+.FormGrid{display:grid;grid-template-columns:1fr;gap:var(--space-3)}.FormLabel{display:grid;gap:var(--space-1);font-size:var(--text-sm);font-weight:700;color:var(--cp-muted)}.PaymentTabs{display:flex;gap:var(--space-2);overflow:auto;border-bottom:1px solid var(--cp-border);margin-bottom:var(--space-4)}.PaymentTab{padding:10px 12px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;color:var(--cp-muted);font-weight:700;border:1px solid transparent;border-bottom:none;white-space:nowrap}.PaymentTab.is-active{background:color-mix(in srgb,var(--cp-primary) 8%,var(--cp-card) 92%);border-color:var(--cp-border);color:var(--cp-primary)}
+.SuccessPanel{padding:var(--space-5);text-align:center;background:linear-gradient(to bottom,#ecfdf5,var(--cp-card))}[data-theme="dark"] .SuccessPanel{background:linear-gradient(to bottom,#0f2a22,var(--cp-card))}.SuccessIcon{width:84px;height:84px;border-radius:999px;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:38px;font-weight:900;margin:0 auto var(--space-3)}
+.BarcodeSearch{display:grid;gap:var(--space-4);max-width:860px;margin:0 auto}.BarcodeActions{display:grid;grid-template-columns:1fr auto;gap:var(--space-2)}.BarcodeResult{display:none;gap:var(--space-3);padding:var(--space-4)}.BarcodeResult.is-visible{display:grid}.BarcodeEmpty{padding:var(--space-5);text-align:center;color:var(--cp-muted)}
+.Modal{position:fixed;inset:0;z-index:var(--z-modal);display:none;align-items:center;justify-content:center;padding:var(--space-4);background:rgba(2,6,23,.58);backdrop-filter:blur(4px)}.Modal.is-open{display:flex}.Modal-dialog{width:min(680px,100%);max-height:88vh;overflow:auto;background:var(--cp-card);border:1px solid var(--cp-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md)}.Modal-header,.Modal-footer{padding:var(--space-4);display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}.Modal-header{border-bottom:1px solid var(--cp-border)}.Modal-footer{border-top:1px solid var(--cp-border)}.Modal-header h3{font-size:var(--text-lg);font-weight:900}.Modal-body{padding:var(--space-4);display:grid;gap:var(--space-3)}
+.ScannerViewport{position:relative;min-height:280px;border-radius:var(--radius-md);overflow:hidden;background:#020617;border:1px solid #1e293b}.ScannerViewport video{width:100%;height:100%;object-fit:cover;display:block}.ScannerViewfinder{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}.ScannerBox{width:min(75%,360px);height:min(48%,180px);border:3px solid var(--cp-primary);border-radius:10px;box-shadow:0 0 0 9999px rgba(2,6,23,.4);position:relative;overflow:hidden}.ScannerLine{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(to right,transparent,var(--cp-primary),transparent);animation:scanline 1.8s linear infinite}@keyframes scanline{0%{transform:translateY(0)}50%{transform:translateY(170px)}100%{transform:translateY(0)}}
+.Toast{position:fixed;right:20px;bottom:20px;z-index:var(--z-toast);display:none;max-width:420px;padding:12px 14px;border-radius:var(--radius-sm);box-shadow:var(--shadow-md);color:#fff;font-size:var(--text-sm);font-weight:700}.Toast.is-show{display:block;animation:tin .2s ease-out}.Toast--success{background:#059669}.Toast--error{background:#dc2626}.Toast--info{background:#1d4ed8}@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(min-width:768px){.Grid--2{grid-template-columns:repeat(2,minmax(0,1fr))}.Grid--3{grid-template-columns:repeat(2,minmax(0,1fr))}.Grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.Grid--5{grid-template-columns:repeat(3,minmax(0,1fr))}.HomeHero{grid-template-columns:1fr 1fr;align-items:center}.ProductGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.CartLayout{grid-template-columns:1fr 320px}.FormGrid{grid-template-columns:1fr 1fr}.ProductDetail{grid-template-columns:1fr 1fr}}
+@media(min-width:1100px){.Grid--3{grid-template-columns:repeat(3,minmax(0,1fr))}.Grid--4{grid-template-columns:repeat(4,minmax(0,1fr))}.Grid--5{grid-template-columns:repeat(5,minmax(0,1fr))}.Catalog-layout{grid-template-columns:280px 1fr}.Catalog-filtersToggle{display:none}.Catalog-filters{display:grid;position:sticky;top:calc(var(--nav-h) + 16px)}.ProductGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div id="app">
+<header class="Nav" aria-label="Navegacion principal">
+  <div class="Container Nav-inner">
+    <button class="Nav-brand" data-route="home" type="button"><span class="Nav-brandMark">C+</span><span>ComercioPlus</span></button>
+    <nav class="Nav-links" aria-label="Secciones">
+      <button class="Nav-link is-active" data-route="home" type="button">Inicio</button>
+      <button class="Nav-link" data-route="stores" type="button">Tiendas</button>
+      <button class="Nav-link" data-route="catalog" type="button">Catalogo</button>
+      <button class="Nav-link" data-route="barcode-search" type="button">Buscar por codigo</button>
+    </nav>
+    <div class="Nav-actions">
+      <button id="theme-toggle" class="ThemeToggle" type="button" aria-label="Cambiar tema">◐</button>
+      <button class="Nav-cart" data-route="cart" type="button" aria-label="Ir al carrito"><span>🛒</span><span id="nav-cart-count" class="Nav-cartCount">0</span></button>
+    </div>
+  </div>
+</header>
+<main id="app-main">
+<!-- SCREENS -->
+<section id="screen-home" class="Screen is-active" data-screen="home">
+  <div class="Container">
+    <article class="Card HomeHero">
+      <div class="HomeHero-copy">
+        <h1>Todo para tu moto en un solo flujo digital</h1>
+        <p>Encuentra productos por tienda, compra seguro y usa busqueda por codigo para encontrar mas rapido.</p>
+        <div class="Grid Grid--2">
+          <button class="Button Button--primary" data-route="catalog" type="button">Ver catalogo</button>
+          <button class="Button Button--secondary" data-route="barcode-search" type="button">Buscar por codigo</button>
+        </div>
+        <div class="HomeMetrics" id="home-metrics"></div>
+      </div>
+      <div>
+        <div class="HomeHero-media" id="home-image-stage" aria-live="polite"></div>
+        <div class="HomeHero-thumbs" id="home-image-thumbs"></div>
+      </div>
+    </article>
+    <div class="ScreenTitle"><div><h1>Tiendas destacadas</h1><p class="ScreenSubtitle">Comercios verificados listos para despachar</p></div><button class="Button Button--secondary" data-route="stores" type="button">Ver todas</button></div>
+    <div id="home-stores-grid" class="Grid Grid--3"></div>
+  </div>
+</section>
+
+<section id="screen-stores" class="Screen" data-screen="stores">
+  <div class="Container">
+    <div class="ScreenTitle"><div><h1>Tiendas</h1><p class="ScreenSubtitle">Listado base de diseno</p></div></div>
+    <div id="stores-grid" class="Grid Grid--2"></div>
+  </div>
+</section>
+
+<section id="screen-store" class="Screen" data-screen="store">
+  <div class="Container">
+    <article class="StoreHeader Card">
+      <div class="StoreHeader-cover">
+        <div class="StoreHeader-scrim"></div>
+        <div class="StoreHeader-content">
+          <div class="StoreHeader-brand"><div id="store-logo" class="StoreHeader-logo">TM</div><div class="StoreHeader-copy"><h2 id="store-name">Tienda</h2><p id="store-description">Descripcion</p></div></div>
+          <button class="Button Button--primary" type="button">Seguir</button>
+        </div>
+      </div>
+    </article>
+    <div class="ScreenTitle"><div><h1>Productos de la tienda</h1><p class="ScreenSubtitle">Catalogo filtrado por tienda activa</p></div><button class="Button Button--secondary" data-route="catalog" type="button">Catalogo general</button></div>
+    <div id="store-products-grid" class="ProductGrid"></div>
+  </div>
+</section>
+
+<section id="screen-catalog" class="Screen" data-screen="catalog">
+  <div class="Container">
+    <div class="ScreenTitle"><div><h1>Catalogo</h1><p class="ScreenSubtitle">Filtros y busqueda por nombre/SKU/codigo</p></div><button id="catalog-filter-toggle" class="Button Button--secondary Catalog-filtersToggle" type="button">Filtros</button></div>
+    <div class="Catalog-layout">
+      <aside id="catalog-filters" class="Catalog-filters Card" aria-label="Panel de filtros">
+        <div class="FilterBlock"><h3>Buscar</h3><input id="catalog-search" class="Input" type="text" placeholder="Nombre, SKU o codigo"></div>
+        <div class="FilterBlock">
+          <h3>Categorias</h3>
+          <ul class="FilterList">
+            <li class="FilterItem"><input type="radio" name="categoryFilter" value="all" checked><span>Todas</span></li>
+            <li class="FilterItem"><input type="radio" name="categoryFilter" value="Llantas"><span>Llantas</span></li>
+            <li class="FilterItem"><input type="radio" name="categoryFilter" value="Transmision"><span>Transmision</span></li>
+            <li class="FilterItem"><input type="radio" name="categoryFilter" value="Aceites"><span>Aceites</span></li>
+            <li class="FilterItem"><input type="radio" name="categoryFilter" value="Cascos"><span>Cascos</span></li>
+          </ul>
+        </div>
+        <button id="catalog-clear" class="Button Button--secondary" type="button">Limpiar filtros</button>
+      </aside>
+      <div>
+        <div class="ScreenTitle"><div><h1 id="catalog-title">Todos los productos</h1><p id="catalog-count" class="ScreenSubtitle">0 productos encontrados</p></div><button class="Button Button--secondary" data-route="barcode-search" type="button">Escanear codigo</button></div>
+        <div id="catalog-grid" class="ProductGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="screen-product" class="Screen" data-screen="product">
+  <div class="Container">
+    <div class="ProductDetail">
+      <div class="ProductDetail-gallery Card" id="product-gallery">🏍</div>
+      <article class="Card ProductDetail-info">
+        <div><p class="ScreenSubtitle" id="product-store-name">Tienda</p><h1 id="product-title" class="ProductDetail-title">Producto</h1></div>
+        <p id="product-description" class="ScreenSubtitle">Descripcion</p>
+        <p id="product-price" class="ProductDetail-price">$0</p>
+        <div id="product-code-card" class="ProductCodeCard"><div><p class="ScreenSubtitle">Codigo del producto</p><p id="product-code-value" class="ProductCodeValue">-</p></div><button id="product-copy-code" class="Button Button--secondary" type="button">Copiar codigo</button></div>
+        <p id="product-stock" class="ScreenSubtitle">Stock: 0</p>
+        <div class="Grid Grid--2"><button id="product-add-cart" class="Button Button--primary" type="button">Agregar al carrito</button><button class="Button Button--secondary" data-route="cart" type="button">Ir al carrito</button></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="screen-cart" class="Screen" data-screen="cart">
+  <div class="Container">
+    <div class="ScreenTitle"><div><h1>Carrito multi-tienda</h1><p class="ScreenSubtitle">Finaliza por tienda para mantener operacion clara</p></div></div>
+    <div class="CartLayout">
+      <div id="cart-groups" class="CartGroups"></div>
+      <aside class="Card SummaryCard"><h2>Resumen global</h2><div class="SummaryLine"><span>Subtotal</span><strong id="cart-subtotal">$0</strong></div><div class="SummaryLine"><span>Envio</span><strong>Gratis</strong></div><div class="SummaryTotal"><span>Total</span><strong id="cart-total">$0</strong></div><p class="ScreenSubtitle">Finaliza por tienda desde cada bloque.</p></aside>
+    </div>
+  </div>
+</section>
+
+<section id="screen-checkout" class="Screen" data-screen="checkout">
+  <div class="Container">
+    <div id="checkout-stepper" class="Stepper"></div>
+    <div class="CartLayout">
+      <article class="Card SummaryCard">
+        <h2>Checkout</h2>
+        <div class="FormGrid"><label class="FormLabel">Nombre completo<input class="Input" type="text" placeholder="Juan Perez"></label><label class="FormLabel">Telefono<input class="Input" type="text" placeholder="300 123 4567"></label></div>
+        <div class="FormGrid"><label class="FormLabel">Ciudad<select class="Input"><option>Bogota</option><option>Medellin</option></select></label><label class="FormLabel">Direccion<input class="Input" type="text" placeholder="Calle 45 #12-34"></label></div>
+        <div class="FormLabel">Metodo de pago<label class="FilterItem"><input type="radio" name="pay" checked><span>Wompi</span></label><label class="FilterItem"><input type="radio" name="pay"><span>Contra entrega</span></label></div>
+        <button id="go-payment" class="Button Button--primary" type="button">Continuar a pago</button>
+      </article>
+      <aside class="Card SummaryCard"><h2>Resumen tienda</h2><div id="checkout-summary-lines"></div><div class="SummaryTotal"><span>Total</span><strong id="checkout-total">$0</strong></div><p id="checkout-store-name" class="ScreenSubtitle"></p></aside>
+    </div>
+  </div>
+</section>
+
+<section id="screen-payment" class="Screen" data-screen="payment">
+  <div class="Container">
+    <div id="payment-stepper" class="Stepper"></div>
+    <article class="Card SummaryCard">
+      <h2>Pago</h2>
+      <div class="PaymentTabs"><button class="PaymentTab is-active" type="button">Tarjeta</button><button class="PaymentTab" type="button">PSE</button><button class="PaymentTab" type="button">Nequi</button></div>
+      <div class="FormGrid"><label class="FormLabel">Numero de tarjeta<input class="Input" type="text" placeholder="1234 5678 9012 3456"></label><label class="FormLabel">Nombre en tarjeta<input class="Input" type="text" placeholder="JUAN PEREZ"></label><label class="FormLabel">Vencimiento<input class="Input" type="text" placeholder="MM/AA"></label><label class="FormLabel">CVV<input class="Input" type="text" placeholder="123"></label></div>
+      <button id="confirm-payment" class="Button Button--primary" type="button">Confirmar pago</button>
+      <p class="ScreenSubtitle">Pago seguro gestionado por Wompi.</p>
+    </article>
+  </div>
+</section>
+
+<section id="screen-success" class="Screen" data-screen="success">
+  <div class="Container">
+    <article class="Card SuccessPanel"><div class="SuccessIcon">✓</div><h1>Compra exitosa</h1><p class="ScreenSubtitle">Tu pedido fue confirmado y esta en preparacion</p></article>
+    <article class="Card SummaryCard"><h2>Estado del pedido</h2><div class="SummaryLine"><span>Pedido</span><strong>#CPL-2026-0042</strong></div><div class="SummaryLine"><span>Fecha</span><strong>05 Mar 2026</strong></div><div class="SummaryLine"><span>Estado</span><strong>Preparando</strong></div><div class="SummaryLine"><span>Entrega estimada</span><strong>06 Mar 2026</strong></div><div class="Grid Grid--2"><button class="Button Button--secondary" type="button">Seguir pedido</button><button class="Button Button--primary" data-route="home" type="button">Volver al inicio</button></div></article>
+  </div>
+</section>
+
+<section id="screen-barcode-search" class="Screen" data-screen="barcode-search">
+  <div class="Container">
+    <div class="BarcodeSearch">
+      <div class="ScreenTitle"><div><h1>Buscar producto por codigo</h1><p class="ScreenSubtitle">Input manual + scanner de camara con fallback</p></div></div>
+      <article class="Card SummaryCard"><label class="FormLabel">Codigo de barras o SKU<input id="barcode-input" class="Input" type="text" placeholder="Ej: CP00010000123400"></label><div class="BarcodeActions"><button id="barcode-search-btn" class="Button Button--primary" type="button">Buscar</button><button id="barcode-open-scanner" class="Button Button--secondary" type="button">Escanear con camara</button></div></article>
+      <article id="barcode-result" class="Card BarcodeResult"></article>
+      <article id="barcode-empty" class="Card BarcodeEmpty"><p>Ingresa o escanea un codigo para mostrar resultados.</p></article>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- MODALS -->
+<div id="modal-scanner" class="Modal" aria-hidden="true">
+  <div class="Modal-dialog" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
+    <header class="Modal-header"><h3 id="scanner-title">Scanner de codigo</h3><button class="Button Button--ghost" data-modal-close="modal-scanner" type="button">Cerrar</button></header>
+    <div class="Modal-body">
+      <div class="ScannerViewport"><video id="scanner-video" playsinline muted></video><div class="ScannerViewfinder" aria-hidden="true"><div class="ScannerBox"><span class="ScannerLine"></span></div></div></div>
+      <p id="scanner-status" class="ScreenSubtitle">Solicitando permisos de camara...</p>
+      <label class="FormLabel">Fallback manual<input id="scanner-manual-input" class="Input" type="text" placeholder="Codigo manual"></label>
+      <button id="scanner-manual-submit" class="Button Button--primary" type="button">Usar codigo</button>
+    </div>
+    <footer class="Modal-footer"><button class="Button Button--secondary" data-modal-close="modal-scanner" type="button">Cancelar</button></footer>
+  </div>
+</div>
+
+<div id="app-toast" class="Toast Toast--info" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- JS MODULES -->
+<script>
+(() => {
+  const MOCK = {
+    stores: [
+      { id: 1, name: "todo motos Pipe", logo: "TM", description: "Repuestos y accesorios para motos deportivas.", cover: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80" },
+      { id: 2, name: "Moto Repuestos JR", logo: "MR", description: "Especialistas en mantenimiento y lubricantes.", cover: "https://images.unsplash.com/photo-1518655048521-f130df041f66?w=1200&q=80" }
+    ],
+    products: [
+      { id: 101, storeId: 1, name: "Neumatico 300X18 Deportivo", category: "Llantas", price: 56000, code: "CP00010000123400", sku: "NT-300X18", stock: 12 },
+      { id: 102, storeId: 1, name: "Cadena 520 Reforzada", category: "Transmision", price: 85000, code: "CP00010000123401", sku: "CD-520-R", stock: 15 },
+      { id: 103, storeId: 1, name: "Pastillas de freno delanteras", category: "Transmision", price: 39000, code: "CP00010000123402", sku: "PF-DEL-10", stock: 19 },
+      { id: 104, storeId: 1, name: "Casco integral Urban Pro", category: "Cascos", price: 220000, code: "CP00010000123403", sku: "CS-URB-01", stock: 6 },
+      { id: 201, storeId: 2, name: "Aceite 20W50 sintetico", category: "Aceites", price: 28900, code: "CP00020000123410", sku: "AC-20W50-S", stock: 8 },
+      { id: 202, storeId: 2, name: "Filtro de aceite premium", category: "Aceites", price: 21000, code: "CP00020000123411", sku: "FL-OL-02", stock: 21 },
+      { id: 203, storeId: 2, name: "Kit limpieza cadena", category: "Transmision", price: 46000, code: "CP00020000123412", sku: "KIT-CLN-1", stock: 10 },
+      { id: 204, storeId: 2, name: "Guantes touring pro", category: "Cascos", price: 79000, code: "CP00020000123413", sku: "GNT-TR-1", stock: 9 }
+    ],
+    fallbackImages: [
+      { url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1400&q=80", title: "Operaciones de alto volumen" },
+      { url: "https://images.unsplash.com/photo-1529074963764-98f45c47344b?w=1400&q=80", title: "Catalogo para repuestos y accesorios" },
+      { url: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1400&q=80", title: "Gestion visual de inventario" }
+    ]
+  };
+
+  const state = { screen: "home", storeId: 1, productId: 101, cart: { 101: 1, 102: 2, 201: 1 }, checkoutStep: 2 };
+
+  const refs = {
+    navLinks: Array.from(document.querySelectorAll("[data-route]")),
+    screens: Array.from(document.querySelectorAll(".Screen")),
+    navCartCount: document.getElementById("nav-cart-count"),
+    toast: document.getElementById("app-toast"),
+    homeImageStage: document.getElementById("home-image-stage"),
+    homeImageThumbs: document.getElementById("home-image-thumbs"),
+    homeStoresGrid: document.getElementById("home-stores-grid"),
+    homeMetrics: document.getElementById("home-metrics"),
+    storesGrid: document.getElementById("stores-grid"),
+    storeProductsGrid: document.getElementById("store-products-grid"),
+    catalogGrid: document.getElementById("catalog-grid"),
+    catalogCount: document.getElementById("catalog-count"),
+    catalogSearch: document.getElementById("catalog-search"),
+    catalogFilters: document.getElementById("catalog-filters"),
+    catalogFilterToggle: document.getElementById("catalog-filter-toggle"),
+    productTitle: document.getElementById("product-title"),
+    productStoreName: document.getElementById("product-store-name"),
+    productDescription: document.getElementById("product-description"),
+    productPrice: document.getElementById("product-price"),
+    productStock: document.getElementById("product-stock"),
+    productCodeCard: document.getElementById("product-code-card"),
+    productCodeValue: document.getElementById("product-code-value"),
+    productCopyCode: document.getElementById("product-copy-code"),
+    productAddCart: document.getElementById("product-add-cart"),
+    cartGroups: document.getElementById("cart-groups"),
+    cartSubtotal: document.getElementById("cart-subtotal"),
+    cartTotal: document.getElementById("cart-total"),
+    checkoutStoreName: document.getElementById("checkout-store-name"),
+    checkoutSummaryLines: document.getElementById("checkout-summary-lines"),
+    checkoutTotal: document.getElementById("checkout-total"),
+    checkoutStepper: document.getElementById("checkout-stepper"),
+    paymentStepper: document.getElementById("payment-stepper"),
+    barcodeInput: document.getElementById("barcode-input"),
+    barcodeResult: document.getElementById("barcode-result"),
+    barcodeEmpty: document.getElementById("barcode-empty"),
+    barcodeSearchBtn: document.getElementById("barcode-search-btn"),
+    barcodeOpenScanner: document.getElementById("barcode-open-scanner"),
+    scannerModal: document.getElementById("modal-scanner"),
+    scannerVideo: document.getElementById("scanner-video"),
+    scannerStatus: document.getElementById("scanner-status"),
+    scannerManualInput: document.getElementById("scanner-manual-input"),
+    scannerManualSubmit: document.getElementById("scanner-manual-submit"),
+    themeToggle: document.getElementById("theme-toggle"),
+    goPayment: document.getElementById("go-payment"),
+    confirmPayment: document.getElementById("confirm-payment"),
+    storeName: document.getElementById("store-name"),
+    storeDescription: document.getElementById("store-description"),
+    storeLogo: document.getElementById("store-logo")
+  };
+
+  const fmtCurrency = (value) => `$${Number(value || 0).toLocaleString("es-CO")}`;
+  const byId = (id) => document.getElementById(id);
+  const productById = (id) => MOCK.products.find((p) => p.id === Number(id));
+  const storeById = (id) => MOCK.stores.find((s) => s.id === Number(id));
+  const getCartCount = () => Object.values(state.cart).reduce((a, b) => a + b, 0);
+
+  const toast = {
+    timeoutId: null,
+    show(message, type = "info") {
+      refs.toast.textContent = message;
+      refs.toast.className = `Toast Toast--${type} is-show`;
+      clearTimeout(this.timeoutId);
+      this.timeoutId = setTimeout(() => refs.toast.classList.remove("is-show"), 2800);
+    }
+  };
+
+  const modal = {
+    activeId: null,
+    previousFocus: null,
+    trapHandler: null,
+    open(id) {
+      const el = byId(id); if (!el) return;
+      this.previousFocus = document.activeElement;
+      el.classList.add("is-open");
+      el.setAttribute("aria-hidden", "false");
+      this.activeId = id;
+      this.enableFocusTrap(el);
+      const first = this.getFocusable(el)[0]; if (first) first.focus();
+      document.body.style.overflow = "hidden";
+    },
+    close(id) {
+      const el = byId(id); if (!el) return;
+      el.classList.remove("is-open");
+      el.setAttribute("aria-hidden", "true");
+      this.disableFocusTrap();
+      this.activeId = null;
+      document.body.style.overflow = "";
+      if (this.previousFocus && typeof this.previousFocus.focus === "function") this.previousFocus.focus();
+    },
+    getFocusable(root) {
+      return Array.from(root.querySelectorAll("button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])"));
+    },
+    enableFocusTrap(root) {
+      const handler = (event) => {
+        if (event.key === "Escape" && this.activeId) {
+          if (this.activeId === "modal-scanner") scanner.close(); else this.close(this.activeId);
+          return;
+        }
+        if (event.key !== "Tab") return;
+        const list = this.getFocusable(root); if (!list.length) return;
+        const first = list[0], last = list[list.length - 1], active = document.activeElement;
+        if (event.shiftKey && active === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
+      };
+      this.trapHandler = handler;
+      document.addEventListener("keydown", handler);
+    },
+    disableFocusTrap() { if (this.trapHandler) document.removeEventListener("keydown", this.trapHandler); this.trapHandler = null; }
+  };
+
+  const router = {
+    show(screenId) {
+      state.screen = screenId;
+      refs.screens.forEach((screen) => screen.classList.toggle("is-active", screen.dataset.screen === screenId));
+      refs.navLinks.forEach((link) => { if (link.classList.contains("Nav-link")) link.classList.toggle("is-active", link.dataset.route === screenId); });
+      if (screenId === "store") renderStoreScreen();
+      if (screenId === "catalog") renderCatalog();
+      if (screenId === "product") renderProductDetail();
+      if (screenId === "cart") renderCart();
+      if (screenId === "checkout") renderCheckout();
+      if (screenId === "payment") renderPayment();
+      if (screenId === "barcode-search") search.reset();
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  };
+
+  const scanner = {
+    stream: null,
+    detecting: false,
+    intervalId: null,
+    lastCode: "",
+    async open() {
+      modal.open("modal-scanner");
+      refs.scannerStatus.textContent = "Solicitando permisos de camara...";
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        refs.scannerStatus.textContent = "Camara no soportada. Usa fallback manual.";
+        toast.show("Camara no disponible.", "error");
+        return;
+      }
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" } } });
+        refs.scannerVideo.srcObject = this.stream;
+        await refs.scannerVideo.play();
+        refs.scannerStatus.textContent = "Escaneando...";
+        this.detecting = true;
+        this.startDetectLoop();
+      } catch (_) {
+        refs.scannerStatus.textContent = "No se pudo abrir la camara. Usa fallback manual.";
+        toast.show("Error al abrir camara.", "error");
+      }
+    },
+    close() {
+      this.stopDetectLoop();
+      if (this.stream) this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+      refs.scannerVideo.srcObject = null;
+      modal.close("modal-scanner");
+    },
+    startDetectLoop() {
+      this.stopDetectLoop();
+      if (typeof window.BarcodeDetector === "undefined") {
+        refs.scannerStatus.textContent = "BarcodeDetector no disponible. Usa ingreso manual.";
+        return;
+      }
+      const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"] });
+      this.intervalId = window.setInterval(async () => {
+        if (!this.detecting || refs.scannerVideo.readyState < 2) return;
+        try {
+          const hits = await detector.detect(refs.scannerVideo);
+          const found = Array.isArray(hits) ? hits.find((h) => h && h.rawValue) : null;
+          if (!found || !found.rawValue) return;
+          const code = String(found.rawValue).trim();
+          if (!code || code === this.lastCode) return;
+          this.lastCode = code;
+          this.onDetected(code);
+        } catch (_) {}
+      }, 320);
+    },
+    stopDetectLoop() {
+      this.detecting = false;
+      this.lastCode = "";
+      if (this.intervalId) window.clearInterval(this.intervalId);
+      this.intervalId = null;
+    },
+    onDetected(code) {
+      refs.scannerStatus.textContent = `Codigo detectado: ${code}`;
+      toast.show(`Codigo detectado: ${code}`, "success");
+      setTimeout(() => { this.close(); refs.barcodeInput.value = code; search.run(code); }, 450);
+    }
+  };
+
+  const search = {
+    byCode(code) {
+      const n = String(code || "").trim().toLowerCase();
+      if (!n) return null;
+      return MOCK.products.find((p) => String(p.code || "").toLowerCase() === n || String(p.sku || "").toLowerCase() === n) || null;
+    },
+    renderResult(product) {
+      if (!product) {
+        refs.barcodeResult.classList.remove("is-visible");
+        refs.barcodeEmpty.classList.add("is-visible");
+        refs.barcodeEmpty.innerHTML = `<p>No encontre ese codigo en el catalogo demo.</p>`;
+        return;
+      }
+      const store = storeById(product.storeId);
+      refs.barcodeEmpty.classList.remove("is-visible");
+      refs.barcodeResult.classList.add("is-visible");
+      refs.barcodeResult.innerHTML = `
+        <span class="Badge Badge--green">Producto encontrado</span>
+        <h2>${product.name}</h2>
+        <p class="ScreenSubtitle">${store ? store.name : "Tienda"} · SKU: ${product.sku}</p>
+        <p class="ProductDetail-price">${fmtCurrency(product.price)}</p>
+        <p class="ScreenSubtitle">Stock: ${product.stock}</p>
+        <p class="ProductCodeValue">${product.code || "Sin codigo"}</p>
+        <div class="Grid Grid--2">
+          <button class="Button Button--primary" id="barcode-result-view" type="button">Ver producto</button>
+          <button class="Button Button--secondary" id="barcode-result-cart" type="button">Agregar al carrito</button>
+        </div>`;
+      byId("barcode-result-view").addEventListener("click", () => { state.productId = product.id; router.show("product"); });
+      byId("barcode-result-cart").addEventListener("click", () => { cart.add(product.id, 1); toast.show("Producto agregado al carrito.", "success"); });
+    },
+    run(code) {
+      const v = String(code || "").trim();
+      if (!v) { toast.show("Ingresa un codigo para buscar.", "error"); return; }
+      const product = this.byCode(v);
+      this.renderResult(product);
+      if (!product) toast.show("Codigo no encontrado.", "error");
+    },
+    reset() {
+      refs.barcodeResult.classList.remove("is-visible");
+      refs.barcodeEmpty.classList.add("is-visible");
+      refs.barcodeEmpty.innerHTML = `<p>Ingresa o escanea un codigo para mostrar resultados.</p>`;
+    }
+  };
+
+  const homeImages = {
+    cacheKey: "cp_home_images_cache_v1",
+    ttlMs: 10 * 60 * 1000,
+    current: [],
+    currentIndex: 0,
+    intervalId: null,
+    endpoint() { return window.IMAGE_API_URL && String(window.IMAGE_API_URL).trim() ? String(window.IMAGE_API_URL).trim() : "/api/hero-images"; },
+    readCache() {
+      try {
+        const raw = sessionStorage.getItem(this.cacheKey); if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.ts !== "number" || !Array.isArray(parsed.images)) return null;
+        return Date.now() - parsed.ts < this.ttlMs ? parsed.images : null;
+      } catch (_) { return null; }
+    },
+    writeCache(images) { try { sessionStorage.setItem(this.cacheKey, JSON.stringify({ ts: Date.now(), images })); } catch (_) {} },
+    async fetchWithTimeout(url, timeoutMs = 7000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const r = await fetch(url, { method: "GET", headers: { Accept: "application/json" }, signal: controller.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return await r.json();
+      } finally { clearTimeout(timer); }
+    },
+    normalizeImages(response) {
+      const source = Array.isArray(response) ? response : (Array.isArray(response?.data) ? response.data : (Array.isArray(response?.images) ? response.images : []));
+      const mapped = source.map((item, idx) => {
+        if (typeof item === "string") return { url: item, title: `Imagen ${idx + 1}` };
+        if (!item || typeof item !== "object") return null;
+        const url = item.url || item.image || item.src || item.path || item.cover || item.cover_url || item.image_url || (item.urls && (item.urls.regular || item.urls.small || item.urls.full)) || "";
+        const title = item.title || item.name || item.alt || item.alt_description || `Imagen ${idx + 1}`;
+        if (!url || typeof url !== "string") return null;
+        return { url, title: String(title) };
+      });
+      return mapped.filter(Boolean).slice(0, 8);
+    },
+    renderLoading() {
+      refs.homeImageStage.innerHTML = `<div class="Skeleton HomeImageSkeleton"></div>`;
+      const sk = `<div class="HomeHero-thumb"><div class="Skeleton"></div></div>`;
+      refs.homeImageThumbs.innerHTML = `${sk}${sk}${sk}`;
+    },
+    paintCurrent() {
+      const item = this.current[this.currentIndex]; if (!item) return;
+      refs.homeImageStage.innerHTML = `<img class="HomeHero-image" src="${item.url}" alt="${item.title}"><div class="HomeHero-overlay"></div><div class="HomeHero-caption"><h3>${item.title}</h3><p>Imagen dinamica desde API de Home</p></div>`;
+    },
+    renderThumbs() {
+      refs.homeImageThumbs.innerHTML = this.current.slice(0, 3).map((item, i) => `<button class="HomeHero-thumb" data-thumb-index="${i}" type="button" aria-label="Ver imagen ${i + 1}"><img src="${item.url}" alt="${item.title}"></button>`).join("");
+    },
+    stopAutoRotate() { if (this.intervalId) clearInterval(this.intervalId); this.intervalId = null; },
+    startAutoRotate() {
+      this.stopAutoRotate();
+      this.intervalId = setInterval(() => { if (this.current.length <= 1) return; this.currentIndex = (this.currentIndex + 1) % this.current.length; this.paintCurrent(); }, 6000);
+    },
+    render(images) {
+      this.current = images; this.currentIndex = 0;
+      if (!images.length) { this.renderEmpty(); return; }
+      this.paintCurrent(); this.renderThumbs(); this.startAutoRotate();
+    },
+    renderEmpty() {
+      refs.homeImageStage.innerHTML = `<div class="HomeHero-caption"><h3>Sin imagenes disponibles</h3><p>La API respondio vacia.</p></div>`;
+      refs.homeImageThumbs.innerHTML = "";
+    },
+    renderFallback() {
+      this.render(MOCK.fallbackImages);
+      toast.show("API de imagenes no disponible. Cargando fallback.", "info");
+    },
+    async load() {
+      this.renderLoading();
+      const cached = this.readCache(); if (cached && cached.length) this.render(cached);
+      try {
+        const response = await this.fetchWithTimeout(this.endpoint(), 7000);
+        const normalized = this.normalizeImages(response);
+        if (!normalized.length) { if (!cached || !cached.length) this.renderFallback(); return; }
+        this.writeCache(normalized);
+        this.render(normalized);
+      } catch (_) {
+        if (!cached || !cached.length) this.renderFallback();
+      }
+    }
+  };
+
+  const cart = {
+    add(productId, qty = 1) { const k = String(productId); state.cart[k] = (state.cart[k] || 0) + qty; renderNavCartCount(); },
+    remove(productId) { delete state.cart[String(productId)]; renderNavCartCount(); renderCart(); },
+    setQty(productId, qty) { const k = String(productId); if (qty <= 0) delete state.cart[k]; else state.cart[k] = qty; renderNavCartCount(); renderCart(); },
+    groupedByStore() {
+      const groups = {};
+      Object.entries(state.cart).forEach(([id, qty]) => {
+        const p = productById(id); if (!p) return;
+        if (!groups[p.storeId]) groups[p.storeId] = [];
+        groups[p.storeId].push({ product: p, qty });
+      });
+      return groups;
+    }
+  };
+
+  function renderNavCartCount() { refs.navCartCount.textContent = String(getCartCount()); }
+
+  function cardProductTemplate(product) {
+    const store = storeById(product.storeId);
+    return `<article class="ProductCard Card" data-product-id="${product.id}"><div class="ProductCard-media">Producto ${product.code ? `<span class="Badge Badge--orange ProductCard-code">Codigo: ${product.code}</span>` : ""}</div><div class="ProductCard-body"><p class="ProductCard-store">${store ? store.name : "Tienda"}</p><h3 class="ProductCard-title">${product.name}</h3><p class="ScreenSubtitle">SKU: ${product.sku}</p><p class="ProductCard-price">${fmtCurrency(product.price)}</p><button class="Button Button--primary" data-add-cart="${product.id}" type="button">Agregar</button></div></article>`;
+  }
+
+  function bindAddCart(btn) { btn.addEventListener("click", (ev) => { ev.stopPropagation(); cart.add(Number(btn.dataset.addCart), 1); toast.show("Producto agregado al carrito.", "success"); }); }
+
+  function renderHome() {
+    refs.homeStoresGrid.innerHTML = MOCK.stores.map((store) => `<article class="StoreCard Card"><div class="StoreCard-cover"><img class="HomeHero-image" src="${store.cover}" alt="${store.name}"><div class="StoreCard-overlay"></div><div class="StoreCard-logo">${store.logo}</div></div><div class="StoreCard-body"><h3>${store.name}</h3><p>${store.description}</p><button class="Button Button--secondary" data-open-store="${store.id}" type="button">Ver tienda</button></div></article>`).join("");
+    refs.homeMetrics.innerHTML = `<div class="HomeMetric"><strong>${MOCK.stores.length}</strong><span>Tiendas activas</span></div><div class="HomeMetric"><strong>${MOCK.products.length}</strong><span>Productos cargados</span></div><div class="HomeMetric"><strong>${MOCK.products.filter((p)=>p.code).length}</strong><span>Productos con codigo</span></div>`;
+    refs.homeStoresGrid.querySelectorAll("[data-open-store]").forEach((btn) => btn.addEventListener("click", () => { state.storeId = Number(btn.dataset.openStore); router.show("store"); }));
+  }
+
+  function renderStores() {
+    refs.storesGrid.innerHTML = MOCK.stores.map((store) => `<article class="StoreCard Card"><div class="StoreCard-cover"><img class="HomeHero-image" src="${store.cover}" alt="${store.name}"><div class="StoreCard-overlay"></div><div class="StoreCard-logo">${store.logo}</div></div><div class="StoreCard-body"><h3>${store.name}</h3><p>${store.description}</p><div class="Grid Grid--2"><button class="Button Button--primary" data-open-store="${store.id}" type="button">Entrar</button><button class="Button Button--secondary" data-route="catalog" type="button">Catalogo</button></div></div></article>`).join("");
+    refs.storesGrid.querySelectorAll("[data-open-store]").forEach((btn) => btn.addEventListener("click", () => { state.storeId = Number(btn.dataset.openStore); router.show("store"); }));
+  }
+
+  function bindProductGrid(gridEl) {
+    if (!gridEl) return;
+    gridEl.querySelectorAll(".ProductCard").forEach((card) => {
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("[data-add-cart]")) return;
+        state.productId = Number(card.dataset.productId);
+        router.show("product");
+      });
+    });
+    gridEl.querySelectorAll("[data-add-cart]").forEach(bindAddCart);
+  }
+
+  function renderStoreScreen() {
+    const store = storeById(state.storeId) || MOCK.stores[0];
+    if (!store) return;
+    state.storeId = store.id;
+    refs.storeName.textContent = store.name;
+    refs.storeDescription.textContent = store.description;
+    refs.storeLogo.textContent = store.logo;
+    const products = MOCK.products.filter((product) => product.storeId === store.id);
+    refs.storeProductsGrid.innerHTML = products.length
+      ? products.map(cardProductTemplate).join("")
+      : `<article class="Card SummaryCard"><p class="ScreenSubtitle">Esta tienda aun no tiene productos.</p></article>`;
+    bindProductGrid(refs.storeProductsGrid);
+  }
+
+  function getCatalogFilters() {
+    const searchTerm = String(refs.catalogSearch?.value || "").trim().toLowerCase();
+    const categoryInput = document.querySelector("input[name='categoryFilter']:checked");
+    const category = categoryInput ? categoryInput.value : "all";
+    return { searchTerm, category };
+  }
+
+  function renderCatalog() {
+    const { searchTerm, category } = getCatalogFilters();
+    const filtered = MOCK.products.filter((product) => {
+      const categoryOk = category === "all" || product.category === category;
+      if (!categoryOk) return false;
+      if (!searchTerm) return true;
+      return [product.name, product.sku, product.code].filter(Boolean).some((value) => String(value).toLowerCase().includes(searchTerm));
+    });
+    const title = byId("catalog-title");
+    if (title) title.textContent = category === "all" ? "Todos los productos" : `Categoria: ${category}`;
+    refs.catalogCount.textContent = `${filtered.length} producto${filtered.length === 1 ? "" : "s"} encontrados`;
+    refs.catalogGrid.innerHTML = filtered.length
+      ? filtered.map(cardProductTemplate).join("")
+      : `<article class="Card SummaryCard"><h3>Sin resultados</h3><p class="ScreenSubtitle">Ajusta los filtros o limpia la busqueda.</p></article>`;
+    bindProductGrid(refs.catalogGrid);
+  }
+
+  function renderProductDetail() {
+    const product = productById(state.productId) || MOCK.products[0];
+    if (!product) return;
+    state.productId = product.id;
+    const store = storeById(product.storeId);
+    refs.productTitle.textContent = product.name;
+    refs.productStoreName.textContent = store ? store.name : "Tienda";
+    refs.productDescription.textContent = `${product.category} · SKU ${product.sku}`;
+    refs.productPrice.textContent = fmtCurrency(product.price);
+    refs.productStock.textContent = `Stock disponible: ${product.stock}`;
+    refs.productAddCart.dataset.productId = String(product.id);
+    if (product.code) {
+      refs.productCodeCard.classList.remove("is-hidden");
+      refs.productCodeValue.textContent = product.code;
+      refs.productCopyCode.disabled = false;
+    } else {
+      refs.productCodeCard.classList.add("is-hidden");
+      refs.productCodeValue.textContent = "-";
+      refs.productCopyCode.disabled = true;
+    }
+  }
+
+  function getStoreCartSummary(storeId) {
+    const groups = cart.groupedByStore();
+    const items = groups[storeId] || [];
+    const subtotal = items.reduce((acc, row) => acc + (row.product.price * row.qty), 0);
+    return { items, subtotal };
+  }
+
+  function renderCart() {
+    const groups = cart.groupedByStore();
+    const storeIds = Object.keys(groups);
+    if (!storeIds.length) {
+      refs.cartGroups.innerHTML = `<article class="Card SummaryCard"><h2>Tu carrito esta vacio</h2><p class="ScreenSubtitle">Agrega productos desde el catalogo o usa buscar por codigo.</p><button class="Button Button--primary" data-route="catalog" type="button">Ir al catalogo</button></article>`;
+      refs.cartSubtotal.textContent = fmtCurrency(0);
+      refs.cartTotal.textContent = fmtCurrency(0);
+      return;
+    }
+
+    let subtotalGlobal = 0;
+    refs.cartGroups.innerHTML = storeIds.map((storeIdRaw) => {
+      const storeId = Number(storeIdRaw);
+      const store = storeById(storeId);
+      const items = groups[storeId] || [];
+      const subtotal = items.reduce((acc, row) => acc + (row.product.price * row.qty), 0);
+      subtotalGlobal += subtotal;
+      const rows = items.map((row) => `
+        <article class="CartItem">
+          <div class="CartItem-thumb"></div>
+          <div>
+            <p class="CartItem-name">${row.product.name}</p>
+            <p class="CartItem-meta">SKU: ${row.product.sku} · ${fmtCurrency(row.product.price)} c/u</p>
+            <div class="Nav-actions">
+              <button class="Button Button--ghost" data-qty-dec="${row.product.id}" type="button" aria-label="Disminuir cantidad">-</button>
+              <span class="Badge Badge--blue">${row.qty}</span>
+              <button class="Button Button--ghost" data-qty-inc="${row.product.id}" type="button" aria-label="Aumentar cantidad">+</button>
+              <button class="Button Button--ghost" data-remove-item="${row.product.id}" type="button">Eliminar</button>
+            </div>
+          </div>
+          <p class="CartItem-total">${fmtCurrency(row.product.price * row.qty)}</p>
+        </article>`).join("");
+      return `
+      <article class="CartStoreGroup">
+        <header class="CartStoreGroup-header">
+          <div><p class="Badge Badge--orange">Tienda</p><h3 class="CartStoreGroup-title">${store ? store.name : "Tienda"}</h3></div>
+          <button class="Button Button--secondary" data-checkout-store="${storeId}" type="button">Finalizar tienda</button>
+        </header>
+        <div class="CartStoreGroup-items">${rows}</div>
+        <div class="SummaryCard"><div class="SummaryTotal"><span>Total tienda</span><strong>${fmtCurrency(subtotal)}</strong></div></div>
+      </article>`;
+    }).join("");
+
+    refs.cartSubtotal.textContent = fmtCurrency(subtotalGlobal);
+    refs.cartTotal.textContent = fmtCurrency(subtotalGlobal);
+
+    refs.cartGroups.querySelectorAll("[data-qty-inc]").forEach((btn) => btn.addEventListener("click", () => {
+      const productId = Number(btn.dataset.qtyInc);
+      const qty = Number(state.cart[String(productId)] || 0) + 1;
+      cart.setQty(productId, qty);
+    }));
+    refs.cartGroups.querySelectorAll("[data-qty-dec]").forEach((btn) => btn.addEventListener("click", () => {
+      const productId = Number(btn.dataset.qtyDec);
+      const qty = Number(state.cart[String(productId)] || 0) - 1;
+      cart.setQty(productId, qty);
+    }));
+    refs.cartGroups.querySelectorAll("[data-remove-item]").forEach((btn) => btn.addEventListener("click", () => {
+      cart.remove(Number(btn.dataset.removeItem));
+    }));
+    refs.cartGroups.querySelectorAll("[data-checkout-store]").forEach((btn) => btn.addEventListener("click", () => {
+      state.storeId = Number(btn.dataset.checkoutStore);
+      state.checkoutStep = 2;
+      router.show("checkout");
+    }));
+  }
+
+  function stepperHtml(activeStep) {
+    const steps = ["Direccion", "Revision", "Pago", "Exito"];
+    return steps.map((label, index) => {
+      const step = index + 1;
+      const classes = [
+        "Stepper-step",
+        step < activeStep ? "is-done" : "",
+        step === activeStep ? "is-active" : ""
+      ].filter(Boolean).join(" ");
+      const line = index < steps.length - 1 ? `<span class="Stepper-line ${step < activeStep ? "is-done" : ""}" aria-hidden="true"></span>` : "";
+      return `<span class="${classes}" aria-label="Paso ${step}: ${label}" title="${label}">${step}</span>${line}`;
+    }).join("");
+  }
+
+  function renderCheckout() {
+    const groups = cart.groupedByStore();
+    const storeIds = Object.keys(groups).map((id) => Number(id));
+    if (!storeIds.length) {
+      toast.show("El carrito esta vacio.", "error");
+      router.show("cart");
+      return;
+    }
+    if (!storeIds.includes(Number(state.storeId))) state.storeId = storeIds[0];
+    state.checkoutStep = 2;
+    const store = storeById(state.storeId);
+    const summary = getStoreCartSummary(state.storeId);
+    refs.checkoutStepper.innerHTML = stepperHtml(2);
+    refs.checkoutStoreName.textContent = store ? `Tienda activa: ${store.name}` : "Tienda activa";
+    refs.checkoutSummaryLines.innerHTML = summary.items.map((row) => `<div class="SummaryLine"><span>${row.qty}x ${row.product.name}</span><strong>${fmtCurrency(row.product.price * row.qty)}</strong></div>`).join("");
+    refs.checkoutTotal.textContent = fmtCurrency(summary.subtotal);
+  }
+
+  function renderPayment() {
+    state.checkoutStep = 3;
+    refs.paymentStepper.innerHTML = stepperHtml(3);
+  }
+
+  async function copyText(value) {
+    const text = String(value || "");
+    if (!text) return false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (_) {}
+    }
+    const input = document.createElement("input");
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    const ok = document.execCommand("copy");
+    input.remove();
+    return ok;
+  }
+
+  function bindGlobalEvents() {
+    document.addEventListener("click", (event) => {
+      const modalClose = event.target.closest("[data-modal-close]");
+      if (modalClose) {
+        const id = modalClose.dataset.modalClose;
+        if (id === "modal-scanner") scanner.close(); else modal.close(id);
+        return;
+      }
+
+      const routeBtn = event.target.closest("[data-route]");
+      if (routeBtn) {
+        const route = routeBtn.dataset.route;
+        if (route) router.show(route);
+        return;
+      }
+
+      const thumb = event.target.closest("[data-thumb-index]");
+      if (thumb) {
+        const index = Number(thumb.dataset.thumbIndex);
+        if (Number.isFinite(index) && homeImages.current[index]) {
+          homeImages.currentIndex = index;
+          homeImages.paintCurrent();
+          homeImages.startAutoRotate();
+        }
+      }
+    });
+
+    refs.scannerModal.addEventListener("click", (event) => {
+      if (event.target === refs.scannerModal) scanner.close();
+    });
+
+    refs.catalogFilterToggle.addEventListener("click", () => {
+      refs.catalogFilters.classList.toggle("is-open");
+    });
+
+    refs.catalogSearch.addEventListener("input", () => renderCatalog());
+    document.querySelectorAll("input[name='categoryFilter']").forEach((input) => input.addEventListener("change", () => renderCatalog()));
+    const catalogClear = byId("catalog-clear");
+    if (catalogClear) {
+      catalogClear.addEventListener("click", () => {
+        refs.catalogSearch.value = "";
+        const all = document.querySelector("input[name='categoryFilter'][value='all']");
+        if (all) all.checked = true;
+        renderCatalog();
+      });
+    }
+
+    refs.productAddCart.addEventListener("click", () => {
+      const productId = Number(refs.productAddCart.dataset.productId || state.productId);
+      cart.add(productId, 1);
+      toast.show("Producto agregado al carrito.", "success");
+    });
+
+    refs.productCopyCode.addEventListener("click", async () => {
+      const code = refs.productCodeValue.textContent || "";
+      const ok = await copyText(code);
+      toast.show(ok ? "Codigo copiado al portapapeles." : "No fue posible copiar el codigo.", ok ? "success" : "error");
+    });
+
+    refs.barcodeSearchBtn.addEventListener("click", () => search.run(refs.barcodeInput.value));
+    refs.barcodeInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") search.run(refs.barcodeInput.value);
+    });
+    refs.barcodeOpenScanner.addEventListener("click", () => scanner.open());
+
+    refs.scannerManualSubmit.addEventListener("click", () => {
+      const code = refs.scannerManualInput.value;
+      if (!String(code || "").trim()) {
+        toast.show("Ingresa un codigo manual.", "error");
+        return;
+      }
+      scanner.close();
+      refs.barcodeInput.value = String(code).trim();
+      search.run(code);
+    });
+    refs.scannerManualInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") refs.scannerManualSubmit.click();
+    });
+
+    refs.goPayment.addEventListener("click", () => {
+      const summary = getStoreCartSummary(state.storeId);
+      if (!summary.items.length) {
+        toast.show("No hay productos para pagar en esta tienda.", "error");
+        router.show("cart");
+        return;
+      }
+      state.checkoutStep = 3;
+      router.show("payment");
+    });
+
+    refs.confirmPayment.addEventListener("click", () => {
+      if (getCartCount() <= 0) {
+        toast.show("El carrito esta vacio.", "error");
+        router.show("cart");
+        return;
+      }
+      state.cart = {};
+      renderNavCartCount();
+      state.checkoutStep = 4;
+      toast.show("Pago confirmado. Pedido creado.", "success");
+      router.show("success");
+    });
+
+    refs.themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { sessionStorage.setItem("cp_theme", next); } catch (_) {}
+    });
+
+    window.addEventListener("beforeunload", () => scanner.close());
+  }
+
+  function initTheme() {
+    try {
+      const saved = sessionStorage.getItem("cp_theme");
+      if (saved === "dark" || saved === "light") document.documentElement.setAttribute("data-theme", saved);
+    } catch (_) {}
+  }
+
+  function init() {
+    initTheme();
+    renderNavCartCount();
+    renderHome();
+    renderStores();
+    renderStoreScreen();
+    renderCatalog();
+    renderProductDetail();
+    renderCart();
+    bindGlobalEvents();
+    homeImages.load();
+    window.homeImages = homeImages;
+    window.searchByCode = search;
+    router.show("home");
+  }
+
+  init();
+})();
+</script>
+</div>
+</body>
+</html>

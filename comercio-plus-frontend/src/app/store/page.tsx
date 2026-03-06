@@ -46,7 +46,7 @@ export default function StoreDetail() {
         setLoading(true)
         setError('')
 
-        const storeResponse = await API.get(`/public-stores/${id}`, {
+        const storeResponse = await API.get(`/public/stores/${id}`, {
           params: { _t: Date.now() },
         })
         const storeData: StoreMedia = storeResponse.data

@@ -30,7 +30,8 @@ class InventoryController extends Controller
         ]);
 
         try {
-            $data = $this->inventoryImportService->preview($request->file('file'));
+            $store = $this->resolveMerchantStore();
+            $data = $this->inventoryImportService->preview($store, $request->file('file'));
             return response()->json($data);
         } catch (\Throwable $e) {
             report($e);

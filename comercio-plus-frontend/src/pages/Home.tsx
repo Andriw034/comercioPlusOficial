@@ -1,38 +1,36 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
 import API from '@/lib/api'
 import { extractList } from '@/lib/api-response'
 import { resolveMediaUrl } from '@/lib/format'
+import { MOTO_HERO_IMAGES } from '@/constants/motoHeroImages'
 import type { Category, Product, Store } from '@/types/api'
 import CoverImage from '@/ui/images/CoverImage'
 import LogoImage from '@/ui/images/LogoImage'
 
 export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const heroImages = MOTO_HERO_IMAGES
   const [stores, setStores] = useState<Store[]>([])
   const [publicStoreCount, setPublicStoreCount] = useState(0)
   const [publicProductCount, setPublicProductCount] = useState(0)
   const [publicCategoryCount, setPublicCategoryCount] = useState(0)
 
-  const backgroundImages = [
-    'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1920&q=80',
-    'https://images.unsplash.com/photo-1553413077-190dd305871c?w=1920&q=80',
-  ]
-
   useEffect(() => {
+    if (heroImages.length <= 1) return
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length)
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length)
     }, 8000)
     return () => clearInterval(interval)
-  }, [backgroundImages.length])
+  }, [heroImages.length])
 
   useEffect(() => {
     const loadStores = async () => {
       try {
         const [storesResponse, productsResponse, categoriesResponse] = await Promise.all([
-          API.get('/public-stores'),
+          API.get('/public/stores'),
           API.get('/products'),
           API.get('/categories'),
         ])
@@ -62,6 +60,9 @@ export default function Home() {
     { label: 'Productos publicados', value: publicProductCount },
     { label: 'Categorias en uso', value: publicCategoryCount },
   ]
+  const safeHeroImageIndex = heroImages.length > 0 ? currentImageIndex % heroImages.length : 0
+  const activeHeroImage = heroImages[safeHeroImageIndex]
+  const heroSourceLabel = 'Imagenes de motos y repuestos'
 
   return (
     <div className="bg-slate-50">
@@ -113,21 +114,39 @@ export default function Home() {
             </motion.div>
 
             <div className="relative hidden min-h-[460px] overflow-hidden rounded-3xl border border-white/10 bg-slate-900 lg:block">
-              {backgroundImages.map((img, index) => (
+              {heroImages.map((image, index) => (
                 <motion.div
-                  key={index}
+                  key={`${image.url}-${index}`}
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                  animate={{ opacity: index === safeHeroImageIndex ? 1 : 0 }}
                   transition={{ duration: 1.2 }}
                   className="absolute inset-0"
                 >
-                  <img src={img} alt="Operacion logistica B2B" className="h-full w-full object-cover" />
+                  <img src={image.url} alt={image.title} className="h-full w-full object-cover" />
                 </motion.div>
               ))}
+
               <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/30" />
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-sm">
-                <p className="text-sm font-semibold text-white">Operacion mayorista en tiempo real</p>
-                <p className="mt-1 text-xs text-slate-200">Controla inventario, pedidos y rendimiento desde un solo panel.</p>
+                <p className="text-sm font-semibold text-white">
+                  {activeHeroImage?.title || 'Operacion mayorista en tiempo real'}
+                </p>
+                <p className="mt-1 text-xs text-slate-200">{heroSourceLabel}</p>
+                {heroImages.length > 1 && (
+                  <div className="mt-3 flex gap-2">
+                    {heroImages.slice(0, 4).map((_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`h-2 w-8 rounded-full transition ${
+                          index === safeHeroImageIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/60'
+                        }`}
+                        aria-label={`Ver imagen ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -189,9 +208,9 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-1 gap-[10px] md:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: 'rocket', title: 'Fácil de usar', desc: 'Crea tu tienda en 5 minutos' },
-              { icon: 'shield', title: 'Pagos seguros', desc: 'Encriptación bancaria' },
-              { icon: 'truck', title: 'Envíos rápidos', desc: 'Integración con transportadoras' },
+              { icon: 'rocket', title: 'Facil de usar', desc: 'Crea tu tienda en 5 minutos' },
+              { icon: 'shield', title: 'Pagos seguros', desc: 'Encriptacion bancaria' },
+              { icon: 'truck', title: 'Envios rapidos', desc: 'Integracion con transportadoras' },
               { icon: 'headset', title: 'Soporte 24/7', desc: 'Siempre disponibles' },
             ].map((feature, i) => (
               <motion.div
@@ -213,10 +232,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative left-1/2 right-1/2 mb-0 w-screen -translate-x-1/2 bg-gradient-to-br from-comercioplus-500 to-comercioplus-600 py-20 md:py-24 text-white">
+      <section className="relative left-1/2 right-1/2 mb-0 w-screen -translate-x-1/2 bg-gradient-to-br from-comercioplus-500 to-comercioplus-600 py-20 text-white md:py-24">
         <div className="mx-auto max-w-4xl px-6 text-center">
-          <h2 className="mb-[10px] text-4xl font-bold">¿Listo para empezar a vender?</h2>
-          <p className="mb-[10px] text-xl text-comercioplus-100">Únete a miles de vendedores exitosos en ComercioPlus</p>
+          <h2 className="mb-[10px] text-4xl font-bold">Listo para empezar a vender?</h2>
+          <p className="mb-[10px] text-xl text-comercioplus-100">Unete a miles de vendedores exitosos en ComercioPlus</p>
           <div className="flex flex-wrap justify-center gap-[10px]">
             <Link
               to="/register"
@@ -228,7 +247,7 @@ export default function Home() {
               to="/how-it-works"
               className="rounded-xl border-2 border-white px-8 py-4 font-bold transition-all hover:bg-white/10"
             >
-              Ver demostración
+              Ver demostracion
             </Link>
           </div>
         </div>

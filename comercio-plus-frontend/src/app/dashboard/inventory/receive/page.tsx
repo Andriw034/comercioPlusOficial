@@ -5,6 +5,7 @@ import useInventoryReceive from '@/hooks/useInventoryReceive'
 import ReceiveScannerPanel, { type ReceiveFeedback } from '@/components/inventory/ReceiveScannerPanel'
 import ReceiveHistoryList from '@/components/inventory/ReceiveHistoryList'
 import QuickCreateProductModal from '@/components/inventory/QuickCreateProductModal'
+import ProductScannerCameraModal from '@/components/products/ProductScannerCameraModal'
 import type { ScanInErrorResponse } from '@/services/inventoryReceive'
 
 const SOUND_PREF_KEY = 'inventory_receive_sound_enabled'
@@ -74,6 +75,7 @@ export default function InventoryReceivePage() {
   const [quickCreateCategoryId, setQuickCreateCategoryId] = useState<number | ''>('')
   const [quickCreatePrice, setQuickCreatePrice] = useState('')
   const [quickCreateQty, setQuickCreateQty] = useState(1)
+  const [cameraOpen, setCameraOpen] = useState(false)
 
   const canSubmitScan = useMemo(() => code.trim().length > 0 && qty > 0 && !busy, [busy, code, qty])
 
@@ -113,15 +115,16 @@ export default function InventoryReceivePage() {
     }
   }, [feedback])
 
-  const handleScanSubmit = async () => {
-    if (!canSubmitScan) return
+  const submitScan = async (incomingCode?: string) => {
+    const normalizedCode = (incomingCode ?? code).trim()
+    if (!normalizedCode || qty < 1 || busy) return
 
     setBusy(true)
     setFeedback(null)
 
     try {
       const response = await scanIn({
-        code: code.trim(),
+        code: normalizedCode,
         qty: Math.max(1, qty),
         reason,
         reference: reference.trim() || undefined,
@@ -153,7 +156,7 @@ export default function InventoryReceivePage() {
       playFeedbackSound(soundEnabled, false)
 
       if (errorCode === 'PRODUCT_NOT_FOUND') {
-        setQuickCreateCode(code.trim())
+        setQuickCreateCode(normalizedCode)
         setQuickCreateQty(Math.max(1, qty))
         setQuickCreateOpen(true)
       }
@@ -161,6 +164,17 @@ export default function InventoryReceivePage() {
       setBusy(false)
       focusScanner()
     }
+  }
+
+  const handleScanSubmit = async () => {
+    if (!canSubmitScan) return
+    await submitScan()
+  }
+
+  const handleCameraDetected = (rawCode: string) => {
+    setCode(rawCode)
+    setCameraOpen(false)
+    void submitScan(rawCode)
   }
 
   const handleQuickCreate = async () => {
@@ -256,6 +270,7 @@ export default function InventoryReceivePage() {
           onQtyChange={setQty}
           onReasonChange={setReason}
           onReferenceChange={setReference}
+          onOpenCamera={() => setCameraOpen(true)}
           onToggleAdvanced={() => setAdvancedOpen((prev) => !prev)}
           onSubmit={() => void handleScanSubmit()}
         />
@@ -288,6 +303,12 @@ export default function InventoryReceivePage() {
           focusScanner()
         }}
         onSubmit={() => void handleQuickCreate()}
+      />
+
+      <ProductScannerCameraModal
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onDetected={handleCameraDetected}
       />
     </div>
   )

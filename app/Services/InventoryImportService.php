@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductCode;
 use App\Models\Store;
+use App\Models\StoreCounter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +23,7 @@ class InventoryImportService
     private const STANDARD_FIELDS = [
         'name',
         'sku',
+        'barcode',
         'description',
         'price',
         'cost_price',
@@ -36,6 +39,7 @@ class InventoryImportService
     private const STANDARD_FIELD_ALIASES = [
         'name' => ['name', 'nombre', 'producto', 'product', 'product_name', 'articulo', 'item'],
         'sku' => ['sku', 'codigo', 'codigo_sku', 'codigo_de_sku', 'product_code', 'code', 'codigosku', 'id_producto', 'referencia'],
+        'barcode' => ['barcode', 'codigo_barras', 'codigo_de_barras', 'codigobarras', 'ean', 'ean13', 'gtin', 'upc'],
         'description' => ['description', 'descripcion', 'detalle', 'detalles'],
         'price' => ['price', 'precio', 'valor'],
         'cost_price' => ['v_compra', 'v/compra', 'vcompra', 'valor_compra', 'costo', 'costo_unitario', 'cost_price'],
@@ -49,7 +53,7 @@ class InventoryImportService
         'image_url' => ['image_url', 'image', 'imagen', 'foto', 'image_link', 'imagen_url', 'url_imagen'],
     ];
 
-    public function preview(UploadedFile $file): array
+    public function preview(Store $store, UploadedFile $file): array
     {
         $this->validateFile($file);
 
@@ -58,15 +62,79 @@ class InventoryImportService
             return [
                 'headers' => [],
                 'preview_rows' => [],
+                'analysis_rows' => [],
                 'total_rows' => 0,
             ];
         }
 
         $headers = $rows->first();
+        $headerKeys = $headers->map(fn ($header) => $this->canonicalHeaderKey((string) $header))->values();
+        $analysisRows = [];
+        $counterCursor = $this->getStoreNextBarcodeCounter((int) $store->id);
+
+        foreach ($rows->slice(1, 10)->values() as $offset => $row) {
+            $rowNumber = $offset + 2;
+            $normalizedRow = collect($row)->map(fn ($value) => $this->normalizeCell($value))->values();
+
+            if ($this->isRowEmpty($normalizedRow)) {
+                $analysisRows[] = [
+                    'row' => $rowNumber,
+                    'matched_by' => 'none',
+                    'action' => 'skip',
+                    'resolved_sku' => null,
+                    'resolved_barcode' => null,
+                    'barcode_source' => 'none',
+                ];
+                continue;
+            }
+
+            [$standard] = $this->mapRowToData($normalizedRow, $headers, $headerKeys);
+            $incomingName = trim((string) ($standard['name'] ?? ''));
+            $incomingSku = $this->sanitizeOptionalIdentifier($standard['sku'] ?? null);
+            $incomingBarcode = $this->sanitizeOptionalIdentifier($standard['barcode'] ?? null);
+
+            [$matchedProduct, $matchedBy] = $this->findMatchingProduct(
+                storeId: (int) $store->id,
+                barcode: $incomingBarcode,
+                sku: $incomingSku,
+                name: $incomingName,
+            );
+
+            $resolvedSku = $incomingSku;
+            if ($resolvedSku === null && $matchedProduct) {
+                $resolvedSku = $this->sanitizeOptionalIdentifier($matchedProduct->sku ?? null);
+            }
+
+            if ($incomingBarcode !== null) {
+                $resolvedBarcode = $incomingBarcode;
+                $barcodeSource = 'excel';
+            } else {
+                $existingPrimary = $matchedProduct
+                    ? $this->findPrimaryBarcodeForProduct((int) $store->id, (int) $matchedProduct->id)
+                    : null;
+                if ($existingPrimary !== null) {
+                    $resolvedBarcode = $existingPrimary;
+                    $barcodeSource = 'existing';
+                } else {
+                    $resolvedBarcode = $this->previewGeneratedBarcode((int) $store->id, $counterCursor);
+                    $barcodeSource = 'generated';
+                }
+            }
+
+            $analysisRows[] = [
+                'row' => $rowNumber,
+                'matched_by' => $matchedBy,
+                'action' => $matchedProduct ? 'update' : 'create',
+                'resolved_sku' => $resolvedSku,
+                'resolved_barcode' => $resolvedBarcode,
+                'barcode_source' => $barcodeSource,
+            ];
+        }
 
         return [
             'headers' => $headers,
             'preview_rows' => $rows->slice(1, 10)->values()->all(),
+            'analysis_rows' => $analysisRows,
             'total_rows' => max(0, $rows->count() - 1),
         ];
     }
@@ -75,6 +143,7 @@ class InventoryImportService
     {
         $headers = [
             'CODIGO',
+            'BARCODE',
             'PRODUCTO',
             'UNIDAD',
             'REF ADICIONAL',
@@ -93,6 +162,7 @@ class InventoryImportService
 
         $example = [
             'SKU-001',
+            '7701234500012',
             'Abrasadera metalica',
             'UNID',
             '25MM',
@@ -179,18 +249,15 @@ class InventoryImportService
 
                     [$standard, $metadata] = $this->mapRowToData($row, $headers, $headerKeys);
                     $name = trim((string) ($standard['name'] ?? ''));
-                    $sku = trim((string) ($standard['sku'] ?? ''));
+                    $sku = $this->sanitizeOptionalIdentifier($standard['sku'] ?? null);
+                    $barcode = $this->sanitizeOptionalIdentifier($standard['barcode'] ?? null);
 
-                    if ($name === '' && $sku === '') {
+                    if ($name === '' && $sku === null && $barcode === null) {
                         continue;
                     }
 
-                    if ($sku === '') {
-                        $sku = $this->generateAutoSku($name !== '' ? $name : 'producto', (int) $store->id, $rowNumber);
-                    }
-
                     if ($name === '') {
-                        $name = 'Producto ' . $sku;
+                        $name = 'Producto sin nombre';
                     }
 
                     if (isset($standard['category']) && $standard['category'] !== '') {
@@ -230,16 +297,22 @@ class InventoryImportService
                         ? $this->resolveImageUrl($incomingImage, (int) $store->id)
                         : self::PLACEHOLDER_IMAGE_URL;
 
-                    $product = Product::query()
-                        ->where('store_id', (int) $store->id)
-                        ->where('sku', $sku)
-                        ->first();
+                    [$product, $matchedBy] = $this->findMatchingProduct(
+                        storeId: (int) $store->id,
+                        barcode: $barcode,
+                        sku: $sku,
+                        name: $name,
+                    );
 
                     if ($product && !$upsert) {
-                        throw new \RuntimeException('SKU duplicado (upsert deshabilitado).');
+                        throw new \RuntimeException("Producto existente por {$matchedBy} (upsert deshabilitado).");
                     }
 
                     if ($product) {
+                        if ($sku !== null) {
+                            $this->assertSkuAvailableForProduct((int) $store->id, $sku, (int) $product->id);
+                        }
+
                         $product->price = $standard['price'];
                         $product->stock = $standard['stock'];
                         $product->name = $standard['name'];
@@ -251,6 +324,9 @@ class InventoryImportService
                         $product->unit = $standard['unit'];
                         $product->ref_adicional = $standard['ref_adicional'];
                         $product->category_id = (int) $standard['category_id'];
+                        if ($sku !== null) {
+                            $product->sku = $sku;
+                        }
                         if ($incomingImage !== '') {
                             $product->image_url = $standard['image_url'];
                         }
@@ -258,20 +334,37 @@ class InventoryImportService
                         $currentMeta = is_array($product->metadata) ? $product->metadata : [];
                         $product->metadata = array_merge($currentMeta, $metadata);
                         $product->save();
+
+                        $this->ensurePrimaryBarcodeForImportedProduct(
+                            storeId: (int) $store->id,
+                            product: $product,
+                            incomingBarcode: $barcode,
+                        );
+
                         $result['updated']++;
                     } else {
+                        if ($sku !== null) {
+                            $this->assertSkuAvailableForProduct((int) $store->id, $sku, null);
+                        }
+
                         $payload = array_merge($standard, [
                             'store_id' => (int) $store->id,
                             'user_id' => (int) $store->user_id,
-                            'name' => (string) ($standard['name'] ?? ('Producto ' . $sku)),
+                            'name' => (string) ($standard['name'] ?? 'Producto importado'),
                             'description' => (string) ($standard['description'] ?? ''),
                             'brand' => (string) ($standard['brand'] ?? ''),
                             'sku' => $sku,
-                            'slug' => $this->generateUniqueProductSlug($name, $sku),
+                            'slug' => $this->generateUniqueProductSlug($name, $sku ?? ''),
                             'metadata' => $metadata,
                         ]);
 
-                        Product::query()->create($payload);
+                        /** @var Product $created */
+                        $created = Product::query()->create($payload);
+                        $this->ensurePrimaryBarcodeForImportedProduct(
+                            storeId: (int) $store->id,
+                            product: $created,
+                            incomingBarcode: $barcode,
+                        );
                         $result['imported']++;
                     }
                 } catch (\Throwable $e) {
@@ -386,6 +479,263 @@ class InventoryImportService
         })->filter()->values();
 
         return $skus->duplicates()->unique()->values()->all();
+    }
+
+    private function sanitizeOptionalIdentifier(mixed $value): ?string
+    {
+        $normalized = trim((string) ($value ?? ''));
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    private function findMatchingProduct(int $storeId, ?string $barcode, ?string $sku, string $name): array
+    {
+        if ($barcode !== null) {
+            $product = $this->findProductByBarcode($storeId, $barcode);
+            if ($product) {
+                return [$product, 'barcode'];
+            }
+        }
+
+        if ($sku !== null) {
+            $product = $this->findProductBySku($storeId, $sku);
+            if ($product) {
+                return [$product, 'sku'];
+            }
+        }
+
+        if ($barcode === null && $sku === null) {
+            $product = $this->findProductByNormalizedName($storeId, $name);
+            if ($product) {
+                return [$product, 'name'];
+            }
+        }
+
+        return [null, 'none'];
+    }
+
+    private function findProductByBarcode(int $storeId, string $barcode): ?Product
+    {
+        $code = ProductCode::query()
+            ->where('store_id', $storeId)
+            ->where('type', ProductCode::TYPE_BARCODE)
+            ->where('value', $barcode)
+            ->orderByDesc('is_primary')
+            ->orderBy('id')
+            ->first();
+
+        if (! $code) {
+            return null;
+        }
+
+        return Product::query()
+            ->where('store_id', $storeId)
+            ->where('id', (int) $code->product_id)
+            ->first();
+    }
+
+    private function findProductBySku(int $storeId, string $sku): ?Product
+    {
+        return Product::query()
+            ->where('store_id', $storeId)
+            ->where('sku', $sku)
+            ->first();
+    }
+
+    private function findProductByNormalizedName(int $storeId, string $name): ?Product
+    {
+        $normalizedName = $this->normalizeNameToken($name);
+        if ($normalizedName === '') {
+            return null;
+        }
+
+        return Product::query()
+            ->where('store_id', $storeId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])
+            ->first();
+    }
+
+    private function normalizeNameToken(string $name): string
+    {
+        return Str::lower(trim($name));
+    }
+
+    private function assertSkuAvailableForProduct(int $storeId, string $sku, ?int $currentProductId): void
+    {
+        $query = Product::query()
+            ->where('store_id', $storeId)
+            ->where('sku', $sku);
+
+        if ($currentProductId !== null) {
+            $query->where('id', '!=', $currentProductId);
+        }
+
+        $exists = $query->exists();
+
+        if ($exists) {
+            throw new \RuntimeException("SKU {$sku} ya existe en otro producto.");
+        }
+    }
+
+    private function ensurePrimaryBarcodeForImportedProduct(int $storeId, Product $product, ?string $incomingBarcode): string
+    {
+        if ($incomingBarcode !== null) {
+            return $this->ensureIncomingBarcodeAsPrimary($storeId, $product, $incomingBarcode);
+        }
+
+        $existingPrimary = $this->findPrimaryBarcodeForProduct($storeId, (int) $product->id);
+        if ($existingPrimary !== null) {
+            return $existingPrimary;
+        }
+
+        $fallback = ProductCode::query()
+            ->where('store_id', $storeId)
+            ->where('product_id', (int) $product->id)
+            ->where('type', ProductCode::TYPE_BARCODE)
+            ->orderBy('id')
+            ->first();
+
+        if ($fallback) {
+            ProductCode::query()
+                ->where('store_id', $storeId)
+                ->where('product_id', (int) $product->id)
+                ->where('type', ProductCode::TYPE_BARCODE)
+                ->update(['is_primary' => false]);
+
+            $fallback->is_primary = true;
+            $fallback->save();
+
+            return (string) $fallback->value;
+        }
+
+        $generated = $this->generateNextInternalBarcode($storeId);
+
+        ProductCode::query()->create([
+            'store_id' => $storeId,
+            'product_id' => (int) $product->id,
+            'type' => ProductCode::TYPE_BARCODE,
+            'value' => $generated,
+            'is_primary' => true,
+        ]);
+
+        return $generated;
+    }
+
+    private function ensureIncomingBarcodeAsPrimary(int $storeId, Product $product, string $incomingBarcode): string
+    {
+        $existingCode = ProductCode::query()
+            ->where('store_id', $storeId)
+            ->where('type', ProductCode::TYPE_BARCODE)
+            ->where('value', $incomingBarcode)
+            ->first();
+
+        if ($existingCode && (int) $existingCode->product_id !== (int) $product->id) {
+            throw new \RuntimeException("El barcode {$incomingBarcode} ya pertenece a otro producto.");
+        }
+
+        ProductCode::query()
+            ->where('store_id', $storeId)
+            ->where('product_id', (int) $product->id)
+            ->where('type', ProductCode::TYPE_BARCODE)
+            ->update(['is_primary' => false]);
+
+        if (! $existingCode) {
+            ProductCode::query()->create([
+                'store_id' => $storeId,
+                'product_id' => (int) $product->id,
+                'type' => ProductCode::TYPE_BARCODE,
+                'value' => $incomingBarcode,
+                'is_primary' => true,
+            ]);
+
+            return $incomingBarcode;
+        }
+
+        ProductCode::query()
+            ->where('id', (int) $existingCode->id)
+            ->update([
+                'product_id' => (int) $product->id,
+                'is_primary' => true,
+            ]);
+
+        return (string) $existingCode->value;
+    }
+
+    private function findPrimaryBarcodeForProduct(int $storeId, int $productId): ?string
+    {
+        $code = ProductCode::query()
+            ->where('store_id', $storeId)
+            ->where('product_id', $productId)
+            ->where('type', ProductCode::TYPE_BARCODE)
+            ->where('is_primary', true)
+            ->first();
+
+        return $code ? (string) $code->value : null;
+    }
+
+    private function previewGeneratedBarcode(int $storeId, int &$counterCursor): string
+    {
+        $candidate = '';
+        do {
+            $candidate = sprintf('CP-%06d', $counterCursor);
+            $counterCursor++;
+        } while (
+            ProductCode::query()
+                ->where('store_id', $storeId)
+                ->where('type', ProductCode::TYPE_BARCODE)
+                ->where('value', $candidate)
+                ->exists()
+        );
+
+        return $candidate;
+    }
+
+    private function getStoreNextBarcodeCounter(int $storeId): int
+    {
+        $counter = StoreCounter::query()
+            ->where('store_id', $storeId)
+            ->first();
+
+        if (! $counter) {
+            return 1;
+        }
+
+        return max(1, (int) $counter->next_product_barcode);
+    }
+
+    private function generateNextInternalBarcode(int $storeId): string
+    {
+        $counter = StoreCounter::query()
+            ->where('store_id', $storeId)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $counter) {
+            StoreCounter::query()->create([
+                'store_id' => $storeId,
+                'next_product_barcode' => 1,
+            ]);
+
+            $counter = StoreCounter::query()
+                ->where('store_id', $storeId)
+                ->lockForUpdate()
+                ->firstOrFail();
+        }
+
+        while (true) {
+            $candidate = sprintf('CP-%06d', max(1, (int) $counter->next_product_barcode));
+            $counter->next_product_barcode = max(1, (int) $counter->next_product_barcode) + 1;
+            $counter->save();
+
+            $alreadyExists = ProductCode::query()
+                ->where('store_id', $storeId)
+                ->where('type', ProductCode::TYPE_BARCODE)
+                ->where('value', $candidate)
+                ->exists();
+
+            if (! $alreadyExists) {
+                return $candidate;
+            }
+        }
     }
 
     private function mapRowToData(Collection $row, Collection $headers, Collection $headerKeys): array
@@ -530,24 +880,6 @@ class InventoryImportService
     private function isRowEmpty(Collection $row): bool
     {
         return $row->every(fn ($value) => $this->normalizeCell($value) === '');
-    }
-
-    private function generateAutoSku(string $name, int $storeId, int $rowNumber): string
-    {
-        $base = Str::upper(Str::slug($name, '-'));
-        if ($base === '') {
-            $base = 'SKU';
-        }
-
-        $candidate = "{$base}-S{$storeId}-R{$rowNumber}";
-        while (Product::query()
-            ->where('store_id', $storeId)
-            ->where('sku', $candidate)
-            ->exists()) {
-            $candidate = "{$base}-S{$storeId}-R{$rowNumber}-" . Str::upper(Str::random(3));
-        }
-
-        return $candidate;
     }
 
     private function generateUniqueProductSlug(string $name, string $sku): string

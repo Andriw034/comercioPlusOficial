@@ -286,7 +286,7 @@ const loading = ref(true)
 const fetchStore = async () => {
   loading.value = true
   try {
-    const response = await fetch(`/api/public-stores/${route.params.id}`)
+    const response = await fetch(`/api/public/stores/${route.params.id}`)
     if (!response.ok) throw new Error('Failed to fetch store')
     const data = await response.json()
     store.value = data.data || data

@@ -1123,11 +1123,6 @@ export default function ManageProducts() {
                   </div>
                 )}
 
-                <div className="mt-3 grid gap-2 text-[11px] text-[#7C2D12] sm:grid-cols-3">
-                  <div className="rounded-lg border border-[#FDBA74]/50 bg-white/70 px-3 py-2">Escaner listo para lectura continua.</div>
-                  <div className="rounded-lg border border-[#FDBA74]/50 bg-white/70 px-3 py-2">Presiona Enter para buscar el codigo.</div>
-                  <div className="rounded-lg border border-[#FDBA74]/50 bg-white/70 px-3 py-2">Genera codigo interno si no llega en el proveedor.</div>
-                </div>
               </div>
 
               <form id="product-create-form" className="space-y-4" onSubmit={save}>

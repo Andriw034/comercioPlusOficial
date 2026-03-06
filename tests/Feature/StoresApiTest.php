@@ -47,7 +47,7 @@ class StoresApiTest extends TestCase
              ->assertStatus(200)->assertJsonFragment(['name' => 'Renamed Store']);
 
         // The public route for showing should still work
-        $this->getJson("/api/public-stores/{$store->id}")
+        $this->getJson("/api/public/stores/{$store->id}")
              ->assertStatus(200)
              ->assertJsonFragment(['id' => $store->id]);
 

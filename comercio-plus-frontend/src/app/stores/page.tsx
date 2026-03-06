@@ -38,7 +38,7 @@ export default function Stores() {
       try {
         setLoading(true)
         setError('')
-        const response = await API.get('/public-stores', {
+        const response = await API.get('/public/stores', {
           params: { _t: Date.now() },
         })
         const list = extractList<StoreCard>(response.data)

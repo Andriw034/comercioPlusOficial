@@ -88,4 +88,19 @@ class Store extends Model
     {
         return $this->hasMany(SalesReport::class);
     }
+
+    public function autoRestockSetting()
+    {
+        return $this->hasOne(AutoRestockSetting::class);
+    }
+
+    public function aiMetricCaches()
+    {
+        return $this->hasMany(AiMetricCache::class);
+    }
+
+    public function counter()
+    {
+        return $this->hasOne(StoreCounter::class);
+    }
 }
