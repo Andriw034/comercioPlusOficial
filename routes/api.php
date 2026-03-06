@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\Merchant\InventoryReceiveController;
 use App\Http\Controllers\Api\Merchant\MerchantStoreController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
+use App\Http\Controllers\Api\Merchant\AutoRestockController;
 use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
@@ -167,6 +168,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/merchant/credit/{creditAccount}', [CreditController::class, 'show']);
     Route::post('/merchant/credit/{creditAccount}/charge', [CreditController::class, 'charge']);
     Route::post('/merchant/credit/{creditAccount}/payment', [CreditController::class, 'payment']);
+    // Auto-restock module.
+    Route::get('/merchant/restock', [AutoRestockController::class, 'index']);
+    Route::get('/merchant/restock/{product}', [AutoRestockController::class, 'settings']);
+    Route::put('/merchant/restock/{product}', [AutoRestockController::class, 'saveSettings']);
+    Route::post('/merchant/restock/{product}/request', [AutoRestockController::class, 'request']);
+    Route::post('/merchant/restock/{product}/dismiss', [AutoRestockController::class, 'dismiss']);
+
     Route::get('/merchant/store', [MerchantStoreController::class, 'show']);
     Route::put('/merchant/store', [MerchantStoreController::class, 'update']);
     Route::get('/merchant/store/verification', [StoreVerificationController::class, 'show']);
