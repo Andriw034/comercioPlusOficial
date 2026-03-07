@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '@/lib/api'
 import { ErpBadge, ErpBtn, ErpKpiCard, ErpPageHeader } from '@/components/erp'
@@ -26,6 +26,17 @@ type AiCard = {
   title: string
   message: string
   tone: 'danger' | 'warning' | 'info' | 'success'
+}
+
+type LiveMetricsSnapshot = {
+  sales_today: { total: number; count: number; vs_yesterday_pct: number }
+  sales_this_week: { total: number; count: number }
+  active_orders: number
+  low_stock_count: number
+  top_product_today: { name: string; units: number } | null
+  new_customers_today: number
+  last_order: { id: number; total: number; status: string; minutes_ago: number } | null
+  timestamp: string
 }
 
 type DashboardState = {
@@ -388,6 +399,12 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
   const [dashboard, setDashboard] = useState<DashboardState>(EMPTY_STATE)
 
+  // Live metrics
+  const [liveMetrics, setLiveMetrics] = useState<LiveMetricsSnapshot | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [secSinceUpdate, setSecSinceUpdate] = useState(0)
+  const secRef = useRef(0)
+
   const loadDashboard = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -415,6 +432,35 @@ export default function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
+  const fetchLiveMetrics = useCallback(async () => {
+    if (document.visibilityState === 'hidden') return
+    try {
+      const res = await API.get('/merchant/live-metrics')
+      setLiveMetrics(res.data as LiveMetricsSnapshot)
+      setLastUpdated(new Date())
+      secRef.current = 0
+      setSecSinceUpdate(0)
+    } catch {
+      // keep previous data silently
+    }
+  }, [])
+
+  // Initial fetch + 30s polling
+  useEffect(() => {
+    fetchLiveMetrics()
+    const pollId = setInterval(fetchLiveMetrics, 30_000)
+    return () => clearInterval(pollId)
+  }, [fetchLiveMetrics])
+
+  // Seconds-since-update ticker
+  useEffect(() => {
+    const tickId = setInterval(() => {
+      secRef.current = Math.min(secRef.current + 1, 30)
+      setSecSinceUpdate(secRef.current)
+    }, 1_000)
+    return () => clearInterval(tickId)
+  }, [])
+
   const today = useMemo(() => new Date(), [])
   const greeting = useMemo(() => `${getGreeting(today)}, ${dashboard.merchantName}`, [dashboard.merchantName, today])
   const subtitle = useMemo(() => `${formatDateEs(today)} · Resumen del dia`, [today])
@@ -427,7 +473,26 @@ export default function DashboardPage() {
         title="Panel del comerciante"
         subtitle={subtitle}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {lastUpdated ? (
+              <div className="flex flex-col items-end gap-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    En vivo · hace {secSinceUpdate}s
+                  </span>
+                </div>
+                <div className="h-0.5 w-full rounded-full bg-slate-200 dark:bg-white/10">
+                  <div
+                    className="h-0.5 rounded-full bg-orange-500 transition-all duration-1000"
+                    style={{ width: `${Math.max(0, (1 - secSinceUpdate / 30) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
             <ErpBadge status={dashboard.storeBadgeStatus} label={dashboard.storeBadgeLabel} />
             <Link to="/dashboard/orders">
               <ErpBtn variant="primary" size="md">
@@ -454,17 +519,25 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <ErpKpiCard
           label="Ventas hoy"
-          value={formatCOP(dashboard.todaySales)}
-          hint="↑ 14% vs ayer"
+          value={liveMetrics ? formatCOP(liveMetrics.sales_today.total) : formatCOP(dashboard.todaySales)}
+          hint={
+            liveMetrics
+              ? `${liveMetrics.sales_today.vs_yesterday_pct >= 0 ? '↑' : '↓'} ${Math.abs(liveMetrics.sales_today.vs_yesterday_pct).toFixed(1)}% vs ayer`
+              : '↑ 14% vs ayer'
+          }
           icon="dollar"
           iconBg="rgba(255,161,79,0.12)"
           iconColor="#FFA14F"
-          trend={{ value: '14%', up: true }}
+          trend={
+            liveMetrics
+              ? { value: `${Math.abs(liveMetrics.sales_today.vs_yesterday_pct).toFixed(1)}%`, up: liveMetrics.sales_today.vs_yesterday_pct >= 0 }
+              : { value: '14%', up: true }
+          }
         />
         <ErpKpiCard
           label="Pedidos hoy"
-          value={dashboard.todayOrders}
-          hint="8 pendientes por alistar"
+          value={liveMetrics ? liveMetrics.sales_today.count : dashboard.todayOrders}
+          hint={liveMetrics ? `${liveMetrics.active_orders} activos ahora` : '8 pendientes por alistar'}
           icon="file-text"
           iconBg="rgba(59,130,246,0.12)"
           iconColor="#3B82F6"
@@ -472,7 +545,7 @@ export default function DashboardPage() {
         />
         <ErpKpiCard
           label="Stock critico"
-          value={dashboard.criticalStock}
+          value={liveMetrics ? liveMetrics.low_stock_count : dashboard.criticalStock}
           hint="Bajo punto de reorden"
           icon="alert"
           iconBg="rgba(239,68,68,0.1)"
@@ -522,6 +595,80 @@ export default function DashboardPage() {
           iconColor="#3B82F6"
         />
       </div>
+
+      {liveMetrics ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[13px] font-semibold text-slate-900 dark:text-white">⚡ Actividad reciente</p>
+            <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </span>
+              En tiempo real
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+            {liveMetrics.last_order ? (
+              <div className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-white/5">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Ultimo pedido</p>
+                <p className="mt-0.5 text-[13px] font-bold text-slate-900 dark:text-white">#{liveMetrics.last_order.id}</p>
+                <p className="text-[11px] text-slate-600 dark:text-white/60">{formatCOP(liveMetrics.last_order.total)}</p>
+                <p className="mt-0.5 text-[10px] text-slate-400">hace {liveMetrics.last_order.minutes_ago}min · {liveMetrics.last_order.status}</p>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-white/5">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Ultimo pedido</p>
+                <p className="mt-0.5 text-[12px] text-slate-400">Sin pedidos aun</p>
+              </div>
+            )}
+
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-white/5">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Ventas hoy vs ayer</p>
+              <p
+                className={`mt-0.5 text-[16px] font-black ${liveMetrics.sales_today.vs_yesterday_pct >= 0 ? 'text-emerald-600' : 'text-red-500'}`}
+              >
+                {liveMetrics.sales_today.vs_yesterday_pct >= 0 ? '↑' : '↓'}{' '}
+                {Math.abs(liveMetrics.sales_today.vs_yesterday_pct).toFixed(1)}%
+              </p>
+              <p className="text-[10px] text-slate-400">{formatCOP(liveMetrics.sales_today.total)}</p>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-white/5">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Pedidos activos</p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <p className="text-[16px] font-black text-slate-900 dark:text-white">{liveMetrics.active_orders}</p>
+                {liveMetrics.active_orders > 0 ? (
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-[10px] text-slate-400">pending + processing</p>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-white/5">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Clientes nuevos hoy</p>
+              <p className="mt-0.5 text-[16px] font-black text-slate-900 dark:text-white">{liveMetrics.new_customers_today}</p>
+              <p className="text-[10px] text-slate-400">registros de hoy</p>
+            </div>
+
+            {liveMetrics.top_product_today ? (
+              <div className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-white/5">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Top producto hoy</p>
+                <p className="mt-0.5 truncate text-[12px] font-bold text-slate-900 dark:text-white">{liveMetrics.top_product_today.name}</p>
+                <p className="text-[10px] text-slate-400">{liveMetrics.top_product_today.units} uds</p>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-white/5">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Top producto hoy</p>
+                <p className="mt-0.5 text-[12px] text-slate-400">Sin ventas aun</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-white/10 dark:bg-white/5">

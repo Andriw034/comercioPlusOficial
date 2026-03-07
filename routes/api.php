@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\Merchant\InventoryReceiveController;
 use App\Http\Controllers\Api\Merchant\MerchantStoreController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
 use App\Http\Controllers\Api\Merchant\AutoRestockController;
+use App\Http\Controllers\Api\Merchant\LiveMetricsController;
 use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
 use App\Http\Controllers\Api\InventoryDecisionsController;
 use App\Http\Controllers\Api\SettingsController;
@@ -183,6 +184,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/merchant/store', [MerchantStoreController::class, 'update']);
     Route::get('/merchant/store/verification', [StoreVerificationController::class, 'show']);
     Route::post('/merchant/store/verification', [StoreVerificationController::class, 'submit']);
+    Route::get('/merchant/live-metrics', [LiveMetricsController::class, 'snapshot']);
     Route::get('/merchant/dashboard', [StatsController::class, 'summary']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);
     Route::get('/reports/summary', [ReportController::class, 'summary']);
