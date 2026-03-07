@@ -42,6 +42,7 @@ const Cart = lazy(() => import('@/pages/Cart'))
 const Checkout = lazy(() => import('@/pages/Checkout'))
 const CheckoutSuccess = lazy(() => import('@/pages/CheckoutSuccess'))
 const SimpleContentPage = lazy(() => import('@/pages/SimpleContentPage'))
+const OrderHistory = lazy(() => import('@/pages/OrderHistory'))
 
 const Dashboard = lazy(() => import('./dashboard/page'))
 const DashboardCategoriesPage = lazy(() => import('./dashboard/categories/page'))
@@ -50,6 +51,7 @@ const DashboardCreditPage = lazy(() => import('./dashboard/credit/page'))
 const DashboardInventoryPage = lazy(() => import('./dashboard/inventory/page'))
 const InventoryReceivePage = lazy(() => import('./dashboard/inventory/receive/page'))
 const InventoryImportPage = lazy(() => import('./dashboard/inventory/import/page'))
+const RestockPage = lazy(() => import('./dashboard/inventory/restock/page'))
 const ManageProducts = lazy(() => import('./dashboard/products/page'))
 const DashboardReportsPage = lazy(() => import('./dashboard/reports/page'))
 const DashboardSettingsPage = lazy(() => import('./dashboard/settings/page'))
@@ -79,6 +81,7 @@ export default function App() {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/success" element={<CheckoutSuccess />} />
             <Route path="/payment/success" element={<CheckoutSuccess />} />
+            <Route path="/orders/history" element={<OrderHistory />} />
             <Route path="/orders/:id" element={<CheckoutSuccess />} />
             <Route path="/category/:id" element={<Category />} />
             <Route path="/privacy" element={<Privacy />} />
@@ -172,6 +175,7 @@ export default function App() {
             <Route path="/dashboard/inventory" element={<DashboardInventoryPage />} />
             <Route path="/dashboard/inventory/receive" element={<InventoryReceivePage />} />
             <Route path="/dashboard/inventory/import" element={<InventoryImportPage />} />
+            <Route path="/dashboard/inventory/restock" element={<RestockPage />} />
             <Route path="/dashboard/reports" element={<DashboardReportsPage />} />
             <Route path="/dashboard/categories" element={<DashboardCategoriesPage />} />
             <Route path="/dashboard/products" element={<ManageProducts />} />

@@ -430,7 +430,7 @@ export default function Navbar() {
                       zIndex: 60,
                     }}
                   >
-                    {[{ label: 'Mi panel', href: '/dashboard' }, { label: 'Productos', href: '/dashboard/products' }, { label: 'Tienda', href: '/dashboard/store' }].map((item) => (
+                    {[{ label: 'Mis pedidos', href: '/orders/history' }, { label: 'Mi panel', href: '/dashboard' }, { label: 'Productos', href: '/dashboard/products' }, { label: 'Tienda', href: '/dashboard/store' }].map((item) => (
                       <Link
                         key={item.label}
                         to={item.href}
@@ -513,7 +513,12 @@ export default function Navbar() {
           }}
         >
           <div style={{ padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {[{ label: 'Tiendas', href: '/stores' }, { label: 'Productos', href: '/products' }, { label: 'Carrito', href: '/cart' }].map((item) => (
+            {[
+                { label: 'Tiendas', href: '/stores' },
+                { label: 'Productos', href: '/products' },
+                { label: 'Carrito', href: '/cart' },
+                ...(isAuthenticated ? [{ label: 'Mis pedidos', href: '/orders/history' }] : []),
+              ].map((item) => (
               <Link
                 key={item.label}
                 to={item.href}

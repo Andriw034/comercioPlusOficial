@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\Merchant\MerchantStoreController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
 use App\Http\Controllers\Api\Merchant\AutoRestockController;
 use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
+use App\Http\Controllers\Api\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
@@ -235,6 +236,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('cart-products', CartProductController::class);
     Route::apiResource('orders', OrderController::class);
     Route::apiResource('subscriptions', SubscriptionController::class);
+
+    // Merchant settings (dashboard settings page).
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::put('/settings', [SettingsController::class, 'update']);
 });
 
 
