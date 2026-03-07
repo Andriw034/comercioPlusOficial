@@ -4,7 +4,7 @@ import { Icon } from '@/components/Icon'
 import { ErpBtn, ErpKpiCard, ErpPageHeader } from '@/components/erp'
 
 type ReportStatus = 'all' | 'pending' | 'processing' | 'paid' | 'approved' | 'completed' | 'cancelled'
-type ReportView = 'overview' | 'sales' | 'tax' | 'products' | 'inventory' | 'alerts' | 'trends'
+type ReportView = 'overview' | 'sales' | 'tax' | 'products' | 'inventory' | 'alerts' | 'trends' | 'decisions'
 
 type Filters = {
   from: string
@@ -99,6 +99,31 @@ type TrendsData = {
   top_categories: CategoryTotal[]
 }
 
+type DecisionItem = {
+  id: number
+  name: string
+  sku: string | null
+  stock: number
+  reorder_point: number
+  price: number
+  sold_30d: number
+  sold_7d: number
+  daily_rotation: number
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  suggested_qty: number
+  days_of_stock: number | null
+  projected_stockout: string | null
+}
+
+type DecisionSummary = {
+  critical_count: number
+  high_count: number
+  medium_count: number
+  low_count: number
+  total_restock_value: number
+  health_score: number
+}
+
 const STATUS_OPTIONS: Array<{ value: ReportStatus; label: string }> = [
   { value: 'all', label: 'Todos' },
   { value: 'pending', label: 'Pendiente' },
@@ -109,7 +134,7 @@ const STATUS_OPTIONS: Array<{ value: ReportStatus; label: string }> = [
   { value: 'cancelled', label: 'Cancelado' },
 ]
 
-const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trending' | 'file-text' | 'package' | 'users' | 'bell' | 'pie-chart' }> = [
+const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trending' | 'file-text' | 'package' | 'users' | 'bell' | 'pie-chart' | 'star' }> = [
   { key: 'overview', label: 'Resumen IA', icon: 'chart' },
   { key: 'sales', label: 'Ventas', icon: 'trending' },
   { key: 'tax', label: 'Impuestos', icon: 'file-text' },
@@ -117,6 +142,7 @@ const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trendi
   { key: 'inventory', label: 'Inventario', icon: 'users' },
   { key: 'alerts', label: 'Alertas', icon: 'bell' },
   { key: 'trends', label: 'Tendencias', icon: 'pie-chart' },
+  { key: 'decisions', label: 'Decisiones IA', icon: 'star' },
 ]
 
 function toDateInput(value: Date): string {
@@ -328,6 +354,16 @@ export default function DashboardReportsPage() {
   const [trendsData, setTrendsData] = useState<TrendsData | null>(null)
   const [trendsLoading, setTrendsLoading] = useState(true)
 
+  const [decisionsData, setDecisionsData] = useState<DecisionItem[] | null>(null)
+  const [decisionsSummary, setDecisionsSummary] = useState<DecisionSummary | null>(null)
+  const [decisionsLoading, setDecisionsLoading] = useState(true)
+  const [decisionsDismissed, setDecisionsDismissed] = useState<number[]>([])
+  const [decisionsFilter, setDecisionsFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all')
+  const [decisionsSearch, setDecisionsSearch] = useState('')
+  const [modalProduct, setModalProduct] = useState<DecisionItem | null>(null)
+  const [modalQty, setModalQty] = useState(0)
+  const [modalWhatsapp, setModalWhatsapp] = useState('')
+
   const params = useMemo(() => {
     const next: Record<string, string> = {}
     if (appliedFilters.from) next.from = appliedFilters.from
@@ -370,10 +406,12 @@ export default function DashboardReportsPage() {
   const loadAlertsAndTrends = useCallback(async () => {
     setAlertsLoading(true)
     setTrendsLoading(true)
+    setDecisionsLoading(true)
 
-    const [alertsResult, trendsResult] = await Promise.allSettled([
+    const [alertsResult, trendsResult, decisionsResult] = await Promise.allSettled([
       API.get('/reports/alerts'),
       API.get('/reports/trends'),
+      API.get('/reports/inventory-decisions'),
     ])
 
     if (alertsResult.status === 'fulfilled') {
@@ -389,6 +427,16 @@ export default function DashboardReportsPage() {
       setTrendsData({ sales_by_month: [], top_categories: [] })
     }
     setTrendsLoading(false)
+
+    if (decisionsResult.status === 'fulfilled') {
+      const payload = decisionsResult.value.data
+      setDecisionsData(Array.isArray(payload?.data) ? (payload.data as DecisionItem[]) : [])
+      setDecisionsSummary(payload?.summary ?? null)
+    } else {
+      setDecisionsData([])
+      setDecisionsSummary(null)
+    }
+    setDecisionsLoading(false)
   }, [])
 
   useEffect(() => {
@@ -419,6 +467,13 @@ export default function DashboardReportsPage() {
 
   const maxMonthTotal = Math.max(...(trendsData?.sales_by_month.map((r) => r.total) ?? [1]), 1)
   const totalCategoryRevenue = (trendsData?.top_categories ?? []).reduce((sum, c) => sum + c.total, 0) || 1
+
+  const filteredDecisions = (decisionsData ?? []).filter((item) => {
+    if (decisionsDismissed.includes(item.id)) return false
+    if (decisionsFilter !== 'all' && item.priority !== decisionsFilter) return false
+    if (decisionsSearch.trim() && !item.name.toLowerCase().includes(decisionsSearch.toLowerCase())) return false
+    return true
+  })
 
   return (
     <div className="space-y-4 text-[#0F172A]">
@@ -953,7 +1008,218 @@ export default function DashboardReportsPage() {
               </div>
             )
           ) : null}
+
+          {activeView === 'decisions' ? (
+            decisionsLoading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-14 text-center">
+                <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+                <p className="text-[13px] text-slate-500">Analizando inventario...</p>
+              </div>
+            ) : !decisionsData || decisionsData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50 py-16 text-center">
+                <span className="text-5xl">✅</span>
+                <h3 className="mt-4 text-[18px] font-black text-slate-800">Tu inventario está saludable</h3>
+                <p className="mt-1 text-[13px] text-slate-500">No hay productos en zona de alerta.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Health score */}
+                {decisionsSummary && (
+                  <div className={`rounded-2xl border p-4 ${decisionsSummary.health_score < 40 ? 'border-red-200 bg-red-50' : decisionsSummary.health_score < 70 ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className={`text-[12px] font-bold uppercase tracking-wide ${decisionsSummary.health_score < 40 ? 'text-red-700' : decisionsSummary.health_score < 70 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                        {decisionsSummary.health_score < 40 ? 'Inventario crítico' : decisionsSummary.health_score < 70 ? 'Requiere atención' : 'Inventario saludable'}
+                      </p>
+                      <span className={`text-[28px] font-black ${decisionsSummary.health_score < 40 ? 'text-red-700' : decisionsSummary.health_score < 70 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                        {decisionsSummary.health_score}
+                      </span>
+                    </div>
+                    <div className="overflow-hidden rounded-full bg-white/60">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-700 ${decisionsSummary.health_score < 40 ? 'bg-red-500' : decisionsSummary.health_score < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${decisionsSummary.health_score}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* KPI cards */}
+                {decisionsSummary && (
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    {[
+                      { label: 'Crítico', count: decisionsSummary.critical_count, color: 'text-red-600', bg: 'bg-red-50 border-red-200', emoji: '🔴' },
+                      { label: 'Alto', count: decisionsSummary.high_count, color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', emoji: '🟠' },
+                      { label: 'Medio', count: decisionsSummary.medium_count, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', emoji: '🟡' },
+                    ].map((kpi) => (
+                      <div key={kpi.label} className={`rounded-xl border p-3 ${kpi.bg}`}>
+                        <p className="text-[11px] text-slate-500">{kpi.emoji} {kpi.label}</p>
+                        <p className={`mt-1 text-[22px] font-black ${kpi.color}`}>{kpi.count}</p>
+                      </div>
+                    ))}
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-[11px] text-slate-500">💰 Inversión estimada</p>
+                      <p className="mt-1 text-[15px] font-black text-slate-800">
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(decisionsSummary.total_restock_value)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Buscar producto..."
+                    value={decisionsSearch}
+                    onChange={(e) => setDecisionsSearch(e.target.value)}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] text-slate-700 outline-none focus:border-orange-400"
+                  />
+                  {(['all', 'critical', 'high', 'medium', 'low'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setDecisionsFilter(f)}
+                      className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${decisionsFilter === f ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    >
+                      {f === 'all' ? 'Todos' : f === 'critical' ? 'Crítico' : f === 'high' ? 'Alto' : f === 'medium' ? 'Medio' : 'Bajo'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <table className="min-w-full text-[12px]">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        <th className="px-4 py-3">Producto</th>
+                        <th className="px-3 py-3">Stock</th>
+                        <th className="px-3 py-3">Reorden</th>
+                        <th className="px-3 py-3">Vend. 30d</th>
+                        <th className="px-3 py-3">Rot. diaria</th>
+                        <th className="px-3 py-3">Días stock</th>
+                        <th className="px-3 py-3">Quiebre</th>
+                        <th className="px-3 py-3">Sugerencia 🧠</th>
+                        <th className="px-3 py-3">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredDecisions.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
+                            Sin resultados para los filtros aplicados.
+                          </td>
+                        </tr>
+                      ) : filteredDecisions.map((item) => {
+                        const days = item.days_of_stock
+                        const daysBadge = days === null
+                          ? <span className="text-slate-400">—</span>
+                          : days < 7
+                            ? <span className="rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-700">{days}d</span>
+                            : days < 14
+                              ? <span className="rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">{days}d</span>
+                              : <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">{days}d</span>
+                        return (
+                          <tr key={item.id} className="hover:bg-slate-50">
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-slate-900">{item.name}</p>
+                              {item.sku && <p className="text-[10px] text-slate-400">{item.sku}</p>}
+                            </td>
+                            <td className="px-3 py-3 font-bold text-red-600">{item.stock}</td>
+                            <td className="px-3 py-3 text-slate-600">{item.reorder_point}</td>
+                            <td className="px-3 py-3 text-slate-600">{item.sold_30d}</td>
+                            <td className="px-3 py-3 text-slate-600">{item.daily_rotation}</td>
+                            <td className="px-3 py-3">{daysBadge}</td>
+                            <td className="px-3 py-3 text-[11px] text-slate-500">{item.projected_stockout ?? '—'}</td>
+                            <td className="px-3 py-3 font-bold text-orange-600">{item.suggested_qty}</td>
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => { setModalProduct(item); setModalQty(item.suggested_qty); setModalWhatsapp('') }}
+                                  className="rounded-lg bg-orange-500 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-orange-600"
+                                >
+                                  📦 Pedir
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDecisionsDismissed((prev) => [...prev, item.id])}
+                                  className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500 transition hover:bg-slate-200"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          ) : null}
         </>
+      )}
+
+      {/* Modal solicitar reposición */}
+      {modalProduct && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setModalProduct(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-4 text-[16px] font-black text-slate-900">Solicitar reposición</h2>
+            <p className="text-[13px] font-semibold text-slate-700">{modalProduct.name}</p>
+            <p className="mb-4 text-[12px] text-slate-500">Stock actual: <strong>{modalProduct.stock}</strong> unidades</p>
+
+            <label className="mb-3 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Cantidad a solicitar
+              <input
+                type="number"
+                min={1}
+                value={modalQty}
+                onChange={(e) => setModalQty(Math.max(1, Number(e.target.value)))}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-900 outline-none focus:border-orange-400 focus:shadow-[0_0_0_3px_rgba(255,106,0,0.12)]"
+              />
+            </label>
+
+            <label className="mb-5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              WhatsApp proveedor (opcional)
+              <input
+                type="tel"
+                placeholder="+573001234567"
+                value={modalWhatsapp}
+                onChange={(e) => setModalWhatsapp(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-900 outline-none focus:border-orange-400 focus:shadow-[0_0_0_3px_rgba(255,106,0,0.12)]"
+              />
+            </label>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={!modalWhatsapp.trim()}
+                onClick={() => {
+                  const phone = modalWhatsapp.replace(/\D/g, '')
+                  const text = encodeURIComponent(`Hola, necesito reabastecer *${modalProduct!.name}* x ${modalQty} unidades. Gracias.`)
+                  window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer')
+                }}
+                className="flex-1 rounded-lg bg-emerald-500 px-4 py-2.5 text-[12px] font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Generar enlace WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalProduct(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\Merchant\MerchantStoreController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
 use App\Http\Controllers\Api\Merchant\AutoRestockController;
 use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
+use App\Http\Controllers\Api\InventoryDecisionsController;
 use App\Http\Controllers\Api\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
@@ -193,6 +194,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/export/tax.csv', [ReportController::class, 'exportTaxCsv']);
     Route::get('/reports/alerts', [ReportsAlertsController::class, 'alerts']);
     Route::get('/reports/trends', [ReportsTrendsController::class, 'trends']);
+    Route::get('/reports/inventory-decisions', [InventoryDecisionsController::class, 'decisions']);
     Route::get('/inventory/summary', [InventoryController::class, 'summary']);
     Route::get('/inventory/stats', [InventoryController::class, 'stats']);
     Route::get('/inventory/movements', [InventoryController::class, 'merchantMovements']);
