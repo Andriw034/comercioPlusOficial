@@ -124,6 +124,13 @@ type DecisionSummary = {
   health_score: number
 }
 
+const DECISION_PRIORITY_CONFIG: Record<string, { label: string; textColor: string; bg: string; border: string; dotColor: string; leftBorder: string }> = {
+  critical: { label: 'Crítico', textColor: '#DC2626', bg: '#FEF2F2', border: '#FECACA', dotColor: '#EF4444', leftBorder: '#EF4444' },
+  high:     { label: 'Alto',    textColor: '#C2410C', bg: '#FFF7ED', border: '#FED7AA', dotColor: '#F97316', leftBorder: '#F97316' },
+  medium:   { label: 'Medio',   textColor: '#92400E', bg: '#FFFBEB', border: '#FDE68A', dotColor: '#F59E0B', leftBorder: '#F59E0B' },
+  low:      { label: 'Bajo',    textColor: '#64748B', bg: '#F8FAFC', border: '#E2E8F0', dotColor: '#94A3B8', leftBorder: '#94A3B8' },
+}
+
 const STATUS_OPTIONS: Array<{ value: ReportStatus; label: string }> = [
   { value: 'all', label: 'Todos' },
   { value: 'pending', label: 'Pendiente' },
@@ -134,7 +141,7 @@ const STATUS_OPTIONS: Array<{ value: ReportStatus; label: string }> = [
   { value: 'cancelled', label: 'Cancelado' },
 ]
 
-const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trending' | 'file-text' | 'package' | 'users' | 'bell' | 'pie-chart' | 'star' }> = [
+const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trending' | 'file-text' | 'package' | 'users' | 'bell' | 'pie-chart' }> = [
   { key: 'overview', label: 'Resumen IA', icon: 'chart' },
   { key: 'sales', label: 'Ventas', icon: 'trending' },
   { key: 'tax', label: 'Impuestos', icon: 'file-text' },
@@ -142,7 +149,7 @@ const VIEW_TABS: Array<{ key: ReportView; label: string; icon: 'chart' | 'trendi
   { key: 'inventory', label: 'Inventario', icon: 'users' },
   { key: 'alerts', label: 'Alertas', icon: 'bell' },
   { key: 'trends', label: 'Tendencias', icon: 'pie-chart' },
-  { key: 'decisions', label: 'Decisiones IA', icon: 'star' },
+  { key: 'decisions', label: '🧠 Decisiones IA', icon: 'trending' },
 ]
 
 function toDateInput(value: Date): string {
@@ -360,7 +367,7 @@ export default function DashboardReportsPage() {
   const [decisionsDismissed, setDecisionsDismissed] = useState<number[]>([])
   const [decisionsFilter, setDecisionsFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all')
   const [decisionsSearch, setDecisionsSearch] = useState('')
-  const [modalProduct, setModalProduct] = useState<DecisionItem | null>(null)
+  const [decisionsModal, setDecisionsModal] = useState<DecisionItem | null>(null)
   const [modalQty, setModalQty] = useState(0)
   const [modalWhatsapp, setModalWhatsapp] = useState('')
 
@@ -1011,11 +1018,11 @@ export default function DashboardReportsPage() {
 
           {activeView === 'decisions' ? (
             decisionsLoading ? (
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-14 text-center">
+              <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-14 text-center shadow-[0_1px_4px_rgba(15,23,42,0.06)]">
                 <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
                 <p className="text-[13px] text-slate-500">Analizando inventario...</p>
               </div>
-            ) : !decisionsData || decisionsData.length === 0 ? (
+            ) : !decisionsData || filteredDecisions.length === 0 && decisionsFilter === 'all' && !decisionsSearch ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50 py-16 text-center">
                 <span className="text-5xl">✅</span>
                 <h3 className="mt-4 text-[18px] font-black text-slate-800">Tu inventario está saludable</h3>
@@ -1023,137 +1030,167 @@ export default function DashboardReportsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Health score */}
-                {decisionsSummary && (
-                  <div className={`rounded-2xl border p-4 ${decisionsSummary.health_score < 40 ? 'border-red-200 bg-red-50' : decisionsSummary.health_score < 70 ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className={`text-[12px] font-bold uppercase tracking-wide ${decisionsSummary.health_score < 40 ? 'text-red-700' : decisionsSummary.health_score < 70 ? 'text-amber-700' : 'text-emerald-700'}`}>
-                        {decisionsSummary.health_score < 40 ? 'Inventario crítico' : decisionsSummary.health_score < 70 ? 'Requiere atención' : 'Inventario saludable'}
-                      </p>
-                      <span className={`text-[28px] font-black ${decisionsSummary.health_score < 40 ? 'text-red-700' : decisionsSummary.health_score < 70 ? 'text-amber-700' : 'text-emerald-700'}`}>
-                        {decisionsSummary.health_score}
-                      </span>
-                    </div>
-                    <div className="overflow-hidden rounded-full bg-white/60">
-                      <div
-                        className={`h-3 rounded-full transition-all duration-700 ${decisionsSummary.health_score < 40 ? 'bg-red-500' : decisionsSummary.health_score < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                        style={{ width: `${decisionsSummary.health_score}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* KPI cards */}
-                {decisionsSummary && (
-                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                    {[
-                      { label: 'Crítico', count: decisionsSummary.critical_count, color: 'text-red-600', bg: 'bg-red-50 border-red-200', emoji: '🔴' },
-                      { label: 'Alto', count: decisionsSummary.high_count, color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', emoji: '🟠' },
-                      { label: 'Medio', count: decisionsSummary.medium_count, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', emoji: '🟡' },
-                    ].map((kpi) => (
-                      <div key={kpi.label} className={`rounded-xl border p-3 ${kpi.bg}`}>
-                        <p className="text-[11px] text-slate-500">{kpi.emoji} {kpi.label}</p>
-                        <p className={`mt-1 text-[22px] font-black ${kpi.color}`}>{kpi.count}</p>
+                {/* Health ring + KPI panel */}
+                {decisionsSummary && (() => {
+                  const score = decisionsSummary.health_score
+                  const r = 38
+                  const circ = 2 * Math.PI * r
+                  const offset = circ - (score / 100) * circ
+                  const ringColor = score < 40 ? '#DC2626' : score < 70 ? '#C2410C' : '#16A34A'
+                  const scoreLabel = score < 40 ? 'Inventario crítico' : score < 70 ? 'Requiere atención' : 'Inventario saludable'
+                  const scoreSub = score < 40 ? 'Acción inmediata' : score < 70 ? 'Revisar productos' : 'Todo en orden'
+                  const copFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+                  return (
+                    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, padding: '22px 26px', boxShadow: '0 1px 4px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.04)', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'center' }}>
+                      {/* Ring */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ position: 'relative', width: 96, height: 96 }}>
+                          <svg width={96} height={96} style={{ transform: 'rotate(-90deg)' }}>
+                            <circle cx={48} cy={48} r={r} fill="none" stroke="#F1F5F9" strokeWidth={8} />
+                            <circle cx={48} cy={48} r={r} fill="none" stroke={ringColor} strokeWidth={8}
+                              strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+                              style={{ transition: 'stroke-dashoffset 1.2s ease' }} />
+                          </svg>
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 22, fontWeight: 900, color: ringColor, lineHeight: 1 }}>{score}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 10, color: '#94A3B8', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>Salud del inventario</p>
+                          <p style={{ fontSize: 17, fontWeight: 800, color: ringColor, marginBottom: 3 }}>{scoreLabel}</p>
+                          <p style={{ fontSize: 12, color: '#94A3B8' }}>{scoreSub}</p>
+                        </div>
                       </div>
-                    ))}
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
-                      <p className="text-[11px] text-slate-500">💰 Inversión estimada</p>
-                      <p className="mt-1 text-[15px] font-black text-slate-800">
-                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(decisionsSummary.total_restock_value)}
-                      </p>
+                      {/* KPI cards */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+                        {([
+                          { label: 'Crítico', value: decisionsSummary.critical_count, icon: '🔴', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+                          { label: 'Alto',    value: decisionsSummary.high_count,     icon: '🟠', color: '#C2410C', bg: '#FFF7ED', border: '#FED7AA' },
+                          { label: 'Medio',   value: decisionsSummary.medium_count,   icon: '🟡', color: '#92400E', bg: '#FFFBEB', border: '#FDE68A' },
+                          { label: 'Inversión estimada', value: copFmt.format(decisionsSummary.total_restock_value), icon: '💰', color: '#166534', bg: '#F0FDF4', border: '#BBF7D0' },
+                        ] as const).map((kpi) => (
+                          <div key={kpi.label} style={{ background: kpi.bg, border: `1px solid ${kpi.border}`, borderRadius: 14, padding: '14px 16px', textAlign: 'center' }}>
+                            <div style={{ fontSize: 20, marginBottom: 6 }}>{kpi.icon}</div>
+                            <div style={{ fontSize: typeof kpi.value === 'string' ? 13 : 28, fontWeight: 900, color: kpi.color, fontFamily: 'monospace', lineHeight: 1.1, marginBottom: 4 }}>{kpi.value}</div>
+                            <div style={{ fontSize: 10, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>{kpi.label}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
 
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Buscar producto..."
-                    value={decisionsSearch}
-                    onChange={(e) => setDecisionsSearch(e.target.value)}
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] text-slate-700 outline-none focus:border-orange-400"
-                  />
-                  {(['all', 'critical', 'high', 'medium', 'low'] as const).map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setDecisionsFilter(f)}
-                      className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${decisionsFilter === f ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                    >
-                      {f === 'all' ? 'Todos' : f === 'critical' ? 'Crítico' : f === 'high' ? 'Alto' : f === 'medium' ? 'Medio' : 'Bajo'}
-                    </button>
-                  ))}
+                {/* Filter bar */}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                    <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#CBD5E1', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
+                    <input
+                      type="text"
+                      value={decisionsSearch}
+                      onChange={(e) => setDecisionsSearch(e.target.value)}
+                      placeholder="Buscar producto..."
+                      style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: '9px 14px 9px 36px', color: '#0F172A', fontSize: 13, outline: 'none', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 11, padding: 4, boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+                    {([
+                      { key: 'all' as const,      label: 'Todos',   count: (decisionsData ?? []).filter(d => !decisionsDismissed.includes(d.id)).length },
+                      { key: 'critical' as const, label: 'Crítico', count: decisionsSummary?.critical_count ?? 0 },
+                      { key: 'high' as const,     label: 'Alto',    count: decisionsSummary?.high_count ?? 0 },
+                      { key: 'medium' as const,   label: 'Medio',   count: decisionsSummary?.medium_count ?? 0 },
+                      { key: 'low' as const,      label: 'Bajo',    count: decisionsSummary?.low_count ?? 0 },
+                    ]).map((f) => (
+                      <button key={f.key} type="button" onClick={() => setDecisionsFilter(f.key)} style={{
+                        padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                        fontSize: 12, fontWeight: 700, transition: 'all 0.15s',
+                        background: decisionsFilter === f.key ? '#F97316' : 'transparent',
+                        color: decisionsFilter === f.key ? '#fff' : '#94A3B8',
+                        boxShadow: decisionsFilter === f.key ? '0 2px 8px rgba(249,115,22,0.35)' : 'none',
+                      }}>
+                        {f.label} <span style={{ fontSize: 10, opacity: 0.75 }}>{f.count}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <table className="min-w-full text-[12px]">
-                    <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                        <th className="px-4 py-3">Producto</th>
-                        <th className="px-3 py-3">Stock</th>
-                        <th className="px-3 py-3">Reorden</th>
-                        <th className="px-3 py-3">Vend. 30d</th>
-                        <th className="px-3 py-3">Rot. diaria</th>
-                        <th className="px-3 py-3">Días stock</th>
-                        <th className="px-3 py-3">Quiebre</th>
-                        <th className="px-3 py-3">Sugerencia 🧠</th>
-                        <th className="px-3 py-3">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredDecisions.length === 0 ? (
-                        <tr>
-                          <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
-                            Sin resultados para los filtros aplicados.
-                          </td>
-                        </tr>
-                      ) : filteredDecisions.map((item) => {
-                        const days = item.days_of_stock
-                        const daysBadge = days === null
-                          ? <span className="text-slate-400">—</span>
-                          : days < 7
-                            ? <span className="rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-700">{days}d</span>
-                            : days < 14
-                              ? <span className="rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">{days}d</span>
-                              : <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">{days}d</span>
-                        return (
-                          <tr key={item.id} className="hover:bg-slate-50">
-                            <td className="px-4 py-3">
-                              <p className="font-semibold text-slate-900">{item.name}</p>
-                              {item.sku && <p className="text-[10px] text-slate-400">{item.sku}</p>}
-                            </td>
-                            <td className="px-3 py-3 font-bold text-red-600">{item.stock}</td>
-                            <td className="px-3 py-3 text-slate-600">{item.reorder_point}</td>
-                            <td className="px-3 py-3 text-slate-600">{item.sold_30d}</td>
-                            <td className="px-3 py-3 text-slate-600">{item.daily_rotation}</td>
-                            <td className="px-3 py-3">{daysBadge}</td>
-                            <td className="px-3 py-3 text-[11px] text-slate-500">{item.projected_stockout ?? '—'}</td>
-                            <td className="px-3 py-3 font-bold text-orange-600">{item.suggested_qty}</td>
-                            <td className="px-3 py-3">
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => { setModalProduct(item); setModalQty(item.suggested_qty); setModalWhatsapp('') }}
-                                  className="rounded-lg bg-orange-500 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-orange-600"
-                                >
-                                  📦 Pedir
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDecisionsDismissed((prev) => [...prev, item.id])}
-                                  className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500 transition hover:bg-slate-200"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.04)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 70px 80px 80px 90px 78px 110px 110px 120px', padding: '11px 22px', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', fontSize: 10, color: '#94A3B8', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>
+                    {['Producto', 'Stock', 'Reorden', 'Vend. 30d', 'Rot. diaria', 'Días stock', 'Quiebre est.', 'Sugerencia 🧠', 'Acciones'].map((h, i) => (
+                      <div key={h} style={{ textAlign: i === 0 ? 'left' : 'center' }}>{h}</div>
+                    ))}
+                  </div>
+
+                  {filteredDecisions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '52px 24px' }}>
+                      <div style={{ fontSize: 44, marginBottom: 14 }}>✅</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#334155', marginBottom: 6 }}>Sin resultados</div>
+                      <div style={{ fontSize: 13, color: '#94A3B8' }}>Ajusta los filtros para ver más productos.</div>
+                    </div>
+                  ) : filteredDecisions.map((item, idx) => {
+                    const pc = DECISION_PRIORITY_CONFIG[item.priority] ?? DECISION_PRIORITY_CONFIG.low
+                    const days = item.days_of_stock
+                    const daysBg = days === null ? null : days < 7 ? ['#DC2626', '#FEF2F2'] : days < 14 ? ['#C2410C', '#FFF7ED'] : ['#16A34A', '#F0FDF4']
+                    return (
+                      <div key={item.id}
+                        style={{
+                          display: 'grid', gridTemplateColumns: '2fr 70px 80px 80px 90px 78px 110px 110px 120px',
+                          padding: '14px 22px', borderBottom: idx < filteredDecisions.length - 1 ? '1px solid #F8FAFC' : 'none',
+                          alignItems: 'center', borderLeft: `3px solid ${pc.leftBorder}`, cursor: 'default',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: pc.textColor, background: pc.bg, border: `1px solid ${pc.border}` }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: pc.dotColor, flexShrink: 0 }} />
+                              {pc.label}
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{item.name}</span>
+                          </div>
+                          {item.sku && <div style={{ fontSize: 11, color: '#CBD5E1', paddingLeft: 2 }}>SKU {item.sku}</div>}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: 17, fontWeight: 900, fontFamily: 'monospace', color: item.stock === 0 ? '#DC2626' : item.stock <= item.reorder_point ? '#C2410C' : '#0F172A' }}>{item.stock}</div>
+                        <div style={{ textAlign: 'center', fontSize: 13, color: '#64748B' }}>{item.reorder_point}</div>
+                        <div style={{ textAlign: 'center', fontSize: 13, color: '#64748B' }}>{item.sold_30d}</div>
+                        <div style={{ textAlign: 'center', fontSize: 13, color: '#64748B' }}>{item.daily_rotation}</div>
+                        <div style={{ textAlign: 'center' }}>
+                          {daysBg === null
+                            ? <span style={{ color: '#CBD5E1', fontSize: 13 }}>—</span>
+                            : <span style={{ color: daysBg[0], background: daysBg[1], padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>{days}d</span>
+                          }
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: 11, color: '#94A3B8' }}>{item.projected_stockout ?? '—'}</div>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: '#C2410C', fontFamily: 'monospace', background: '#FFF7ED', padding: '4px 12px', borderRadius: 8, border: '1px solid #FED7AA' }}>+{item.suggested_qty}</span>
+                        </div>
+                        <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: 6 }}>
+                          <button type="button"
+                            onClick={() => { setDecisionsModal(item); setModalQty(item.suggested_qty); setModalWhatsapp('') }}
+                            style={{ padding: '6px 12px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, color: '#C2410C', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >📦 Pedir</button>
+                          <button type="button"
+                            onClick={() => setDecisionsDismissed((prev) => [...prev, item.id])}
+                            style={{ width: 28, height: 28, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, color: '#CBD5E1', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >✕</button>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {filteredDecisions.length > 0 && (
+                    <div style={{ padding: '12px 22px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFBFC' }}>
+                      <span style={{ fontSize: 12, color: '#94A3B8' }}>{filteredDecisions.length} productos en zona de alerta</span>
+                      {decisionsSummary && (
+                        <span style={{ fontSize: 12, color: '#94A3B8' }}>
+                          Inversión total: <span style={{ color: '#C2410C', fontWeight: 800 }}>
+                            {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(decisionsSummary.total_restock_value)}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -1162,61 +1199,85 @@ export default function DashboardReportsPage() {
       )}
 
       {/* Modal solicitar reposición */}
-      {modalProduct && (
+      {decisionsModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setModalProduct(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', padding: 16 }}
+          onClick={() => setDecisionsModal(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            style={{ background: '#FFFFFF', borderRadius: 20, padding: 28, width: 440, maxWidth: '92vw', boxShadow: '0 20px 60px rgba(15,23,42,0.18), 0 0 0 1px rgba(0,0,0,0.06)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="mb-4 text-[16px] font-black text-slate-900">Solicitar reposición</h2>
-            <p className="text-[13px] font-semibold text-slate-700">{modalProduct.name}</p>
-            <p className="mb-4 text-[12px] text-slate-500">Stock actual: <strong>{modalProduct.stock}</strong> unidades</p>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 10, color: '#94A3B8', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>Solicitar reposición</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{decisionsModal.name}</div>
+                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3 }}>
+                  {decisionsModal.sku ? `SKU ${decisionsModal.sku} · ` : ''}Stock actual:{' '}
+                  <span style={{ color: '#DC2626', fontWeight: 700 }}>{decisionsModal.stock}</span>
+                </div>
+              </div>
+              <button type="button" onClick={() => setDecisionsModal(null)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#94A3B8', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
 
-            <label className="mb-3 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Cantidad a solicitar
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+              <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: 14 }}>
+                <div style={{ fontSize: 10, color: '#94A3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>Sugerencia IA 🧠</div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#C2410C', fontFamily: 'monospace' }}>{decisionsModal.suggested_qty}</div>
+                <div style={{ fontSize: 11, color: '#94A3B8' }}>unidades</div>
+              </div>
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 14 }}>
+                <div style={{ fontSize: 10, color: '#94A3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>Valor estimado</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', fontFamily: 'monospace' }}>
+                  {new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(decisionsModal.price * decisionsModal.suggested_qty)}
+                </div>
+                <div style={{ fontSize: 11, color: '#94A3B8' }}>COP</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 11, color: '#64748B', display: 'block', marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>Cantidad a pedir</label>
               <input
                 type="number"
                 min={1}
                 value={modalQty}
                 onChange={(e) => setModalQty(Math.max(1, Number(e.target.value)))}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-900 outline-none focus:border-orange-400 focus:shadow-[0_0_0_3px_rgba(255,106,0,0.12)]"
+                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', color: '#0F172A', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontWeight: 700 }}
               />
-            </label>
+            </div>
 
-            <label className="mb-5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              WhatsApp proveedor (opcional)
+            <div style={{ marginBottom: 22 }}>
+              <label style={{ fontSize: 11, color: '#64748B', display: 'block', marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>WhatsApp proveedor</label>
               <input
                 type="tel"
-                placeholder="+573001234567"
                 value={modalWhatsapp}
                 onChange={(e) => setModalWhatsapp(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-900 outline-none focus:border-orange-400 focus:shadow-[0_0_0_3px_rgba(255,106,0,0.12)]"
+                placeholder="+57 300 000 0000"
+                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', color: '#0F172A', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
               />
-            </label>
+            </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={!modalWhatsapp.trim()}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button"
                 onClick={() => {
                   const phone = modalWhatsapp.replace(/\D/g, '')
-                  const text = encodeURIComponent(`Hola, necesito reabastecer *${modalProduct!.name}* x ${modalQty} unidades. Gracias.`)
-                  window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer')
+                  const msg = encodeURIComponent(`Hola, necesito reabastecer *${decisionsModal!.name}* x ${modalQty} unidades. Gracias.`)
+                  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener,noreferrer')
                 }}
-                className="flex-1 rounded-lg bg-emerald-500 px-4 py-2.5 text-[12px] font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ flex: 1, padding: '12px 0', background: '#25D366', border: 'none', borderRadius: 11, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,211,102,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                Generar enlace WhatsApp
+                <svg width={15} height={15} viewBox="0 0 24 24" fill="white">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.555 4.118 1.528 5.855L0 24l6.335-1.505A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.885 0-3.65-.49-5.19-1.348l-.372-.22-3.762.894.954-3.668-.243-.388A9.975 9.975 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+                </svg>
+                Enviar WhatsApp
               </button>
-              <button
-                type="button"
-                onClick={() => setModalProduct(null)}
-                className="rounded-lg border border-slate-200 px-4 py-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                Cerrar
-              </button>
+              <button type="button"
+                onClick={() => setDecisionsModal(null)}
+                style={{ padding: '12px 18px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 11, color: '#64748B', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              >Cerrar</button>
             </div>
           </div>
         </div>
