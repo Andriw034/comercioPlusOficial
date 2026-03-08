@@ -480,3 +480,50 @@ Decision actual:
 
 - Fuente unica de verdad tecnica: `docs/UNIVERSAL_COMERCIOPLUS.md`.
 - `UNIVERSAL_COMERCIOPLUS_AI.md` se mantiene como alias derivado, no como segunda verdad.
+
+## 9) Flujo operativo final (release - 2026-03-06)
+
+### 9.1 Rama oficial de produccion
+
+- Rama oficial unica: master.
+- Estado objetivo para cierre de release:
+  - git status --short vacio.
+  - git rev-list --left-right --count origin/master...HEAD = 0 0.
+
+### 9.2 Ejecucion local correcta (sin confusion de instancias)
+
+- Frontend React y redisenos dashboard:
+  - http://localhost:5173
+  - comando (raiz): `npm run dev --prefix comercio-plus-frontend`
+  - comando (en comercio-plus-frontend): `npm run dev`
+- Backend/API local + vistas legacy:
+  - http://127.0.0.1:8000
+  - se usa para API Laravel y legacy, no para validar redisenos React.
+
+### 9.3 Flujo correcto de despliegue
+
+1. git fetch origin --prune
+2. git pull --ff-only origin master
+3. git push origin master
+4. Verificar Vercel: ./comercio-plus-frontend/vercel-check.ps1 -BaseUrl https://comercio-plus-oficial.vercel.app
+5. Verificar Railway: /api/health, /api/public/stores, CORS OPTIONS.
+
+### 9.4 Como evitar ver builds viejos
+
+- Confirmar URL correcta antes de probar (:5173 vs :8000).
+- Hacer hard refresh (Ctrl+F5) o incognito.
+- No ejecutar `npm ci` junto con lint/build/dev en paralelo.
+- Validar hashes de assets en Vercel si hay dudas de cache.
+
+### 9.5 Checklist post-deploy
+
+1. master local == origin/master.
+2. GET /dashboard/products en Vercel = 200.
+3. GET /dashboard/products/create en Vercel = 200.
+4. GET /dashboard/reports en Vercel = 200.
+5. En bundles de Vercel aparecen:
+   - Productos e inventario
+   - IA comercial y reportes
+   - Centro inteligente de decisiones
+6. Railway GET /api/health = 200.
+7. CORS preflight (OPTIONS) responde 204 para origen Vercel.

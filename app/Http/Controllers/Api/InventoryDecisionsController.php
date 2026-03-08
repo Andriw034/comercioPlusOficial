@@ -29,7 +29,11 @@ class InventoryDecisionsController extends Controller
                 COALESCE(p.price, 0)          AS price,
                 COALESCE(v30.units, 0)        AS sold_30d,
                 COALESCE(v7.units,  0)        AS sold_7d,
-                COALESCE(v30.units, 0) / 30.0 AS daily_rotation
+                COALESCE(v30.units, 0) / 30.0 AS daily_rotation,
+                ps.supplier_name,
+                ps.supplier_phone,
+                ps.purchase_price             AS supplier_price,
+                ps.delivery_days              AS supplier_delivery_days
             FROM products p
 
             LEFT JOIN (
@@ -50,11 +54,24 @@ class InventoryDecisionsController extends Controller
                 GROUP BY op.product_id
             ) v7 ON v7.product_id = p.id
 
+            LEFT JOIN product_suppliers ps ON ps.product_id = p.id AND ps.is_primary = 1
+
             WHERE p.store_id = ?
               AND p.stock <= GREATEST(COALESCE(p.reorder_point, 5), 1) * 2
 
             ORDER BY (p.stock - COALESCE(p.reorder_point, 5)) ASC
         ", [$storeId]);
+
+        $productIds = array_column($rows, 'id');
+
+        $allSuppliers = collect();
+        if (!empty($productIds)) {
+            $allSuppliers = DB::table('product_suppliers')
+                ->whereIn('product_id', $productIds)
+                ->orderByDesc('is_primary')
+                ->get()
+                ->groupBy('product_id');
+        }
 
         $criticalCount = 0;
         $highCount     = 0;
@@ -63,7 +80,8 @@ class InventoryDecisionsController extends Controller
         $totalRestockValue = 0.0;
 
         $data = array_map(function (object $row) use (
-            &$criticalCount, &$highCount, &$mediumCount, &$lowCount, &$totalRestockValue
+            &$criticalCount, &$highCount, &$mediumCount, &$lowCount, &$totalRestockValue,
+            $allSuppliers
         ): array {
             $stock        = (int)   $row->stock;
             $reorderPoint = (int)   $row->reorder_point;
@@ -103,6 +121,15 @@ class InventoryDecisionsController extends Controller
 
             $totalRestockValue += $suggestedQty * $price;
 
+            $supplierRows = $allSuppliers[$row->id] ?? collect();
+            $suppliers = $supplierRows->map(fn($s) => [
+                'name'           => $s->supplier_name,
+                'phone'          => $s->supplier_phone,
+                'purchase_price' => (float) $s->purchase_price,
+                'delivery_days'  => (int) $s->delivery_days,
+                'is_primary'     => (bool) $s->is_primary,
+            ])->values()->toArray();
+
             return [
                 'id'                => (int)    $row->id,
                 'name'              => (string) $row->name,
@@ -117,6 +144,7 @@ class InventoryDecisionsController extends Controller
                 'suggested_qty'     => (int) $suggestedQty,
                 'days_of_stock'     => $daysOfStock,
                 'projected_stockout'=> $projectedStockout,
+                'suppliers'         => $suppliers,
             ];
         }, $rows);
 

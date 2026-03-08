@@ -99,6 +99,14 @@ type TrendsData = {
   top_categories: CategoryTotal[]
 }
 
+type ProductSupplier = {
+  name: string
+  phone: string | null
+  purchase_price: number
+  delivery_days: number
+  is_primary: boolean
+}
+
 type DecisionItem = {
   id: number
   name: string
@@ -113,6 +121,7 @@ type DecisionItem = {
   suggested_qty: number
   days_of_stock: number | null
   projected_stockout: string | null
+  suppliers: ProductSupplier[]
 }
 
 type DecisionSummary = {
@@ -364,12 +373,12 @@ export default function DashboardReportsPage() {
   const [decisionsData, setDecisionsData] = useState<DecisionItem[] | null>(null)
   const [decisionsSummary, setDecisionsSummary] = useState<DecisionSummary | null>(null)
   const [decisionsLoading, setDecisionsLoading] = useState(true)
-  const [decisionsDismissed, setDecisionsDismissed] = useState<number[]>([])
   const [decisionsFilter, setDecisionsFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all')
   const [decisionsSearch, setDecisionsSearch] = useState('')
-  const [decisionsModal, setDecisionsModal] = useState<DecisionItem | null>(null)
-  const [modalQty, setModalQty] = useState(0)
-  const [modalWhatsapp, setModalWhatsapp] = useState('')
+  const [decisionsSelected, setDecisionsSelected] = useState<Record<number, DecisionItem>>({})
+  const [decisionsQty, setDecisionsQty] = useState<Record<number, number>>({})
+  const [decisionsSidebar, setDecisionsSidebar] = useState(false)
+  const [decisionsPopover, setDecisionsPopover] = useState<number | null>(null)
 
   const params = useMemo(() => {
     const next: Record<string, string> = {}
@@ -476,11 +485,54 @@ export default function DashboardReportsPage() {
   const totalCategoryRevenue = (trendsData?.top_categories ?? []).reduce((sum, c) => sum + c.total, 0) || 1
 
   const filteredDecisions = (decisionsData ?? []).filter((item) => {
-    if (decisionsDismissed.includes(item.id)) return false
     if (decisionsFilter !== 'all' && item.priority !== decisionsFilter) return false
     if (decisionsSearch.trim() && !item.name.toLowerCase().includes(decisionsSearch.toLowerCase())) return false
     return true
   })
+
+  const toggleDecisionSelect = (item: DecisionItem): void => {
+    setDecisionsSelected(prev => {
+      const next = { ...prev }
+      if (next[item.id]) {
+        delete next[item.id]
+      } else {
+        next[item.id] = item
+        setDecisionsQty(q => ({ ...q, [item.id]: q[item.id] ?? item.suggested_qty }))
+      }
+      return next
+    })
+  }
+
+  const decisionsSelectedList = Object.values(decisionsSelected)
+
+  const decisionsTotalValue = decisionsSelectedList.reduce((sum, item) => {
+    const sup = item.suppliers.find(s => s.is_primary) ?? item.suppliers[0]
+    const price = sup?.purchase_price ?? 0
+    return sum + price * (decisionsQty[item.id] ?? item.suggested_qty)
+  }, 0)
+
+  const decisionsGrouped = decisionsSelectedList.reduce<Record<string, {
+    supplier: ProductSupplier
+    items: Array<DecisionItem & { qty: number }>
+  }>>((acc, item) => {
+    const sup = item.suppliers.find(s => s.is_primary) ?? item.suppliers[0]
+    if (!sup) return acc
+    if (!acc[sup.name]) acc[sup.name] = { supplier: sup, items: [] }
+    acc[sup.name].items.push({ ...item, qty: decisionsQty[item.id] ?? item.suggested_qty })
+    return acc
+  }, {})
+
+  const handleDecisionsWhatsApp = (
+    supplierName: string,
+    data: { supplier: ProductSupplier; items: Array<DecisionItem & { qty: number }> }
+  ): void => {
+    const lines = data.items.map(i => `• ${i.name} x${i.qty} uds`).join('\n')
+    const msg = encodeURIComponent(
+      `Hola ${supplierName}, necesito reabastecer los siguientes productos:\n\n${lines}\n\nPor favor confirmar disponibilidad. Gracias.`
+    )
+    const phone = (data.supplier.phone ?? '').replace(/\D/g, '')
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
+  }
 
   return (
     <div className="space-y-4 text-[#0F172A]">
@@ -1022,7 +1074,7 @@ export default function DashboardReportsPage() {
                 <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
                 <p className="text-[13px] text-slate-500">Analizando inventario...</p>
               </div>
-            ) : !decisionsData || filteredDecisions.length === 0 && decisionsFilter === 'all' && !decisionsSearch ? (
+            ) : !decisionsData || (filteredDecisions.length === 0 && decisionsFilter === 'all' && !decisionsSearch) ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50 py-16 text-center">
                 <span className="text-5xl">✅</span>
                 <h3 className="mt-4 text-[18px] font-black text-slate-800">Tu inventario está saludable</h3>
@@ -1030,7 +1082,33 @@ export default function DashboardReportsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Health ring + KPI panel */}
+
+                {/* === BARRA DE 3 PASOS === */}
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+                  {([
+                    { num: 1, label: '👁️ Ver críticos', done: true },
+                    { num: 2, label: '✅ Marcar productos', done: decisionsSelectedList.length > 0 },
+                    { num: 3, label: '📤 Enviar pedido', done: false },
+                  ] as const).map((step, i) => (
+                    <div key={step.num} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {i > 0 && (
+                        <div style={{ width: 32, height: 2, background: (i === 1 ? true : decisionsSelectedList.length > 0) ? '#F97316' : '#E2E8F0', borderRadius: 1 }} />
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{
+                          width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: step.done ? '#F97316' : '#F1F5F9',
+                          color: step.done ? '#fff' : '#94A3B8',
+                          fontSize: 11, fontWeight: 800,
+                        }}>{step.done ? '✓' : step.num}</div>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: step.done ? '#F97316' : '#94A3B8' }}>{step.label}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ marginLeft: 'auto', fontSize: 11, color: '#CBD5E1', fontWeight: 500 }}>Flujo de 3 pasos · menos de 10 segundos</div>
+                </div>
+
+                {/* === HEALTH RING + KPI === */}
                 {decisionsSummary && (() => {
                   const score = decisionsSummary.health_score
                   const r = 38
@@ -1041,8 +1119,7 @@ export default function DashboardReportsPage() {
                   const scoreSub = score < 40 ? 'Acción inmediata' : score < 70 ? 'Revisar productos' : 'Todo en orden'
                   const copFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
                   return (
-                    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, padding: '22px 26px', boxShadow: '0 1px 4px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.04)', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'center' }}>
-                      {/* Ring */}
+                    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, padding: '22px 26px', boxShadow: '0 1px 4px rgba(15,23,42,0.06)', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div style={{ position: 'relative', width: 96, height: 96 }}>
                           <svg width={96} height={96} style={{ transform: 'rotate(-90deg)' }}>
@@ -1061,7 +1138,6 @@ export default function DashboardReportsPage() {
                           <p style={{ fontSize: 12, color: '#94A3B8' }}>{scoreSub}</p>
                         </div>
                       </div>
-                      {/* KPI cards */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
                         {([
                           { label: 'Crítico', value: decisionsSummary.critical_count, icon: '🔴', color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
@@ -1080,7 +1156,7 @@ export default function DashboardReportsPage() {
                   )
                 })()}
 
-                {/* Filter bar */}
+                {/* === HEADER TABLA: buscador + filtros + botones === */}
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
                     <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#CBD5E1', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
@@ -1089,12 +1165,12 @@ export default function DashboardReportsPage() {
                       value={decisionsSearch}
                       onChange={(e) => setDecisionsSearch(e.target.value)}
                       placeholder="Buscar producto..."
-                      style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: '9px 14px 9px 36px', color: '#0F172A', fontSize: 13, outline: 'none', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}
+                      style={{ width: '100%', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: '9px 14px 9px 36px', color: '#0F172A', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
-                  <div style={{ display: 'flex', gap: 5, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 11, padding: 4, boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+                  <div style={{ display: 'flex', gap: 5, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 11, padding: 4 }}>
                     {([
-                      { key: 'all' as const,      label: 'Todos',   count: (decisionsData ?? []).filter(d => !decisionsDismissed.includes(d.id)).length },
+                      { key: 'all' as const,      label: 'Todos',   count: (decisionsData ?? []).length },
                       { key: 'critical' as const, label: 'Crítico', count: decisionsSummary?.critical_count ?? 0 },
                       { key: 'high' as const,     label: 'Alto',    count: decisionsSummary?.high_count ?? 0 },
                       { key: 'medium' as const,   label: 'Medio',   count: decisionsSummary?.medium_count ?? 0 },
@@ -1102,95 +1178,209 @@ export default function DashboardReportsPage() {
                     ]).map((f) => (
                       <button key={f.key} type="button" onClick={() => setDecisionsFilter(f.key)} style={{
                         padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                        fontSize: 12, fontWeight: 700, transition: 'all 0.15s',
+                        fontSize: 12, fontWeight: 700,
                         background: decisionsFilter === f.key ? '#F97316' : 'transparent',
                         color: decisionsFilter === f.key ? '#fff' : '#94A3B8',
-                        boxShadow: decisionsFilter === f.key ? '0 2px 8px rgba(249,115,22,0.35)' : 'none',
                       }}>
                         {f.label} <span style={{ fontSize: 10, opacity: 0.75 }}>{f.count}</span>
                       </button>
                     ))}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      filteredDecisions.forEach(item => {
+                        setDecisionsSelected(prev => ({ ...prev, [item.id]: item }))
+                        setDecisionsQty(q => ({ ...q, [item.id]: q[item.id] ?? item.suggested_qty }))
+                      })
+                    }}
+                    style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: 9, color: '#64748B', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  >Seleccionar todo</button>
+                  {decisionsSelectedList.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setDecisionsSidebar(true)}
+                      style={{ padding: '8px 16px', background: '#F97316', border: 'none', borderRadius: 9, color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      Ver pedido
+                      <span style={{ background: '#fff', color: '#F97316', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900 }}>{decisionsSelectedList.length}</span>
+                      →
+                    </button>
+                  )}
                 </div>
 
-                {/* Table */}
-                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.04)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 70px 80px 80px 90px 78px 110px 110px 120px', padding: '11px 22px', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', fontSize: 10, color: '#94A3B8', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>
-                    {['Producto', 'Stock', 'Reorden', 'Vend. 30d', 'Rot. diaria', 'Días stock', 'Quiebre est.', 'Sugerencia 🧠', 'Acciones'].map((h, i) => (
-                      <div key={h} style={{ textAlign: i === 0 ? 'left' : 'center' }}>{h}</div>
-                    ))}
+                {/* === TABLA === */}
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}>
+                  {/* Header */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '44px 2fr 70px 90px 160px 90px 70px 90px', padding: '11px 16px', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', fontSize: 10, color: '#94A3B8', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700, gap: 8 }}>
+                    <div />
+                    <div>Producto</div>
+                    <div style={{ textAlign: 'center' }}>Stock</div>
+                    <div style={{ textAlign: 'center' }}>Sugerido</div>
+                    <div>Proveedor</div>
+                    <div style={{ textAlign: 'center' }}>P.Compra</div>
+                    <div style={{ textAlign: 'center' }}>Entrega</div>
+                    <div style={{ textAlign: 'center' }}>Acción</div>
                   </div>
 
                   {filteredDecisions.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '52px 24px' }}>
                       <div style={{ fontSize: 44, marginBottom: 14 }}>✅</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#334155', marginBottom: 6 }}>Sin resultados</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#334155', marginBottom: 6 }}>Tu inventario está saludable</div>
                       <div style={{ fontSize: 13, color: '#94A3B8' }}>Ajusta los filtros para ver más productos.</div>
                     </div>
                   ) : filteredDecisions.map((item, idx) => {
                     const pc = DECISION_PRIORITY_CONFIG[item.priority] ?? DECISION_PRIORITY_CONFIG.low
-                    const days = item.days_of_stock
-                    const daysBg = days === null ? null : days < 7 ? ['#DC2626', '#FEF2F2'] : days < 14 ? ['#C2410C', '#FFF7ED'] : ['#16A34A', '#F0FDF4']
+                    const isSelected = !!decisionsSelected[item.id]
+                    const primarySup = item.suppliers.find(s => s.is_primary) ?? item.suppliers[0] ?? null
+                    const extraSupCount = item.suppliers.length - 1
                     return (
                       <div key={item.id}
                         style={{
-                          display: 'grid', gridTemplateColumns: '2fr 70px 80px 80px 90px 78px 110px 110px 120px',
-                          padding: '14px 22px', borderBottom: idx < filteredDecisions.length - 1 ? '1px solid #F8FAFC' : 'none',
-                          alignItems: 'center', borderLeft: `3px solid ${pc.leftBorder}`, cursor: 'default',
+                          display: 'grid', gridTemplateColumns: '44px 2fr 70px 90px 160px 90px 70px 90px',
+                          padding: '12px 16px', gap: 8,
+                          borderBottom: idx < filteredDecisions.length - 1 ? '1px solid #F8FAFC' : 'none',
+                          alignItems: 'center',
+                          borderLeft: isSelected ? '3px solid #F97316' : `3px solid ${pc.leftBorder}`,
+                          background: isSelected ? '#FFFBF5' : 'transparent',
+                          transition: 'background 0.1s',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'rgba(248,250,252,0.5)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = isSelected ? '#FFFBF5' : 'transparent' }}
                       >
+                        {/* Col 1: Checkbox */}
+                        <div
+                          onClick={() => { toggleDecisionSelect(item); setDecisionsSidebar(true) }}
+                          style={{
+                            width: 20, height: 20, borderRadius: 5, border: `2px solid ${isSelected ? '#FB923C' : '#E2E8F0'}`,
+                            background: isSelected ? '#F97316' : '#FFFFFF',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s',
+                          }}
+                        >
+                          {isSelected && <span style={{ color: '#fff', fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                        </div>
+
+                        {/* Col 2: Producto */}
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: pc.textColor, background: pc.bg, border: `1px solid ${pc.border}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, color: pc.textColor, background: pc.bg, border: `1px solid ${pc.border}` }}>
                               <span style={{ width: 5, height: 5, borderRadius: '50%', background: pc.dotColor, flexShrink: 0 }} />
                               {pc.label}
                             </span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{item.name}</span>
+                            {isSelected && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#F97316', border: '1px solid #FED7AA', borderRadius: 20, padding: '1px 7px' }}>Seleccionado</span>
+                            )}
                           </div>
-                          {item.sku && <div style={{ fontSize: 11, color: '#CBD5E1', paddingLeft: 2 }}>SKU {item.sku}</div>}
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{item.name}</div>
+                          <div style={{ fontSize: 11, color: '#CBD5E1' }}>
+                            {item.sku ? `SKU ${item.sku}` : ''}{item.sku && item.sold_30d > 0 ? ' · ' : ''}{item.sold_30d > 0 ? `${item.sold_30d} vendidos/mes` : ''}
+                          </div>
                         </div>
-                        <div style={{ textAlign: 'center', fontSize: 17, fontWeight: 900, fontFamily: 'monospace', color: item.stock === 0 ? '#DC2626' : item.stock <= item.reorder_point ? '#C2410C' : '#0F172A' }}>{item.stock}</div>
-                        <div style={{ textAlign: 'center', fontSize: 13, color: '#64748B' }}>{item.reorder_point}</div>
-                        <div style={{ textAlign: 'center', fontSize: 13, color: '#64748B' }}>{item.sold_30d}</div>
-                        <div style={{ textAlign: 'center', fontSize: 13, color: '#64748B' }}>{item.daily_rotation}</div>
+
+                        {/* Col 3: Stock */}
+                        <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 900, fontFamily: 'monospace', color: item.stock === 0 ? '#DC2626' : item.stock <= item.reorder_point ? '#C2410C' : '#0F172A' }}>
+                          {item.stock}
+                        </div>
+
+                        {/* Col 4: Input cantidad sugerida */}
                         <div style={{ textAlign: 'center' }}>
-                          {daysBg === null
-                            ? <span style={{ color: '#CBD5E1', fontSize: 13 }}>—</span>
-                            : <span style={{ color: daysBg[0], background: daysBg[1], padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>{days}d</span>
-                          }
+                          <input
+                            type="number"
+                            min={1}
+                            value={decisionsQty[item.id] ?? item.suggested_qty}
+                            onChange={(e) => setDecisionsQty(q => ({ ...q, [item.id]: Math.max(1, Number(e.target.value)) }))}
+                            style={{
+                              width: 64, textAlign: 'center',
+                              border: `1px solid ${isSelected ? '#FB923C' : '#E2E8F0'}`,
+                              borderRadius: 8, padding: '4px 6px',
+                              fontSize: 13, fontWeight: 700, color: '#0F172A',
+                              outline: 'none', background: '#fff',
+                            }}
+                          />
                         </div>
-                        <div style={{ textAlign: 'center', fontSize: 11, color: '#94A3B8' }}>{item.projected_stockout ?? '—'}</div>
+
+                        {/* Col 5: Proveedor */}
+                        <div style={{ position: 'relative' }}>
+                          {item.suppliers.length === 0 ? (
+                            <span style={{ fontSize: 11, color: '#CBD5E1' }}>Sin proveedor</span>
+                          ) : (
+                            <>
+                              <div
+                                onClick={() => setDecisionsPopover(decisionsPopover === item.id ? null : item.id)}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#0F172A' }}>{primarySup?.name}</span>
+                                  {extraSupCount > 0 && (
+                                    <span style={{ fontSize: 10, color: '#64748B', background: '#F1F5F9', borderRadius: 20, padding: '1px 7px' }}>+{extraSupCount} más</span>
+                                  )}
+                                </div>
+                                {primarySup && (
+                                  <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>
+                                    {formatMoney(primarySup.purchase_price)} · {primarySup.delivery_days}d
+                                  </div>
+                                )}
+                              </div>
+                              {decisionsPopover === item.id && (
+                                <>
+                                  <div
+                                    onClick={() => setDecisionsPopover(null)}
+                                    style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                                  />
+                                  <div style={{ position: 'absolute', zIndex: 50, background: '#FFFFFF', borderRadius: 12, boxShadow: '0 10px 40px rgba(15,23,42,0.15)', border: '1px solid #E2E8F0', padding: 8, width: 256, top: '100%', left: 0, marginTop: 4 }}>
+                                    {item.suppliers.map((sup, si) => (
+                                      <div key={si} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 8, cursor: 'pointer' }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                      >
+                                        <div>
+                                          <span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A' }}>{sup.name}</span>
+                                          {sup.is_primary && <span style={{ fontSize: 9, background: '#FFF7ED', color: '#C2410C', borderRadius: 20, padding: '1px 6px', marginLeft: 5, fontWeight: 700 }}>principal</span>}
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                          <div style={{ fontSize: 11, fontWeight: 700, color: '#0F172A' }}>{formatMoney(sup.purchase_price)}</div>
+                                          <div style={{ fontSize: 10, color: '#94A3B8' }}>{sup.delivery_days}d</div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Col 6: Precio compra */}
+                        <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: primarySup ? '#0F172A' : '#CBD5E1' }}>
+                          {primarySup ? formatMoney(primarySup.purchase_price) : '—'}
+                        </div>
+
+                        {/* Col 7: Entrega */}
                         <div style={{ textAlign: 'center' }}>
-                          <span style={{ fontSize: 14, fontWeight: 900, color: '#C2410C', fontFamily: 'monospace', background: '#FFF7ED', padding: '4px 12px', borderRadius: 8, border: '1px solid #FED7AA' }}>+{item.suggested_qty}</span>
+                          {primarySup ? (
+                            <span style={{ background: '#F0FDF4', color: '#16A34A', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>{primarySup.delivery_days}d</span>
+                          ) : (
+                            <span style={{ color: '#CBD5E1', fontSize: 12 }}>—</span>
+                          )}
                         </div>
-                        <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: 6 }}>
-                          <button type="button"
-                            onClick={() => { setDecisionsModal(item); setModalQty(item.suggested_qty); setModalWhatsapp('') }}
-                            style={{ padding: '6px 12px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, color: '#C2410C', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                          >📦 Pedir</button>
-                          <button type="button"
-                            onClick={() => setDecisionsDismissed((prev) => [...prev, item.id])}
-                            style={{ width: 28, height: 28, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, color: '#CBD5E1', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          >✕</button>
+
+                        {/* Col 8: Acción toggle */}
+                        <div style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => toggleDecisionSelect(item)}
+                            style={{
+                              padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                              fontSize: 12, fontWeight: 700,
+                              background: isSelected ? '#EF4444' : '#F97316',
+                              color: '#fff',
+                            }}
+                          >{isSelected ? '✕ Quitar' : '+ Pedir'}</button>
                         </div>
                       </div>
                     )
                   })}
-
-                  {filteredDecisions.length > 0 && (
-                    <div style={{ padding: '12px 22px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFBFC' }}>
-                      <span style={{ fontSize: 12, color: '#94A3B8' }}>{filteredDecisions.length} productos en zona de alerta</span>
-                      {decisionsSummary && (
-                        <span style={{ fontSize: 12, color: '#94A3B8' }}>
-                          Inversión total: <span style={{ color: '#C2410C', fontWeight: 800 }}>
-                            {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(decisionsSummary.total_restock_value)}
-                          </span>
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             )
@@ -1198,87 +1388,118 @@ export default function DashboardReportsPage() {
         </>
       )}
 
-      {/* Modal solicitar reposición */}
-      {decisionsModal && (
+      {/* === BOTÓN FLOTANTE === */}
+      {decisionsSelectedList.length > 0 && !decisionsSidebar && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', padding: 16 }}
-          onClick={() => setDecisionsModal(null)}
+          onClick={() => setDecisionsSidebar(true)}
+          style={{
+            position: 'fixed', bottom: 24, right: 24, zIndex: 50,
+            background: '#F97316', color: '#fff', borderRadius: 16,
+            padding: '14px 22px', boxShadow: '0 8px 30px rgba(249,115,22,0.45)',
+            fontWeight: 800, fontSize: 14, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}
         >
-          <div
-            style={{ background: '#FFFFFF', borderRadius: 20, padding: 28, width: 440, maxWidth: '92vw', boxShadow: '0 20px 60px rgba(15,23,42,0.18), 0 0 0 1px rgba(0,0,0,0.06)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-              <div>
-                <div style={{ fontSize: 10, color: '#94A3B8', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>Solicitar reposición</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{decisionsModal.name}</div>
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3 }}>
-                  {decisionsModal.sku ? `SKU ${decisionsModal.sku} · ` : ''}Stock actual:{' '}
-                  <span style={{ color: '#DC2626', fontWeight: 700 }}>{decisionsModal.stock}</span>
+          📦 Ver pedido · {decisionsSelectedList.length} productos →
+        </div>
+      )}
+
+      {/* === SIDEBAR === */}
+      {decisionsSidebar && decisionsSelectedList.length > 0 && (
+        <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 384, background: '#FFFFFF', boxShadow: '-8px 0 40px rgba(15,23,42,0.15)', zIndex: 50, display: 'flex', flexDirection: 'column' }}>
+          {/* Header sticky */}
+          <div style={{ borderBottom: '1px solid #E2E8F0', padding: '20px 20px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>📦 Pedido de reposición</span>
+              <button type="button" onClick={() => setDecisionsSidebar(false)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#94A3B8', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              <div style={{ background: '#FFF7ED', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#C2410C' }}>{decisionsSelectedList.length}</div>
+                <div style={{ fontSize: 10, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Productos</div>
+              </div>
+              <div style={{ background: '#F0FDF4', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#16A34A' }}>{formatMoney(decisionsTotalValue)}</div>
+                <div style={{ fontSize: 10, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Total</div>
+              </div>
+              <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#0F172A' }}>{Object.keys(decisionsGrouped).length}</div>
+                <div style={{ fontSize: 10, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Proveedores</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cuerpo scrollable */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+            <div style={{ fontSize: 10, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600, marginBottom: 12 }}>Agrupado automáticamente por proveedor</div>
+
+            {Object.entries(decisionsGrouped).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94A3B8', fontSize: 13 }}>
+                Los productos seleccionados no tienen proveedor asignado.
+              </div>
+            ) : Object.entries(decisionsGrouped).map(([supplierName, data]) => {
+              const subtotal = data.items.reduce((s, i) => s + i.supplier.purchase_price * i.qty, 0)
+              return (
+                <div key={supplierName} style={{ border: '1px solid #E2E8F0', borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
+                  {/* Card header */}
+                  <div style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>🏭 {supplierName}</div>
+                      <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>{data.items.length} productos · {data.supplier.delivery_days}d entrega</div>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>{formatMoney(subtotal)}</div>
+                  </div>
+
+                  {/* Items */}
+                  <div>
+                    {data.items.map((item, ii) => (
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: ii < data.items.length - 1 ? '1px solid #F8FAFC' : 'none' }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>{item.name}</div>
+                          {item.sku && <div style={{ fontSize: 10, color: '#CBD5E1' }}>SKU {item.sku}</div>}
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: '#F97316' }}>×{item.qty}</div>
+                          <div style={{ fontSize: 10, color: '#94A3B8' }}>{formatMoney(item.supplier.purchase_price)} c/u</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Acciones del proveedor */}
+                  <div style={{ padding: '10px 14px', display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleDecisionsWhatsApp(supplierName, data)}
+                      style={{ flex: 1, padding: '9px 0', background: '#25D366', border: 'none', borderRadius: 9, color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    >
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="white">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.555 4.118 1.528 5.855L0 24l6.335-1.505A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.885 0-3.65-.49-5.19-1.348l-.372-.22-3.762.894.954-3.668-.243-.388A9.975 9.975 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+                      </svg>
+                      WhatsApp
+                    </button>
+                    <button
+                      type="button"
+                      style={{ flex: 1, padding: '9px 0', background: 'transparent', border: '1px solid #E2E8F0', borderRadius: 9, color: '#64748B', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >✉️ Email</button>
+                  </div>
                 </div>
-              </div>
-              <button type="button" onClick={() => setDecisionsModal(null)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#94A3B8', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-            </div>
+              )
+            })}
+          </div>
 
-            {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-              <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: 14 }}>
-                <div style={{ fontSize: 10, color: '#94A3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>Sugerencia IA 🧠</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: '#C2410C', fontFamily: 'monospace' }}>{decisionsModal.suggested_qty}</div>
-                <div style={{ fontSize: 11, color: '#94A3B8' }}>unidades</div>
-              </div>
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 14 }}>
-                <div style={{ fontSize: 10, color: '#94A3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>Valor estimado</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', fontFamily: 'monospace' }}>
-                  {new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(decisionsModal.price * decisionsModal.suggested_qty)}
-                </div>
-                <div style={{ fontSize: 11, color: '#94A3B8' }}>COP</div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 11, color: '#64748B', display: 'block', marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>Cantidad a pedir</label>
-              <input
-                type="number"
-                min={1}
-                value={modalQty}
-                onChange={(e) => setModalQty(Math.max(1, Number(e.target.value)))}
-                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', color: '#0F172A', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontWeight: 700 }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 22 }}>
-              <label style={{ fontSize: 11, color: '#64748B', display: 'block', marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>WhatsApp proveedor</label>
-              <input
-                type="tel"
-                value={modalWhatsapp}
-                onChange={(e) => setModalWhatsapp(e.target.value)}
-                placeholder="+57 300 000 0000"
-                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', color: '#0F172A', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button"
-                onClick={() => {
-                  const phone = modalWhatsapp.replace(/\D/g, '')
-                  const msg = encodeURIComponent(`Hola, necesito reabastecer *${decisionsModal!.name}* x ${modalQty} unidades. Gracias.`)
-                  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener,noreferrer')
-                }}
-                style={{ flex: 1, padding: '12px 0', background: '#25D366', border: 'none', borderRadius: 11, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,211,102,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                <svg width={15} height={15} viewBox="0 0 24 24" fill="white">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.555 4.118 1.528 5.855L0 24l6.335-1.505A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.885 0-3.65-.49-5.19-1.348l-.372-.22-3.762.894.954-3.668-.243-.388A9.975 9.975 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-                </svg>
-                Enviar WhatsApp
-              </button>
-              <button type="button"
-                onClick={() => setDecisionsModal(null)}
-                style={{ padding: '12px 18px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 11, color: '#64748B', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-              >Cerrar</button>
-            </div>
+          {/* Footer sticky */}
+          <div style={{ borderTop: '1px solid #E2E8F0', padding: 16, background: '#FFFFFF' }}>
+            <button
+              type="button"
+              style={{ width: '100%', padding: '13px 0', background: '#F97316', border: 'none', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', marginBottom: 8 }}
+            >🚀 Generar todos los pedidos ({Object.keys(decisionsGrouped).length} proveedores)</button>
+            <button
+              type="button"
+              style={{ width: '100%', padding: '11px 0', background: 'transparent', border: '1px solid #E2E8F0', borderRadius: 12, color: '#64748B', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}
+            >💾 Guardar borrador</button>
+            <p style={{ textAlign: 'center', fontSize: 11, color: '#CBD5E1' }}>El sistema agrupa automáticamente por proveedor</p>
           </div>
         </div>
       )}

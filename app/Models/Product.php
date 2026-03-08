@@ -76,6 +76,11 @@ class Product extends Model
         return $this->hasMany(StockPrediction::class);
     }
 
+    public function suppliers()
+    {
+        return $this->hasMany(ProductSupplier::class);
+    }
+
     // Alias corto para consumo en APIs futuras.
     public function codes()
     {

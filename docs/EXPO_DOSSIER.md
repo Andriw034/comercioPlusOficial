@@ -174,3 +174,20 @@ Plan:
 | Pruebas produccion (FASE 4) | PARCIAL (HTTP/CORS/Auth OK) | cerrar drift de endpoints 404 y validar matriz completa en prod |
 | Riesgos y faltantes priorizados | LISTO | anexo P0/P1/P2 separado del reporte de pruebas |
 | Material para exposicion tecnica | LISTO FINAL | relato + arquitectura + evidencia objetiva |
+
+## 10) Flujo operativo oficial (2026-03-06)
+
+- Rama oficial de produccion: master.
+- Frontend React/redisenos: http://localhost:5173.
+- Backend/API local y legacy: http://127.0.0.1:8000.
+
+Secuencia minima pre-demo o pre-deploy:
+
+1. git status --short (limpio)
+2. git rev-list --left-right --count origin/master...HEAD (0 0)
+3. php artisan test
+4. `npm run lint --prefix comercio-plus-frontend`
+5. `npm run build --prefix comercio-plus-frontend`
+6. `npm run build:legacy`
+7. git push origin master
+8. smoke Vercel + endpoints Railway

@@ -152,7 +152,7 @@ Formato obligatorio aplicado: `Caso | Precondicion | Pasos | Resultado esperado 
 | PERF-04 Inventario summary | merchant local/prod | medir `/api/inventory/summary` | tiempo aceptable o riesgo documentado | ms + rows |
 | PERF-05 Carga lenta endpoint | simular latencia | abrir home/store pages | UI mantiene skeleton/fallback | screenshot |
 | PERF-06 Error de endpoint critico | endpoint down simulado | abrir pagina dependiente | no pantalla blanca, mensaje controlado | screenshot |
-| PERF-07 Build size check | frontend build | revisar assets generados | tamaños registrados | listado dist |
+| PERF-07 Build size check | frontend build | revisar assets generados | tamaÃ±os registrados | listado dist |
 | PERF-08 Navegacion rutas clave | frontend preview | `/`, `/stores`, `/products`, `/cart`, `/checkout` | sin crasheos ni loop de redirects | screen recording |
 
 ## 4) Anexos de faltantes detectados (separados del reporte de pruebas)
@@ -274,3 +274,46 @@ Estado final para promocion:
 - NO listo para release productivo estricto sin atender:
   - drift de despliegue en `hero-images` y `public/barcode/search`,
   - ejecucion total de casos manuales FE/INT/PERF de la matriz A-G.
+
+## 9) Actualizacion FASE 5 a FASE 7 (2026-03-06)
+
+### 9.1 FASE 3 (validacion local re-ejecutada)
+
+| Comando | Resultado | Estado |
+|---|---|---|
+| php artisan test | 123 passed (407 assertions) | PASS |
+| php artisan route:list | 165 rutas | PASS |
+| php artisan route:list --path=api | 135 rutas API | PASS |
+| npm ci --prefix comercio-plus-frontend | instalacion completada | PASS |
+| npm run lint --prefix comercio-plus-frontend | sin errores | PASS |
+| npm run build --prefix comercio-plus-frontend | build OK | PASS |
+| npm run build:legacy | build legacy OK | PASS |
+| smoke preview (/, /stores, /products, /cart) | 200 en todas | PASS |
+
+### 9.2 FASE 5 (produccion verificada)
+
+- Vercel:
+  - /dashboard/products => 200
+  - /dashboard/products/create => 200
+  - /dashboard/reports => 200
+  - rewrite /api/health => 200
+- Railway:
+  - /api/health => 200
+  - /api/public/stores => 200
+  - /api/public/products => 200
+  - /api/hero-images => 404
+  - /api/public/barcode/search?code=TEST => 404
+- CORS:
+  - OPTIONS /api/public/stores => 204 + Access-Control-Allow-Origin correcto.
+  - OPTIONS /api/me => 204 + Access-Control-Allow-Origin correcto.
+- Auth:
+  - POST /api/register => 201
+  - POST /api/login => 200
+  - GET /api/me sin token => 401
+  - GET /api/me con bearer => 200
+
+### 9.3 FASE 6 y FASE 7
+
+- Rama unica de release: master.
+- Sin divergencia: origin/master...HEAD = 0 0.
+- Docs operativos actualizados con regla de instancias (:5173 React, :8000 Laravel/legacy), deploy oficial y checklist post-deploy.
