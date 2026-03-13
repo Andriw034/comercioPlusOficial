@@ -1,0 +1,198 @@
+﻿import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+
+const API_BASE_URL = process.env.E2E_API_BASE_URL || 'http://127.0.0.1:8000/api'
+const FRONTEND_BASE_URL = process.env.E2E_FRONTEND_URL || 'http://127.0.0.1:5173'
+
+const authHeaders = (token: string) => ({
+  Accept: 'application/json',
+  Authorization: `Bearer ${token}`,
+  'X-Requested-With': 'XMLHttpRequest',
+})
+
+const uiRegister = async (page: Page, params: {
+  name: string
+  email: string
+  password: string
+  role: 'merchant' | 'client'
+}) => {
+  await page.goto('/register')
+
+  if (params.role === 'client') {
+    await page.getByRole('button', { name: /Cliente/i }).click()
+  }
+
+  await page.getByLabel(/Nombre Completo/i).fill(params.name)
+  await page.getByLabel(/Correo Electronico/i).fill(params.email)
+  await page.getByLabel(/^Contrasena$/i).fill(params.password)
+  await page.getByLabel(/Confirmar Contrasena/i).fill(params.password)
+  await page.getByRole('button', { name: /Crear Cuenta/i }).click()
+}
+
+const uiLogin = async (page: Page, params: { email: string; password: string }) => {
+  await page.goto('/login')
+  await page.getByLabel(/Correo Electronico/i).fill(params.email)
+  await page.getByLabel(/^Contrasena$/i).fill(params.password)
+  await page.getByRole('button', { name: /Iniciar Sesion/i }).click()
+}
+
+const readSessionToken = async (page: Page) => {
+  return page.evaluate(() => sessionStorage.getItem('token') || localStorage.getItem('token') || '')
+}
+
+const clearBrowserSession = async (page: Page) => {
+  await page.evaluate(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  })
+}
+
+test.describe.serial('Smoke E2E ComercioPlus', () => {
+  test('register/login merchant+client, create store+product, cart + checkout, merchant sees order', async ({ page, request }) => {
+    test.setTimeout(180_000)
+
+    const stamp = `${Date.now()}`
+    const merchantEmail = `e2e.merchant.${stamp}@gmail.com`
+    const clientEmail = `e2e.client.${stamp}@gmail.com`
+    const password = 'Secret123!'
+
+    let storeId = 0
+    let storeSlug = ''
+
+    // 1) Merchant register UI
+    await uiRegister(page, {
+      name: 'E2E Merchant',
+      email: merchantEmail,
+      password,
+      role: 'merchant',
+    })
+
+    await expect(page).toHaveURL(/\/dashboard(\/(store|products))?/, { timeout: 20_000 })
+
+    const merchantTokenAfterRegister = await readSessionToken(page)
+    expect(merchantTokenAfterRegister).toBeTruthy()
+
+    // 2) Create store + category + product via API with merchant token
+    const storeResponse = await request.post(`${API_BASE_URL}/stores`, {
+      headers: authHeaders(merchantTokenAfterRegister),
+      data: {
+        name: `Tienda E2E ${stamp}`,
+        description: 'Store creada por smoke e2e',
+        is_visible: true,
+      },
+    })
+    expect(storeResponse.ok()).toBeTruthy()
+    const storeJson = await storeResponse.json()
+    storeId = Number(storeJson.id)
+    storeSlug = String(storeJson.slug || '')
+    expect(storeId).toBeGreaterThan(0)
+    expect(storeSlug.length).toBeGreaterThan(0)
+
+    const categoryResponse = await request.post(`${API_BASE_URL}/categories`, {
+      headers: authHeaders(merchantTokenAfterRegister),
+      data: {
+        name: `Categoria E2E ${stamp}`,
+        description: 'Categoria de prueba e2e',
+      },
+    })
+    expect(categoryResponse.ok()).toBeTruthy()
+    const categoryJson = await categoryResponse.json()
+    const categoryId = Number(categoryJson.id)
+    expect(categoryId).toBeGreaterThan(0)
+
+    const productResponse = await request.post(`${API_BASE_URL}/products`, {
+      headers: authHeaders(merchantTokenAfterRegister),
+      data: {
+        name: `Producto E2E ${stamp}`,
+        price: 12345,
+        stock: 9,
+        category_id: categoryId,
+        description: 'Producto de prueba e2e',
+        status: 'active',
+        codes: [{ type: 'barcode', value: `770001${stamp}`, is_primary: true }],
+      },
+    })
+    expect(productResponse.ok()).toBeTruthy()
+
+    // 3) Merchant login UI (session fresh)
+    await clearBrowserSession(page)
+    await uiLogin(page, { email: merchantEmail, password })
+    await expect(page).toHaveURL(/\/dashboard(\/(products|store))?/, { timeout: 20_000 })
+
+    // 4) Client register + login UI
+    await clearBrowserSession(page)
+    await uiRegister(page, {
+      name: 'E2E Client',
+      email: clientEmail,
+      password,
+      role: 'client',
+    })
+    await expect(page).toHaveURL('/', { timeout: 20_000 })
+
+    await clearBrowserSession(page)
+    await uiLogin(page, { email: clientEmail, password })
+    await expect(page).toHaveURL('/', { timeout: 20_000 })
+
+    // 5) Client browse store and add to cart
+    await page.goto(`/stores/${storeSlug}/products`)
+    await expect(page.getByText(/Cargando tienda/i)).toBeHidden({ timeout: 30_000 })
+    await expect(page.getByRole('heading', { name: /Productos Destacados/i })).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('button', { name: /Agregar al Carrito/i }).first().click()
+
+    await page.goto('/cart')
+    await expect(page.getByRole('heading', { name: /Carrito de compras/i })).toBeVisible()
+
+    // 6) Checkout: create order real + mock only external payment URL (MercadoPago)
+    await page.route(`${API_BASE_URL}/payments/create-preference`, async (route) => {
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          orderId:       1,
+          reference:     `E2E-${stamp}`,
+          preference_id: `pref-e2e-${stamp}`,
+          init_point:    `${FRONTEND_BASE_URL}/checkout/result?collection_status=approved&external_reference=E2E-${stamp}`,
+        }),
+      })
+    })
+
+    await page.goto('/checkout')
+    const checkoutMain = page.locator('main')
+    await checkoutMain.getByPlaceholder(/tu@email\.com/i).first().fill(clientEmail)
+    await checkoutMain.getByPlaceholder(/Juan Perez/i).first().fill('E2E Client')
+    await checkoutMain.getByPlaceholder(/3001234567/i).first().fill('3001234567')
+    await checkoutMain.getByPlaceholder(/Calle 123 #45-67/i).first().fill('Calle 10 #20-30')
+    await checkoutMain.getByPlaceholder(/Bogota/i).first().fill('Bogota')
+    await page.getByRole('button', { name: /Tarjeta/i }).click()
+    await page.getByRole('button', { name: /Pagar ahora/i }).click()
+
+    await expect(page).toHaveURL(/\/checkout\/result/, { timeout: 20_000 })
+
+    const orderId = await page.evaluate(() => Number(localStorage.getItem('last_order_id') || '0'))
+    expect(orderId).toBeGreaterThan(0)
+
+    // 7) Merchant login + verify order appears in merchant API and dashboard page
+    await clearBrowserSession(page)
+    await uiLogin(page, { email: merchantEmail, password })
+    await expect(page).toHaveURL(/\/dashboard(\/(products|store))?/, { timeout: 20_000 })
+
+    const merchantTokenAfterLogin = await readSessionToken(page)
+    expect(merchantTokenAfterLogin).toBeTruthy()
+
+    const merchantOrdersResponse = await request.get(`${API_BASE_URL}/merchant/orders`, {
+      headers: authHeaders(merchantTokenAfterLogin),
+    })
+    expect(merchantOrdersResponse.ok()).toBeTruthy()
+
+    const merchantOrdersJson = await merchantOrdersResponse.json()
+    const orderIds = Array.isArray(merchantOrdersJson?.data)
+      ? merchantOrdersJson.data.map((row: any) => Number(row.id))
+      : []
+    expect(orderIds).toContain(orderId)
+
+    await page.goto('/dashboard/orders')
+    await expect(page).toHaveURL(/\/dashboard\/orders/, { timeout: 20_000 })
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('h1').filter({ hasText: /Pedidos/i })).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('table')).toContainText(String(orderId), { timeout: 20_000 })
+  })
+})

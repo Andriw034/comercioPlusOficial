@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class OrderProduct extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'quantity',
+        'qty_picked',
+        'qty_packed',
+        'qty_missing',
+        'unit_price',
+        'base_price',
+        'tax_amount',
+        'tax_rate_applied',
+        'total_line',
+        'price',
+    ];
+    protected $allowIncluded = [
+      'unit_price',
+    ];
+
+    protected $allowSort =  [
+      'unit_price',
+
+    ];
+    protected $allowFilter  = [
+        'unit_price',
+        
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+        'qty_picked' => 'integer',
+        'qty_packed' => 'integer',
+        'qty_missing' => 'integer',
+        'unit_price' => 'decimal:2',
+        'base_price' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
+        'tax_rate_applied' => 'decimal:4',
+        'total_line' => 'decimal:2',
+    ];
+
+    protected $appends = [
+        'line_subtotal',
+        'line_total',
+        'pending_qty',
+    ];
+
+    public function setPriceAttribute($value): void
+    {
+        $this->attributes['unit_price'] = $value;
+    }
+
+    public function getPriceAttribute()
+    {
+        return $this->attributes['unit_price'] ?? null;
+    }
+
+    public function getLineSubtotalAttribute()
+    {
+        return $this->attributes['base_price'] ?? null;
+    }
+
+    public function getLineTotalAttribute()
+    {
+        return $this->attributes['total_line'] ?? null;
+    }
+
+    public function getPendingQtyAttribute(): int
+    {
+        $ordered = (int) ($this->attributes['quantity'] ?? 0);
+        $picked = (int) ($this->attributes['qty_picked'] ?? 0);
+        $missing = (int) ($this->attributes['qty_missing'] ?? 0);
+
+        return max(0, $ordered - $picked - $missing);
+    }
+
+    
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function pickingEvents()
+    {
+        return $this->hasMany(OrderPickingEvent::class);
+    }
+
+    public function scopeIncluded(Builder $query) // Scope local que permite incluir relaciones dinÃ¡micamente
+    {
+        if (empty($this->allowIncluded) || empty(request('included'))) { // Si no hay relaciones permitidas o no se solicitÃ³ ninguna
+            return $query; // Retorna la consulta sin modificar
+        }
+
+        $relations = explode(',', request('included')); // Convierte el string ?included=... en un array (por comas)
+        $allowIncluded = collect($this->allowIncluded); // Convierte la lista de relaciones permitidas en una colecciÃ³n
+
+        foreach ($relations as $key => $relationship) { // Recorre cada relaciÃ³n pedida por el usuario
+            if (!$allowIncluded->contains($relationship)) { // Si esa relaciÃ³n no estÃ¡ permitida
+                unset($relations[$key]); // Se elimina del array para no ser incluida
+            }
+        }
+
+        return $query->with($relations); // Incluye solo las relaciones vÃ¡lidas en la consulta
+    }
+
+
+
+    public function scopeFilter(Builder $query) // Scope local que permite aplicar filtros desde la URL (?filter[...]=...)
+    {
+        if (empty($this->allowFilter) || empty(request('filter'))) { // Si no hay filtros permitidos o no se enviÃ³ ninguno
+            return $query; // Retorna la consulta sin modificar
+        }
+
+        $filters = request('filter'); // Obtiene todos los filtros enviados desde la URL
+        $allowFilter = collect($this->allowFilter); // Convierte los campos permitidos en colecciÃ³n Laravel
+
+        foreach ($filters as $filter => $value) { // Recorre cada filtro recibido (ej: name => 'HP')
+            if ($allowFilter->contains($filter)) { // Si el filtro es uno de los permitidos
+                $query->where($filter, 'LIKE', '%' . $value . '%'); // Aplica bÃºsqueda parcial (LIKE '%valor%')
+            }
+        }
+
+        return $query; // Retorna la consulta modificada con los filtros aplicados
+    }
+
+
+    public function scopeGetOrPaginate(Builder $query)
+    {
+        if (request('perPage')) {
+            $perPage = intval(request('perPage'));
+
+            if ($perPage) {
+                return $query->paginate($perPage); // Devuelve con paginaciÃ³n
+            }
+        }
+
+        return $query->get(); // Devuelve todos si no hay perPage
+    }
+}

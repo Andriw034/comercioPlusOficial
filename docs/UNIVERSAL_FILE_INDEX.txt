@@ -1,0 +1,23 @@
+﻿UNIVERSAL_COMERCIOPLUS - ZIP PARTS INDEX
+Generated: 2026-03-05 18:27:13 -05:00
+
+Included source files (live only):
+- DOC_GOVERNANCE.md | bytes=2577
+- EXPO_DOSSIER.md | bytes=5806
+- QA_RELEASE_REPORT.md | bytes=19348
+- README.md | bytes=467
+- README_VALIDADOR.md | bytes=1039
+- UNIVERSAL_COMERCIOPLUS.md | bytes=16366
+- UNIVERSAL_COMERCIOPLUS_AI.md | bytes=480
+
+Notes:
+- Bundle incluye todos los .md de docs/ para contexto tecnico completo.
+- Cada part*.zip es un fragmento binario del ZIP completo (no abrir individualmente).
+- Reconstruccion PowerShell: Get-Content part1,part2,part3,part4 -Encoding Byte | Set-Content UNIVERSAL_COMERCIOPLUS_FULL.zip -Encoding Byte
+
+ZIP parts:
+- UNIVERSAL_COMERCIOPLUS_FULL.part1.zip | bytes=4400
+- UNIVERSAL_COMERCIOPLUS_FULL.part2.zip | bytes=4400
+- UNIVERSAL_COMERCIOPLUS_FULL.part3.zip | bytes=4400
+- UNIVERSAL_COMERCIOPLUS_FULL.part4.zip | bytes=4400
+- UNIVERSAL_COMERCIOPLUS_FULL.zip | bytes=17600

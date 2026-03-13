@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://comercioplusoficial-production-d61e.up.railway.app/api/$1"
+    },
+    {
+      "source": "/sanctum/(.*)",
+      "destination": "https://comercioplusoficial-production-d61e.up.railway.app/sanctum/$1"
+    },
+    {
+      "source": "/storage/(.*)",
+      "destination": "https://comercioplusoficial-production-d61e.up.railway.app/storage/$1"
+    },
+    {
+      "source": "/((?!api/|sanctum/|assets/|favicon.ico$|robots.txt$|manifest.webmanifest$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+

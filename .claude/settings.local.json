@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(powershell:*)",
+      "Bash(php artisan:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(xargs grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(rm:*)"
+    ]
+  }
+}

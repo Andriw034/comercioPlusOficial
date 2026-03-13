@@ -1,0 +1,46 @@
+# Laravel
+/vendor/
+/node_modules/
+.env
+.env.*
+!.env.example
+!.env.*.example
+!comercio-plus-frontend/.env.example
+!comercio-plus-frontend/.env.*.example
+!comercio-plus-frontend/.env.production
+.phpunit.result.cache
+/storage/*.key
+/storage/logs/
+/storage/framework/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+
+# Frontend
+/comercio-plus-frontend/node_modules/
+/public/build/
+
+# Tests / Playwright
+/playwright-report/
+/test-results/
+/backups/
+
+# OS / Editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local QA temp artifacts
+/.tmp_*.php
+/.tmp_*
+**/.tmp_*
+/.modified
+/tmp_user_php.txt
+/vite.log
+/vercel.root.backup.json
+/exports/
+/informe/
+/inforem/
+/colorful-creative-login-form/
+/comercio-plus-frontend/.tmp_*
