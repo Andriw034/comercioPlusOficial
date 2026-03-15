@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PublicProductController extends Controller
 {
@@ -27,56 +28,75 @@ class PublicProductController extends Controller
 
         $perPage = $data['per_page'] ?? 12;
 
-        $q = Product::query()
-            ->select([
-                'id','name','slug','description','image as image','price','stock',
-                'category_id','offer','average_rating','store_id','created_at'
-            ])
-            ->with('category:id,name')
-            ->where('stock', '>', 0); // Only show products with stock
+        $cacheVersion = Cache::get('public_products_version', 1);
+        $cacheParams = array_filter([
+            'q'           => $data['q'] ?? null,
+            'category_id' => $data['category_id'] ?? null,
+            'offer'       => $data['offer'] ?? null,
+            'min_price'   => $data['min_price'] ?? null,
+            'max_price'   => $data['max_price'] ?? null,
+            'sort'        => $data['sort'] ?? null,
+            'page'        => $data['page'] ?? 1,
+            'per_page'    => $perPage,
+            'v'           => $cacheVersion,
+        ], fn ($v) => $v !== null);
+        ksort($cacheParams);
+        $cacheKey = 'public_products_' . md5(serialize($cacheParams));
 
-        if (!empty($data['q'])) {
-            $term = $data['q'];
-            $q->where(function ($qq) use ($term) {
-                $qq->where('name', 'like', "%{$term}%")
-                   ->orWhere('description', 'like', "%{$term}%");
-            });
-        }
+        $result = Cache::remember($cacheKey, 300, function () use ($data, $perPage) {
+            $q = Product::query()
+                ->select([
+                    'id','name','slug','description','image','image_url','price','stock',
+                    'category_id','offer','average_rating','store_id','created_at'
+                ])
+                ->with('category:id,name')
+                ->where('stock', '>', 0); // Only show products with stock
 
-        if (!empty($data['category_id'])) {
-            $q->where('category_id', (int)$data['category_id']);
-        }
+            if (!empty($data['q'])) {
+                $term = $data['q'];
+                $q->where(function ($qq) use ($term) {
+                    $qq->where('name', 'like', "%{$term}%")
+                       ->orWhere('description', 'like', "%{$term}%");
+                });
+            }
 
-        if (isset($data['offer'])) {
-            $q->where('offer', (int)$data['offer'] === 1);
-        }
+            if (!empty($data['category_id'])) {
+                $q->where('category_id', (int)$data['category_id']);
+            }
 
-        if (!empty($data['min_price'])) {
-            $q->where('price', '>=', (float)$data['min_price']);
-        }
+            if (isset($data['offer'])) {
+                $q->where('offer', (int)$data['offer'] === 1);
+            }
 
-        if (!empty($data['max_price'])) {
-            $q->where('price', '<=', (float)$data['max_price']);
-        }
+            if (!empty($data['min_price'])) {
+                $q->where('price', '>=', (float)$data['min_price']);
+            }
 
-        switch ($data['sort'] ?? null) {
-            case 'price_asc':  $q->orderBy('price', 'asc'); break;
-            case 'price_desc': $q->orderBy('price', 'desc'); break;
-            case 'rating_desc':$q->orderBy('average_rating', 'desc'); break;
-            case 'newest':     $q->orderBy('created_at', 'desc'); break;
-            default:           $q->orderBy('name'); break;
-        }
+            if (!empty($data['max_price'])) {
+                $q->where('price', '<=', (float)$data['max_price']);
+            }
 
-        $page = $q->paginate($perPage)->withQueryString();
+            switch ($data['sort'] ?? null) {
+                case 'price_asc':  $q->orderBy('price', 'asc'); break;
+                case 'price_desc': $q->orderBy('price', 'desc'); break;
+                case 'rating_desc':$q->orderBy('average_rating', 'desc'); break;
+                case 'newest':     $q->orderBy('created_at', 'desc'); break;
+                default:           $q->orderBy('name'); break;
+            }
 
-        return response()->json([
-            'data' => $page->items(),
-            'meta' => [
-                'current_page' => $page->currentPage(),
-                'per_page'     => $page->perPage(),
-                'total'        => $page->total(),
-                'last_page'    => $page->lastPage(),
-            ],
-        ]);
+            $page = $q->paginate($perPage)->withQueryString();
+
+            return [
+                'data' => $page->items(),
+                'meta' => [
+                    'current_page' => $page->currentPage(),
+                    'per_page'     => $page->perPage(),
+                    'total'        => $page->total(),
+                    'last_page'    => $page->lastPage(),
+                ],
+            ];
+        });
+
+        return response()->json($result);
     }
 }
