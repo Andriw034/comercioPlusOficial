@@ -48,7 +48,7 @@ Usuarios:
 Complementos:
 
 - Cloudinary para media.
-- Wompi para pagos.
+- MercadoPago para pagos.
 - Playwright para E2E.
 - Frontend legacy Vue conservado para compatibilidad.
 
@@ -70,7 +70,7 @@ Complementos:
 - Home y listado de tiendas.
 - Vista de tienda y productos publicados.
 - Carrito.
-- Checkout + redireccion de pago.
+- Checkout + integracion MercadoPago.
 - Confirmacion/factura.
 - Login/registro.
 
@@ -83,14 +83,13 @@ Evidencia confirmada en repo:
 - Config E2E en `playwright.config.ts`.
 - Scripts de build/lint/test definidos en `package.json` raiz y frontend.
 
-Resultados reales ejecutados (2026-03-05):
+Resultados reales ejecutados (2026-03-13):
 
-- Backend tests: `121 passed (402 assertions)`.
-- Frontend lint: PASS.
-- Frontend build (React/Vite): PASS.
-- Legacy build: PASS.
-- Smoke preview local (`/`, `/stores`, `/products`, `/cart`): todas 200.
-- Playwright E2E: 2 PASS (chromium + mobile-chrome).
+- Backend tests: `123 passed (407 assertions)`.
+- Frontend lint: PASS (corregido 2026-03-13).
+- Frontend build (React/Vite): PASS (built in 6.07s).
+- Smoke preview local (`/`, `/stores`, `/products`, `/cart`): todas 200 (referencia 2026-03-06).
+- Playwright E2E: 2 PASS (chromium + mobile-chrome) (referencia 2026-03-06).
 
 Referencia de plan de ejecucion:
 

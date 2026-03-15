@@ -162,7 +162,7 @@ No mezcla resultados de ejecucion de pruebas.
 
 | ID | Faltante detectado | Estado actual | Prioridad | Pasos de implementacion sugeridos |
 |---|---|---|---|---|
-| ANX-01 | Dashboard settings usa `/api/settings` no expuesto en rutas API activas | carga defaults + save probable 404 | P0 | exponer rutas `GET/PUT /api/settings` o adaptar UI a endpoints reales de store/tax/payment config |
+| ANX-01 | Dashboard settings usa `/api/settings` no expuesto en rutas API activas | RESUELTO (2026-03-13): `GET/PUT /api/settings` ahora expuesto | — | — |
 | ANX-02 | Catalogo global `/products` usa mock local | no usa API real | P1 | reemplazar `mockProducts` por fetch paginado `/api/products` + filtros por categoria/precio |
 | ANX-03 | Product detail `/products/:id` usa mock local | detalle no conectado API | P1 | consumir `GET /api/products/{id}`, manejar 404 y estados de stock reales |
 | ANX-04 | Historial de pedidos del cliente en UI no existe | solo `/orders/:id` success puntual | P1 | crear pagina `/orders` para cliente con `GET /api/orders` y detalle |
@@ -317,3 +317,20 @@ Estado final para promocion:
 - Rama unica de release: master.
 - Sin divergencia: origin/master...HEAD = 0 0.
 - Docs operativos actualizados con regla de instancias (:5173 React, :8000 Laravel/legacy), deploy oficial y checklist post-deploy.
+
+## 10) Re-ejecucion 2026-03-13
+
+| Comando | Resultado | Estado |
+|---|---|---|
+| php artisan test | 123 passed (407 assertions) | PASS |
+| php artisan route:list | 173 rutas totales | PASS |
+| php artisan route:list --path=api | 143 rutas API | PASS |
+| npm run lint (comercio-plus-frontend) | sin errores | PASS |
+| npm run build (comercio-plus-frontend) | built in 5.73s, dist/ generado | PASS |
+
+Notas:
+
+- MySQL no estaba activo durante esta sesion: `php artisan migrate:status` retorno error de conexion. No se pudo verificar estado de migraciones.
+- Lint corregido 2026-03-13: `CheckoutResult.tsx:67` — useState inicializado directamente con collectionStatus (eliminado setStatus sincrono en useEffect). `products/page.tsx:820` — parametro `_event: Event` eliminado de `onInventoryImported` (no usado).
+- Rutas API crecieron de 135 (2026-03-06) a 143: nuevas rutas merchant/live-metrics, merchant/restock/*, reports/alerts, reports/inventory-decisions, reports/trends, profile/*, settings, merchant/picking/events. Pagos migrados de Wompi a MercadoPago (payments/create-preference, payments/result, payments/webhook).
+- Node.js: v22.22.1.

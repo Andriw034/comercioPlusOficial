@@ -1,7 +1,7 @@
 # UNIVERSAL_COMERCIOPLUS
 
-DOC_STATUS: CANONICO_ACTIVO  
-DOC_DATE: 2026-03-05  
+DOC_STATUS: CANONICO_ACTIVO
+DOC_DATE: 2026-03-13
 DOC_SCOPE: Estado real del repositorio (codigo + comandos ejecutados en FASE 0)
 
 ## 1) Vision del producto
@@ -18,12 +18,12 @@ Regla de verdad: si hay diferencia entre docs y codigo, manda el codigo.
 ### 2.1 Stack implementado
 
 - Backend API: Laravel 11.47.0 + Sanctum token bearer + MySQL.
-- Frontend activo: React + Vite + TypeScript + Tailwind (`comercio-plus-frontend/`).
+- Frontend activo: React 19 + Vite 7 + TypeScript 5.9 + Tailwind CSS 3 (`comercio-plus-frontend/`).
 - Frontend legacy: Vue + Laravel Vite (`resources/js`, `vite.legacy.config.js`).
 - E2E: Playwright (`playwright.config.ts`, `tests-e2e/`).
 - Testing backend: PHPUnit/Laravel test runner (`php artisan test`).
 - Media: Cloudinary + fallback storage local.
-- Pagos: Wompi endpoints y webhook.
+- Pagos: MercadoPago SDK (`@mercadopago/sdk-react`) + webhook.
 
 ### 2.2 Deploy confirmado
 
@@ -64,8 +64,8 @@ Resultado clave:
 
 - Worktree sucio: SI (archivos modificados y nuevos, principalmente API, frontend y docs).
 - Version Laravel: `11.47.0`.
-- Rutas totales Laravel: `160`.
-- Rutas API: `130` (`23` publicas, `107` protegidas).
+- Rutas totales Laravel: `173`.
+- Rutas API: `143`.
 
 ### 3.2 Estructura de carpetas (resumen)
 
@@ -170,152 +170,158 @@ Fuente: `resources/js/router/index.js`.
 
 ### 3.5 Endpoints API completos
 
-Fuente: `php artisan route:list --path=api --json` (130 endpoints).
+Fuente: `php artisan route:list --path=api` (2026-03-13, 143 endpoints).
 
 Resumen:
 
-- Total: `130`
-- Publicos: `23`
-- Protegidos (`auth:sanctum`): `107`
+- Total: `143`
 
-Listado completo PUBLICO:
+Listado completo:
 
 ```text
 GET|HEAD api/_debug/env
+POST     api/barcode/generate-batch
+GET|HEAD api/barcode/search
+GET|HEAD api/cart
+POST     api/cart
+DELETE   api/cart
+GET|HEAD api/cart-products
+POST     api/cart-products
+GET|HEAD api/cart-products/{cart_product}
+PUT|PATCH api/cart-products/{cart_product}
+DELETE   api/cart-products/{cart_product}
+POST     api/cart/clear
+GET|HEAD api/cart/count
+GET|HEAD api/cart/{cart}
+PUT|PATCH api/cart/{cart}
+DELETE   api/cart/{cart}
 GET|HEAD api/categories
+POST     api/categories
 GET|HEAD api/categories/{category}
+PUT      api/categories/{category}
+DELETE   api/categories/{category}
 GET|HEAD api/health
 GET|HEAD api/health/integrations
 GET|HEAD api/hero-images
-POST api/login
+POST     api/inventory/adjust
+POST     api/inventory/bulk-delete
+POST     api/inventory/import
+GET|HEAD api/inventory/invoices
+GET|HEAD api/inventory/movements
+POST     api/inventory/preview
+GET|HEAD api/inventory/stats
+GET|HEAD api/inventory/summary
+GET|HEAD api/inventory/template
+POST     api/login
 GET|HEAD api/login
-POST api/orders/create
-POST api/payments/wompi/create
-GET|HEAD api/payments/wompi/pse-banks
-GET|HEAD api/payments/wompi/status/{transactionId}
-POST api/payments/wompi/webhook
+POST     api/logout
+GET|HEAD api/me
+GET|HEAD api/merchant/credit
+POST     api/merchant/credit
+GET|HEAD api/merchant/credit/{creditAccount}
+POST     api/merchant/credit/{creditAccount}/charge
+POST     api/merchant/credit/{creditAccount}/payment
+GET|HEAD api/merchant/customers
+DELETE   api/merchant/customers/{customer}
+GET|HEAD api/merchant/dashboard
+POST     api/merchant/inventory/create-from-scan
+GET|HEAD api/merchant/inventory/movements
+POST     api/merchant/inventory/scan-in
+GET|HEAD api/merchant/live-metrics
+GET|HEAD api/merchant/orders
+PUT      api/merchant/orders/{id}/status
+GET|HEAD api/merchant/orders/{order}/picking
+POST     api/merchant/orders/{order}/picking/complete
+POST     api/merchant/orders/{order}/picking/fallback
+POST     api/merchant/orders/{order}/picking/manual
+POST     api/merchant/orders/{order}/picking/reset
+POST     api/merchant/orders/{order}/picking/scan
+GET|HEAD api/merchant/picking/events
+POST     api/merchant/products/lookup-code
+GET|HEAD api/merchant/restock
+GET|HEAD api/merchant/restock/{product}
+PUT      api/merchant/restock/{product}
+POST     api/merchant/restock/{product}/dismiss
+POST     api/merchant/restock/{product}/request
+GET|HEAD api/merchant/stats
+GET|HEAD api/merchant/store
+PUT      api/merchant/store
+GET|HEAD api/merchant/store/verification
+POST     api/merchant/store/verification
+GET|HEAD api/my/store
+GET|HEAD api/orders
+POST     api/orders
+GET|HEAD api/orders/{order}
+PUT|PATCH api/orders/{order}
+DELETE   api/orders/{order}
+POST     api/payments/create-preference
+GET|HEAD api/payments/result
+POST     api/payments/webhook
 GET|HEAD api/products
+POST     api/products
 GET|HEAD api/products/{product}
+PUT      api/products/{product}
+DELETE   api/products/{product}
+POST     api/products/{product}/alerts
+DELETE   api/products/{product}/alerts
 GET|HEAD api/products/{product}/alerts/mine
+GET|HEAD api/products/{product}/barcode
+GET|HEAD api/profile
+PUT      api/profile
+PUT      api/profile/password
 GET|HEAD api/public/barcode/search
 GET|HEAD api/public/categories
 GET|HEAD api/public/products
 GET|HEAD api/public/stores
 GET|HEAD api/public/stores/{store}
-POST api/register
+POST     api/register
 GET|HEAD api/register
-```
-
-Listado completo PROTEGIDO:
-
-```text
-POST api/barcode/generate-batch
-GET|HEAD api/barcode/search
-GET|HEAD api/cart
-POST api/cart
-DELETE api/cart
-GET|HEAD api/cart-products
-POST api/cart-products
-GET|HEAD api/cart-products/{cart_product}
-PUT|PATCH api/cart-products/{cart_product}
-DELETE api/cart-products/{cart_product}
-POST api/cart/clear
-GET|HEAD api/cart/count
-GET|HEAD api/cart/{cart}
-PUT|PATCH api/cart/{cart}
-DELETE api/cart/{cart}
-POST api/categories
-PUT api/categories/{category}
-DELETE api/categories/{category}
-POST api/inventory/adjust
-POST api/inventory/bulk-delete
-POST api/inventory/import
-GET|HEAD api/inventory/invoices
-GET|HEAD api/inventory/movements
-POST api/inventory/preview
-GET|HEAD api/inventory/stats
-GET|HEAD api/inventory/summary
-GET|HEAD api/inventory/template
-POST api/logout
-GET|HEAD api/me
-GET|HEAD api/merchant/credit
-POST api/merchant/credit
-GET|HEAD api/merchant/credit/{creditAccount}
-POST api/merchant/credit/{creditAccount}/charge
-POST api/merchant/credit/{creditAccount}/payment
-GET|HEAD api/merchant/customers
-GET|HEAD api/merchant/dashboard
-POST api/merchant/inventory/create-from-scan
-GET|HEAD api/merchant/inventory/movements
-POST api/merchant/inventory/scan-in
-GET|HEAD api/merchant/orders
-PUT api/merchant/orders/{id}/status
-GET|HEAD api/merchant/orders/{order}/picking
-POST api/merchant/orders/{order}/picking/complete
-POST api/merchant/orders/{order}/picking/fallback
-POST api/merchant/orders/{order}/picking/manual
-POST api/merchant/orders/{order}/picking/reset
-POST api/merchant/orders/{order}/picking/scan
-GET|HEAD api/merchant/picking/events
-POST api/merchant/products/lookup-code
-GET|HEAD api/merchant/stats
-GET|HEAD api/merchant/store
-PUT api/merchant/store
-GET|HEAD api/merchant/store/verification
-POST api/merchant/store/verification
-GET|HEAD api/my/store
-GET|HEAD api/orders
-POST api/orders
-GET|HEAD api/orders/{order}
-PUT|PATCH api/orders/{order}
-DELETE api/orders/{order}
-POST api/products
-PUT api/products/{product}
-DELETE api/products/{product}
-POST api/products/{product}/alerts
-DELETE api/products/{product}/alerts
-GET|HEAD api/products/{product}/barcode
+GET|HEAD api/reports/alerts
 GET|HEAD api/reports/export/sales.csv
 GET|HEAD api/reports/export/tax.csv
 GET|HEAD api/reports/inventory
+GET|HEAD api/reports/inventory-decisions
 GET|HEAD api/reports/sales
 GET|HEAD api/reports/summary
 GET|HEAD api/reports/tax
 GET|HEAD api/reports/top-products
-POST api/stores
-POST api/stores/register-customer
-PUT api/stores/{store}
-DELETE api/stores/{store}
-POST api/stores/{store}/follow
-DELETE api/stores/{store}/follow
-POST api/stores/{store}/inventory/adjust
+GET|HEAD api/reports/trends
+GET|HEAD api/settings
+PUT      api/settings
+POST     api/stores
+POST     api/stores/register-customer
+PUT      api/stores/{store}
+DELETE   api/stores/{store}
+POST     api/stores/{store}/follow
+DELETE   api/stores/{store}/follow
+POST     api/stores/{store}/inventory/adjust
 GET|HEAD api/stores/{store}/inventory/low-stock
 GET|HEAD api/stores/{store}/inventory/movements
 GET|HEAD api/stores/{store}/reorder/requests
-POST api/stores/{store}/reorder/requests
+POST     api/stores/{store}/reorder/requests
 GET|HEAD api/stores/{store}/reorder/requests/{purchaseRequest}
-PUT api/stores/{store}/reorder/requests/{purchaseRequest}
+PUT      api/stores/{store}/reorder/requests/{purchaseRequest}
 GET|HEAD api/stores/{store}/reorder/suggestions
 GET|HEAD api/stores/{store}/reports
-POST api/stores/{store}/reports/generate
+POST     api/stores/{store}/reports/generate
 GET|HEAD api/stores/{store}/reports/latest
 GET|HEAD api/stores/{store}/tax-settings
-PUT api/stores/{store}/tax-settings
-POST api/stores/{store}/visit
+PUT      api/stores/{store}/tax-settings
+POST     api/stores/{store}/visit
 GET|HEAD api/subscriptions
-POST api/subscriptions
+POST     api/subscriptions
 GET|HEAD api/subscriptions/{subscription}
 PUT|PATCH api/subscriptions/{subscription}
-DELETE api/subscriptions/{subscription}
-POST api/uploads/products
-POST api/uploads/profiles/photo
-POST api/uploads/stores/cover
-POST api/uploads/stores/logo
+DELETE   api/subscriptions/{subscription}
+POST     api/uploads/products
+POST     api/uploads/profiles/photo
+POST     api/uploads/stores/cover
+POST     api/uploads/stores/logo
 GET|HEAD api/users
-POST api/users
+POST     api/users
 GET|HEAD api/users/{user}
 PUT|PATCH api/users/{user}
-DELETE api/users/{user}
+DELETE   api/users/{user}
 ```
 
 ### 3.6 Dependencias QA detectadas
@@ -337,6 +343,54 @@ Notas:
 - `vitest.config.ts` existe en raiz pero esta vacio (0 bytes).
 - E2E activo: `tests-e2e/smoke.spec.ts`.
 - E2E legacy adicional: `tests/e2e/auth.spec.js`.
+
+### 3.7 Modelos en app/Models/ (inventariados 2026-03-13)
+
+```text
+ActivityLog, AiMetricCache, AutoRestockSetting, Cart, CartProduct, Category,
+Channel, Claim, CreditAccount, CreditTransaction, Customer, InventoryMovement,
+Location, Notification, Order, OrderMessage, OrderPickingEvent, OrderPickingSession,
+OrderProduct, Product, ProductAlert, ProductCode, ProductSupplier, Profile,
+PublicStore, PurchaseRequest, PurchaseRequestItem, Rating, Role, Sale,
+SalesReport, Setting, StockPrediction, Store, StoreCounter, StoreTaxSetting,
+StoreVerification, Tutorial, User, UserSubscription
+```
+
+Total: 41 modelos.
+
+### 3.8 Controladores API en app/Http/Controllers/Api/ (inventariados 2026-03-13)
+
+Raiz:
+
+```text
+AuthController, BarcodeController, CartController, CartProductController,
+CategoryController, ChannelController, ClaimController, CreditController,
+CustomerController, DemoImageController, ExternalProductController,
+HeroImageController, InventoryController, InventoryDecisionsController,
+LocationController, NotificacionController, OrderController, OrderMessageController,
+OrderProductController, ProductAlertController, ProductController, ProfileController,
+PublicCategoryController, PublicProductController, PublicStoreController,
+PurchaseRequestController, RatingController, ReportController, ReportsAlertsController,
+ReportsTrendsController, RoleController, SaleController, SettingController,
+SettingsController, StatsController, StoreController, StoreVerificationController,
+SubscriptionController, TaxSettingController, TutorialController, UploadController,
+UserController
+```
+
+Subdirectorio Merchant/:
+
+```text
+AutoRestockController, InventoryReceiveController, LiveMetricsController,
+MerchantStoreController, OrderPickingController, ProductCodeLookupController
+```
+
+Subdirectorio Payment/:
+
+```text
+MercadoPagoController
+```
+
+Total: 50 controladores API.
 
 ## 4) Flujos por rol (estado real)
 
@@ -370,7 +424,7 @@ Notas:
 - Listado de tiendas: implementado (`/stores`, `/api/public/stores`).
 - Detalle de tienda + catalogo por tienda: implementado (`/store/:id`, `/stores/:storeSlug/products`).
 - Carrito (agregar, editar cantidad, eliminar): implementado.
-- Checkout (datos comprador + metodo de pago + redireccion Wompi): implementado.
+- Checkout (datos comprador + metodo de pago + MercadoPago preference): implementado.
 - Confirmacion/factura de compra: implementado (`/checkout/success` + `GET /api/orders/{id}`).
 - Registro/Login client: implementado.
 - Historial de pedidos client (vista dedicada): no implementado en UI activa.
@@ -387,7 +441,7 @@ Backend (raiz):
 - `SANCTUM_STATEFUL_DOMAINS`
 - `CORS_ALLOWED_ORIGINS`
 - `CORS_ALLOWED_ORIGIN_PATTERNS`
-- `WOMPI_*`
+- `MERCADOPAGO_*`
 - `CLOUDINARY_*`
 
 Frontend (`comercio-plus-frontend`):
@@ -461,7 +515,7 @@ Direccion visual actual detectada:
 | Producto detail API real | PARCIAL | `/products/:id` usa `mockProducts` |
 | Catalogo global API real | PARCIAL | `/products` usa `mockProducts` |
 | Carrito (add/edit/remove) | EXISTE | `CartContext`, `/cart` |
-| Checkout (datos comprador + metodo pago) | EXISTE | `/checkout`, `POST /api/orders/create` |
+| Checkout (datos comprador + metodo pago) | EXISTE | `/checkout`, `POST /api/payments/create-preference` |
 | Confirmacion success/factura | EXISTE | `/checkout/success`, `GET /api/orders/{id}` |
 | Registro/Login client | EXISTE | `/register`, `/login` |
 | Historial de pedidos client (vista dedicada) | NO EXISTE | no ruta activa tipo `/orders` para client |
@@ -527,3 +581,11 @@ Decision actual:
    - Centro inteligente de decisiones
 6. Railway GET /api/health = 200.
 7. CORS preflight (OPTIONS) responde 204 para origen Vercel.
+
+## 10) Historial de actualizaciones
+
+| Fecha | Cambios |
+|---|---|
+| 2026-03-05 | Creacion inicial. Inventario FASE 0: Laravel 11.47.0, 160 rutas totales, 130 API. Tests 121 passed (402 assertions). |
+| 2026-03-06 | FASE 5-7: re-ejecucion tests 123 passed (407 assertions), rutas 165 totales / 135 API. Deploy produccion verificado. |
+| 2026-03-13 | Actualizacion completa: rutas 173 totales / 143 API. Pagos migrados de Wompi a MercadoPago. Nuevas rutas: merchant/live-metrics, merchant/restock/*, reports/alerts, reports/inventory-decisions, reports/trends, profile, settings, merchant/picking/events. Inventario modelos (41) y controladores (50). Frontend: React 19, Vite 7, TypeScript 5.9. lint FAIL (2 errores en CheckoutResult.tsx). Build PASS. Node v22.22.1. |
