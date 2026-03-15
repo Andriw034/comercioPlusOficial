@@ -817,7 +817,7 @@ export default function ManageProducts() {
       setImageRefreshKey((previous) => previous + 1)
     }
 
-    const onInventoryImported = (_event: Event) => {
+    const onInventoryImported = () => {
       syncProductsAfterImport()
     }
 

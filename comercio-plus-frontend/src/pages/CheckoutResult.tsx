@@ -64,7 +64,7 @@ export default function CheckoutResult() {
   const collectionStatus = searchParams.get('collection_status') ?? searchParams.get('status')
   const externalRef      = searchParams.get('external_reference') ?? searchParams.get('reference')
 
-  const [status, setStatus]   = useState<MPStatus>(() => (collectionStatus ? 'loading' : 'error'))
+  const [status, setStatus]   = useState<MPStatus>(() => (collectionStatus ?? 'error') as MPStatus)
   const [data, setData]       = useState<ResultData | null>(null)
 
   useEffect(() => {
@@ -72,7 +72,6 @@ export default function CheckoutResult() {
 
     // Mapear el estado de MP a los nuestros
     const mapped = (collectionStatus ?? 'error') as MPStatus
-    setStatus(mapped)
 
     if (mapped === 'approved') {
       clearCart()
