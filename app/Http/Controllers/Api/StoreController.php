@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -164,6 +165,7 @@ class StoreController extends Controller
         ]);
 
         $this->handleMedia($request, $store, $data);
+        Cache::forget('public_stores_list');
 
         return response()->json($this->withMediaUrls($store), 201);
     }
@@ -225,6 +227,7 @@ class StoreController extends Controller
 
         $store->update($data);
         $this->handleMedia($request, $store, $data);
+        Cache::forget('public_stores_list');
 
         return response()->json($this->withMediaUrls($store));
     }
@@ -247,6 +250,7 @@ class StoreController extends Controller
         }
 
         $store->delete();
+        Cache::forget('public_stores_list');
 
         return response()->json(null, 204);
     }

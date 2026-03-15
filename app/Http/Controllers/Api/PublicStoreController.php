@@ -5,18 +5,21 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Store;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class PublicStoreController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Store::with('user')->get();
+        $result = Cache::remember('public_stores_list', 300, function () {
+            return Store::with('user')->get();
+        });
 
         return response()->json([
             'status' => 'ok',
             'message' => 'Listado de tiendas públicas',
-            'data' => $query,
+            'data' => $result,
         ]);
     }
 
@@ -55,6 +58,7 @@ class PublicStoreController extends Controller
         }
 
         $store = Store::create($payload);
+        Cache::forget('public_stores_list');
         return response()->json($store, 201);
     }
 
@@ -86,6 +90,7 @@ class PublicStoreController extends Controller
         }
 
         $store->update($payload);
+        Cache::forget('public_stores_list');
         return response()->json($store);
     }
 
@@ -97,6 +102,7 @@ class PublicStoreController extends Controller
         }
 
         $store->delete();
+        Cache::forget('public_stores_list');
 
         return response()->json(null, 204);
     }

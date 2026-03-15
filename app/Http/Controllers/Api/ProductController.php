@@ -8,6 +8,7 @@ use App\Models\ProductCode;
 use App\Models\Store;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -159,6 +160,8 @@ class ProductController extends Controller
             return $product;
         });
 
+        Cache::increment('public_products_version');
+
         return response()->json([
             'status' => 'created',
             'data'   => $this->withImageUrl($product->load('category', 'store', 'productCodes')),
@@ -267,6 +270,8 @@ class ProductController extends Controller
             }
         });
 
+        Cache::increment('public_products_version');
+
         return response()->json([
             'status' => 'updated',
             'data'   => $this->withImageUrl($product->fresh()->load('category', 'store', 'productCodes')),
@@ -286,6 +291,7 @@ class ProductController extends Controller
         $this->deleteLocalFileIfNeeded($product->image_path);
 
         $product->delete();
+        Cache::increment('public_products_version');
 
         return response()->json([
             'status'  => 'deleted',

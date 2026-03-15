@@ -7,6 +7,7 @@ use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -123,6 +124,8 @@ class CategoryController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
+        Cache::forget('public_categories_list');
+
         return response()->json($category, 201);
     }
 
@@ -155,6 +158,7 @@ class CategoryController extends Controller
         }
 
         $category->update($validated);
+        Cache::forget('public_categories_list');
 
         return response()->json($category, 200);
     }
@@ -172,6 +176,7 @@ class CategoryController extends Controller
         }
 
         $category->delete();
+        Cache::forget('public_categories_list');
 
         return response()->json(null, 204);
     }
