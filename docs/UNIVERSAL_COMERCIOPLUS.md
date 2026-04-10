@@ -1,7 +1,7 @@
 # UNIVERSAL_COMERCIOPLUS
 
 DOC_STATUS: CANONICO_ACTIVO
-DOC_DATE: 2026-03-13
+DOC_DATE: 2026-03-24
 DOC_SCOPE: Estado real del repositorio (codigo + comandos ejecutados en FASE 0)
 
 ## 1) Vision del producto
@@ -18,12 +18,12 @@ Regla de verdad: si hay diferencia entre docs y codigo, manda el codigo.
 ### 2.1 Stack implementado
 
 - Backend API: Laravel 11.47.0 + Sanctum token bearer + MySQL.
-- Frontend activo: React 19 + Vite 7 + TypeScript 5.9 + Tailwind CSS 3 (`comercio-plus-frontend/`).
+- Frontend activo: React 19.2.4 + Vite 7.2.4 + TypeScript 5.9.3 + Tailwind CSS 3.4.17 (`comercio-plus-frontend/`).
 - Frontend legacy: Vue + Laravel Vite (`resources/js`, `vite.legacy.config.js`).
 - E2E: Playwright (`playwright.config.ts`, `tests-e2e/`).
 - Testing backend: PHPUnit/Laravel test runner (`php artisan test`).
-- Media: Cloudinary + fallback storage local.
-- Pagos: MercadoPago SDK (`@mercadopago/sdk-react`) + webhook.
+- Media: Cloudinary (`cloudinary/cloudinary_php ^3.1`) + fallback storage local.
+- Pagos: MercadoPago SDK (`mercadopago/dx-php ^3.8` backend, `@mercadopago/sdk-react` frontend) + webhook.
 
 ### 2.2 Deploy confirmado
 
@@ -62,10 +62,11 @@ Comandos ejecutados:
 
 Resultado clave:
 
-- Worktree sucio: SI (archivos modificados y nuevos, principalmente API, frontend y docs).
+- Worktree sucio: SI (archivos modificados y untracked: package-lock, TODO.md, scripts .bat).
 - Version Laravel: `11.47.0`.
 - Rutas totales Laravel: `173`.
 - Rutas API: `143`.
+- Node.js: `v22.22.1`.
 
 ### 3.2 Estructura de carpetas (resumen)
 
@@ -102,6 +103,7 @@ Publicas:
 - `/cart`
 - `/category/:id`
 - `/checkout`
+- `/checkout/result`
 - `/checkout/success`
 - `/contact`
 - `/cookies`
@@ -112,6 +114,7 @@ Publicas:
 - `/how-it-works`
 - `/login`
 - `/orders/:id`
+- `/orders/history`
 - `/payment/success`
 - `/press`
 - `/privacy`
@@ -141,6 +144,7 @@ Protegidas merchant (`RequireAuth` + `RequireRole('merchant')`):
 - `/dashboard/inventory`
 - `/dashboard/inventory/import`
 - `/dashboard/inventory/receive`
+- `/dashboard/inventory/restock`
 - `/dashboard/orders`
 - `/dashboard/orders/:id/picking`
 - `/dashboard/products`
@@ -170,7 +174,7 @@ Fuente: `resources/js/router/index.js`.
 
 ### 3.5 Endpoints API completos
 
-Fuente: `php artisan route:list --path=api` (2026-03-13, 143 endpoints).
+Fuente: `php artisan route:list --path=api` (2026-03-15, 143 endpoints).
 
 Resumen:
 
@@ -324,7 +328,38 @@ PUT|PATCH api/users/{user}
 DELETE   api/users/{user}
 ```
 
-### 3.6 Dependencias QA detectadas
+### 3.6 Optimizaciones de rendimiento (2026-03-14)
+
+Commit `44bc2197`:
+
+- N+1 corregidos en PublicCategoryController: `with('products/parent/children')` reducido a columnas esenciales (de ~151 queries a 4 por request).
+- Indices de rendimiento agregados (migracion `add_performance_indexes_to_core_tables`):
+  - `stores`: `is_visible`
+  - `products`: `(store_id, stock)` compuesto, `offer`
+  - `orders`: `(store_id, status)` compuesto, `(store_id, created_at)` compuesto
+  - `inventory_movements`: `(product_id, created_at)` compuesto
+- Cache file-driver (TTL 300s) en endpoints publicos:
+  - `GET /api/public/stores` → `public_stores_list`
+  - `GET /api/public/products` → `public_products_{hash}`
+  - `GET /api/public/categories` → `public_categories_list`
+  - Con invalidacion automatica en create/update/destroy de cada recurso.
+- Fix `image_url` en `PublicProductController` (commit `e450c0b5`).
+
+### 3.7 Metricas del repositorio
+
+| Metrica | Valor |
+|---|---|
+| Modelos Eloquent | 40 |
+| Controladores API | 50 |
+| Servicios | 11 |
+| Migraciones | 99 |
+| Rutas totales Laravel | 173 |
+| Rutas API | 143 |
+| Componentes React | 45+ |
+| Paginas React | 13 |
+| Rutas frontend (publicas + protegidas) | 55+ |
+
+### 3.8 Dependencias QA detectadas
 
 Backend:
 
@@ -344,7 +379,7 @@ Notas:
 - E2E activo: `tests-e2e/smoke.spec.ts`.
 - E2E legacy adicional: `tests/e2e/auth.spec.js`.
 
-### 3.7 Modelos en app/Models/ (inventariados 2026-03-13)
+### 3.9 Modelos en app/Models/ (inventariados 2026-03-24)
 
 ```text
 ActivityLog, AiMetricCache, AutoRestockSetting, Cart, CartProduct, Category,
@@ -356,9 +391,9 @@ SalesReport, Setting, StockPrediction, Store, StoreCounter, StoreTaxSetting,
 StoreVerification, Tutorial, User, UserSubscription
 ```
 
-Total: 41 modelos.
+Total: 40 modelos.
 
-### 3.8 Controladores API en app/Http/Controllers/Api/ (inventariados 2026-03-13)
+### 3.10 Controladores API en app/Http/Controllers/Api/ (inventariados 2026-03-24)
 
 Raiz:
 
@@ -369,7 +404,7 @@ CustomerController, DemoImageController, ExternalProductController,
 HeroImageController, InventoryController, InventoryDecisionsController,
 LocationController, NotificacionController, OrderController, OrderMessageController,
 OrderProductController, ProductAlertController, ProductController, ProfileController,
-PublicCategoryController, PublicProductController, PublicStoreController,
+PruebaController, PublicCategoryController, PublicProductController, PublicStoreController,
 PurchaseRequestController, RatingController, ReportController, ReportsAlertsController,
 ReportsTrendsController, RoleController, SaleController, SettingController,
 SettingsController, StatsController, StoreController, StoreVerificationController,
@@ -405,6 +440,7 @@ Total: 50 controladores API.
   - ajustes: implementado.
   - importacion CSV/XLSX preview/import/template: implementado.
   - recepcion por scanner + create-from-scan: implementado.
+  - auto-restock (sugerencias, config por producto, solicitudes): implementado (`/dashboard/inventory/restock`, `/api/merchant/restock/*`).
 - Pedidos:
   - lista y detalle: implementado.
   - cambio de estado: implementado.
@@ -425,9 +461,9 @@ Total: 50 controladores API.
 - Detalle de tienda + catalogo por tienda: implementado (`/store/:id`, `/stores/:storeSlug/products`).
 - Carrito (agregar, editar cantidad, eliminar): implementado.
 - Checkout (datos comprador + metodo de pago + MercadoPago preference): implementado.
-- Confirmacion/factura de compra: implementado (`/checkout/success` + `GET /api/orders/{id}`).
+- Confirmacion/factura de compra: implementado (`/checkout/success`, `/checkout/result` + `GET /api/orders/{id}`).
 - Registro/Login client: implementado.
-- Historial de pedidos client (vista dedicada): no implementado en UI activa.
+- Historial de pedidos client (vista dedicada): implementado (`/orders/history`, consume API `/api/orders`).
 - Catalogo global `/products` y `/products/:id`: usan mocks locales en frontend activo (no API real).
 
 ## 5) Variables de entorno relevantes (sin secretos)
@@ -497,6 +533,7 @@ Direccion visual actual detectada:
 | Ajustes inventario | EXISTE | `/api/inventory/adjust` + drawer UI |
 | Importacion excel/csv preview/import | EXISTE | `/dashboard/inventory/import`, `/api/inventory/preview|import` |
 | Scanner recepcion + create-from-scan | EXISTE | `/dashboard/inventory/receive`, `/api/merchant/inventory/*` |
+| Auto-restock (sugerencias, config, solicitudes) | EXISTE | `/dashboard/inventory/restock`, `/api/merchant/restock/*` |
 | Pedidos listar/detalle | EXISTE | `/dashboard/orders`, `/api/merchant/orders` |
 | Cambiar estado de pedido | EXISTE | `PUT /api/merchant/orders/{id}/status` |
 | Picking/alistamiento | EXISTE | `/dashboard/orders/:id/picking`, `/api/merchant/orders/{id}/picking*` |
@@ -518,7 +555,7 @@ Direccion visual actual detectada:
 | Checkout (datos comprador + metodo pago) | EXISTE | `/checkout`, `POST /api/payments/create-preference` |
 | Confirmacion success/factura | EXISTE | `/checkout/success`, `GET /api/orders/{id}` |
 | Registro/Login client | EXISTE | `/register`, `/login` |
-| Historial de pedidos client (vista dedicada) | NO EXISTE | no ruta activa tipo `/orders` para client |
+| Historial de pedidos client (vista dedicada) | EXISTE | `/orders/history`, consume API `/api/orders` |
 | Busqueda publica de barcode en UI | NO EXISTE | endpoint existe, servicio UI removido |
 
 ## 8) Documentacion canonicidad y duplicados
@@ -589,3 +626,5 @@ Decision actual:
 | 2026-03-05 | Creacion inicial. Inventario FASE 0: Laravel 11.47.0, 160 rutas totales, 130 API. Tests 121 passed (402 assertions). |
 | 2026-03-06 | FASE 5-7: re-ejecucion tests 123 passed (407 assertions), rutas 165 totales / 135 API. Deploy produccion verificado. |
 | 2026-03-13 | Actualizacion completa: rutas 173 totales / 143 API. Pagos migrados de Wompi a MercadoPago. Nuevas rutas: merchant/live-metrics, merchant/restock/*, reports/alerts, reports/inventory-decisions, reports/trends, profile, settings, merchant/picking/events. Inventario modelos (41) y controladores (50). Frontend: React 19, Vite 7, TypeScript 5.9. lint FAIL (2 errores en CheckoutResult.tsx). Build PASS. Node v22.22.1. |
+| 2026-03-15 | Re-inventario: rutas 173/143 (sin cambio). Modelos corregido a 40 (conteo anterior erroneo). PruebaController agregado al listado de controladores. 3 nuevas rutas React: `/checkout/result`, `/orders/history`, `/dashboard/inventory/restock`. Feature "Historial pedidos client" cambia de NO EXISTE a EXISTE. Drift produccion: `hero-images` resuelto (200), `barcode/search` sigue 404. Tests 123 passed (407 assertions). Lint PASS. Build PASS (7.82s). |
+| 2026-03-24 | Actualizacion completa post-optimizacion. Documentada auditoria de rendimiento: correccion N+1 en PublicCategoryController (~151 queries → 4), indices de BD en stores/products/orders/inventory_movements, cache file-driver TTL 300s en endpoints publicos con invalidacion automatica. Fix image_url en PublicProductController. Fix lint frontend. Migraciones totales: 99. Nuevo componente: LowStockAlert.tsx. Metricas del repositorio agregadas. hero-images drift resuelto confirmado. |

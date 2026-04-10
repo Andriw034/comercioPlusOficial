@@ -1,7 +1,7 @@
 # QA_RELEASE_REPORT
 
-REPORT_STATUS: COMPLETE_FASE_0_A_4  
-REPORT_DATE: 2026-03-05  
+REPORT_STATUS: COMPLETE_FASE_0_A_4
+REPORT_DATE: 2026-03-24
 EXECUTION_STATUS: FASE 3 (local) y FASE 4 (produccion) ejecutadas con evidencia
 
 ## 1) Alcance de este reporte
@@ -165,7 +165,7 @@ No mezcla resultados de ejecucion de pruebas.
 | ANX-01 | Dashboard settings usa `/api/settings` no expuesto en rutas API activas | RESUELTO (2026-03-13): `GET/PUT /api/settings` ahora expuesto | — | — |
 | ANX-02 | Catalogo global `/products` usa mock local | no usa API real | P1 | reemplazar `mockProducts` por fetch paginado `/api/products` + filtros por categoria/precio |
 | ANX-03 | Product detail `/products/:id` usa mock local | detalle no conectado API | P1 | consumir `GET /api/products/{id}`, manejar 404 y estados de stock reales |
-| ANX-04 | Historial de pedidos del cliente en UI no existe | solo `/orders/:id` success puntual | P1 | crear pagina `/orders` para cliente con `GET /api/orders` y detalle |
+| ANX-04 | Historial de pedidos del cliente en UI no existe | RESUELTO (2026-03-15): `/orders/history` implementado, consume API `/api/orders` | — | — |
 | ANX-05 | Configuracion IVA detallada no visible en UI activa | solo toggle `taxes_enabled` | P1 | integrar formulario completo contra `GET/PUT /api/stores/{store}/tax-settings` (tasa, nombre, include tax, rounding) |
 | ANX-06 | Flujo onboarding crear tienda desde UI publica es solo CTA | no formulario wizard en React activo | P2 | crear wizard de creacion de tienda y persistir por `POST /api/stores` |
 | ANX-07 | Personalizacion visual de tienda (colores) no implementada | solo logo/cover | P2 | agregar campos de branding en modelo/store API + aplicar en tienda publica |
@@ -212,7 +212,7 @@ Notas de ejecucion local:
 | `https://comercioplusoficial-production-d61e.up.railway.app/api/health` | 200 |
 | `https://comercioplusoficial-production-d61e.up.railway.app/api/public/stores` | 200 |
 | `https://comercioplusoficial-production-d61e.up.railway.app/api/public/products` | 200 |
-| `https://comercioplusoficial-production-d61e.up.railway.app/api/hero-images` | 404 |
+| `https://comercioplusoficial-production-d61e.up.railway.app/api/hero-images` | 200 (resuelto 2026-03-15) |
 | `https://comercioplusoficial-production-d61e.up.railway.app/api/public/barcode/search?code=TEST` | 404 |
 
 ### 6.3 CORS preflight (OPTIONS)
@@ -253,7 +253,7 @@ Conclusiones de resiliencia:
 
 | Caso | Local (codigo/rutas) | Produccion | Impacto |
 |---|---|---|---|
-| `GET /api/hero-images` | ruta declarada en `routes/api.php` | 404 | home puede perder imagenes dinamicas y caer a fallback |
+| `GET /api/hero-images` | ruta declarada en `routes/api.php` | 200 (resuelto 2026-03-15) | sin impacto |
 | `GET /api/public/barcode/search` | ruta declarada en `routes/api.php` | 404 | funcionalidad publica de busqueda por codigo no disponible en prod |
 | `GET /api/me` sin `Accept: application/json` | en tests API se valida 401 sin token | 302 en curl basico (redirect web), 401 con header JSON | comportamiento mixto cliente web/API; documentado |
 | Smoke E2E Chromium | esperado PASS | PASS | flujo completo merchant+client estable en chromium y mobile-chrome |
@@ -334,3 +334,78 @@ Notas:
 - Lint corregido 2026-03-13: `CheckoutResult.tsx:67` — useState inicializado directamente con collectionStatus (eliminado setStatus sincrono en useEffect). `products/page.tsx:820` — parametro `_event: Event` eliminado de `onInventoryImported` (no usado).
 - Rutas API crecieron de 135 (2026-03-06) a 143: nuevas rutas merchant/live-metrics, merchant/restock/*, reports/alerts, reports/inventory-decisions, reports/trends, profile/*, settings, merchant/picking/events. Pagos migrados de Wompi a MercadoPago (payments/create-preference, payments/result, payments/webhook).
 - Node.js: v22.22.1.
+
+## 11) Re-ejecucion 2026-03-15
+
+| Comando | Resultado | Estado |
+|---|---|---|
+| php artisan test | 123 passed (407 assertions) | PASS |
+| php artisan route:list | 173 rutas totales | PASS |
+| php artisan route:list --path=api | 143 rutas API | PASS |
+| npm run lint (comercio-plus-frontend) | sin errores | PASS |
+| npm run build (comercio-plus-frontend) | built in 7.82s, dist/ generado | PASS |
+
+Notas:
+
+- MySQL no estaba activo durante esta sesion: `php artisan migrate:status` retorno error de conexion.
+- Modelos: 40 (corregido de 41 reportado anteriormente; conteo anterior era erroneo).
+- Controladores API: 50 (PruebaController detectado y agregado al listado canonico).
+- 3 nuevas rutas React detectadas: `/checkout/result` (resultado MercadoPago), `/orders/history` (historial pedidos client con API real), `/dashboard/inventory/restock` (auto-restock merchant con API real).
+- ANX-04 (historial pedidos client) marcado como RESUELTO.
+- Drift produccion actualizado: `hero-images` ahora responde 200 (resuelto), `barcode/search` sigue 404.
+- Node.js: v22.22.1.
+- React 19.2.4, Vite 7.2.4, TypeScript 5.9.3, Tailwind 3.4.17.
+
+## 12) Actualizacion 2026-03-24
+
+### Cambios desde ultima revision
+
+Commits relevantes desde 2026-03-15:
+
+| Hash | Tipo | Descripcion |
+|---|---|---|
+| 44bc2197 | perf | Auditoria N+1, indices de rendimiento y cache en endpoints publicos |
+| e450c0b5 | fix | Incluir image_url en select de PublicProductController |
+| 53c37371 | fix | Corregir errores de lint en frontend |
+| c521fbc9 | chore | Trigger railway redeploy |
+| 8fa34d73 | docs | Actualizar documentacion con estado real |
+
+### Detalle de optimizaciones de rendimiento
+
+- **N+1 corregidos**: PublicCategoryController redujo de ~151 queries a 4 por request.
+- **Indices de BD** (migracion `add_performance_indexes_to_core_tables`):
+  - `stores.is_visible`
+  - `products(store_id, stock)` compuesto + `products.offer`
+  - `orders(store_id, status)` compuesto + `orders(store_id, created_at)` compuesto
+  - `inventory_movements(product_id, created_at)` compuesto
+- **Cache file-driver** (TTL 300s) en `/api/public/stores`, `/api/public/products`, `/api/public/categories` con invalidacion automatica.
+- **Fix image_url**: `PublicProductController` no incluia `image_url` en select, causando null en listados publicos.
+
+### Estado del repositorio
+
+| Metrica | Valor |
+|---|---|
+| Rutas totales Laravel | 173 |
+| Rutas API | 143 |
+| Modelos | 40 |
+| Controladores API | 50 |
+| Servicios | 11 |
+| Migraciones | 99 |
+| Componentes React | 45+ |
+| Nuevo componente | LowStockAlert.tsx (alerta stock bajo ERP) |
+
+### Drift produccion actualizado
+
+| Caso | Estado |
+|---|---|
+| `GET /api/hero-images` | RESUELTO (200 desde 2026-03-15) |
+| `GET /api/public/barcode/search` | SIGUE 404 en produccion (drift conocido) |
+
+### Faltantes actualizados
+
+- ANX-01 (settings): RESUELTO.
+- ANX-04 (historial pedidos): RESUELTO.
+- ANX-02 (catalogo global mock): PENDIENTE P1.
+- ANX-03 (product detail mock): PENDIENTE P1.
+- ANX-05 (IVA detallado UI): PENDIENTE P1.
+- ANX-06 a ANX-09: PENDIENTE P2.

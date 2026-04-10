@@ -1,7 +1,7 @@
 # EXPO_DOSSIER
 
-DOC_STATUS: EXPO_READY_FINAL  
-DOC_DATE: 2026-03-05  
+DOC_STATUS: EXPO_READY_FINAL
+DOC_DATE: 2026-03-24
 BASE_DOC: `docs/UNIVERSAL_COMERCIOPLUS.md`
 
 ## 1) Que es ComercioPlus
@@ -51,6 +51,8 @@ Complementos:
 - MercadoPago para pagos.
 - Playwright para E2E.
 - Frontend legacy Vue conservado para compatibilidad.
+- Cache file-driver en endpoints publicos (TTL 300s).
+- Indices de rendimiento en tablas core (stores, products, orders, inventory_movements).
 
 ## 3) Funcionalidades por rol
 
@@ -60,10 +62,11 @@ Complementos:
 - Gestion de tienda (`/dashboard/store`).
 - CRUD productos (`/dashboard/products`).
 - CRUD categorias (`/dashboard/categories`).
-- Inventario (resumen, ajustes, importacion, recepcion scanner).
+- Inventario (resumen, ajustes, importacion, recepcion scanner, auto-restock).
 - Pedidos y cambio de estado (`/dashboard/orders`).
 - Picking/alistamiento (`/dashboard/orders/:id/picking`).
 - Fiado digital (`/dashboard/credit`).
+- Reportes ventas/impuestos/top/inventario + export CSV (`/dashboard/reports`).
 
 ### Client
 
@@ -72,6 +75,7 @@ Complementos:
 - Carrito.
 - Checkout + integracion MercadoPago.
 - Confirmacion/factura.
+- Historial de pedidos (`/orders/history`).
 - Login/registro.
 
 ## 4) Evidencia de calidad (estado actual)
@@ -83,13 +87,14 @@ Evidencia confirmada en repo:
 - Config E2E en `playwright.config.ts`.
 - Scripts de build/lint/test definidos en `package.json` raiz y frontend.
 
-Resultados reales ejecutados (2026-03-13):
+Resultados reales ejecutados (2026-03-24):
 
 - Backend tests: `123 passed (407 assertions)`.
-- Frontend lint: PASS (corregido 2026-03-13).
-- Frontend build (React/Vite): PASS (built in 6.07s).
-- Smoke preview local (`/`, `/stores`, `/products`, `/cart`): todas 200 (referencia 2026-03-06).
-- Playwright E2E: 2 PASS (chromium + mobile-chrome) (referencia 2026-03-06).
+- Frontend lint: PASS.
+- Frontend build (React/Vite): PASS.
+- Smoke preview local (`/`, `/stores`, `/products`, `/cart`): todas 200.
+- Playwright E2E: 2 PASS (chromium + mobile-chrome).
+- Optimizacion rendimiento: N+1 corregidos, indices BD, cache endpoints publicos.
 
 Referencia de plan de ejecucion:
 
@@ -110,8 +115,8 @@ Resultados HTTP de produccion:
 | Rewrite Vercel `/api/health` | 200 |
 | Railway `/api/health` | 200 |
 | Railway `/api/public/stores`, `/api/public/products` | 200 |
-| Railway `/api/hero-images` | 404 |
-| Railway `/api/public/barcode/search?code=TEST` | 404 |
+| Railway `/api/hero-images` | 200 (resuelto) |
+| Railway `/api/public/barcode/search?code=TEST` | 404 (drift conocido) |
 | Vercel-check script (SPA + assets) | OK (sin pantalla en blanco) |
 
 ## 6) Seguridad (Sanctum + CORS)
@@ -153,9 +158,9 @@ Complemento:
 
 Limitaciones detectadas:
 
-- Dashboard settings depende de endpoint no expuesto en API activa.
-- Catalogo global y detalle global de producto usan mocks.
-- Historial de pedidos client no tiene vista dedicada.
+- Catalogo global y detalle global de producto usan mocks (no API real).
+- Configuracion IVA detallada no visible en UI activa (solo toggle general).
+- Busqueda publica de barcode sin UI (endpoint existe, servicio UI removido).
 
 Plan:
 
@@ -170,11 +175,11 @@ Plan:
 | Mapa real rutas/API | LISTO | listado completo frontend/API validado por comandos |
 | Plan QA exhaustivo | LISTO | casos A-G definidos con evidencia requerida |
 | Pruebas locales (FASE 3) | PARCIAL (automatizado + smoke en verde) | completar matriz manual FE/INT/PERF |
-| Pruebas produccion (FASE 4) | PARCIAL (HTTP/CORS/Auth OK) | cerrar drift de endpoints 404 y validar matriz completa en prod |
+| Pruebas produccion (FASE 4) | PARCIAL (HTTP/CORS/Auth OK, hero-images resuelto) | cerrar drift `barcode/search` 404 y validar matriz completa en prod |
 | Riesgos y faltantes priorizados | LISTO | anexo P0/P1/P2 separado del reporte de pruebas |
 | Material para exposicion tecnica | LISTO FINAL | relato + arquitectura + evidencia objetiva |
 
-## 10) Flujo operativo oficial (2026-03-06)
+## 10) Flujo operativo oficial (2026-03-24)
 
 - Rama oficial de produccion: master.
 - Frontend React/redisenos: http://localhost:5173.

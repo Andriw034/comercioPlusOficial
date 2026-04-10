@@ -1,0 +1,19 @@
+<Invoice>test
+  <!-- === FIRMA DIGITAL SIMULADA (MOCK) === -->
+  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="xmldsig-DIAN-E2676FA6B9C78D68">
+    <ds:SignedInfo>
+      <ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+      <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+      <ds:Reference URI="">
+        <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+        <ds:DigestValue>BMbrSW9osmO8dgQA5l5zU3GJMpUL5x6zZjJlXroSctYGNbOjRAq1QzXPuOprNPGwaPbFEAeP9rpxGN2rshtLv8k2+oz/cDiLGLShPu0DFAjC8jwy1uIF1ddZdUvibI5ONn7FRIz3U6/nMcOye9qk4ENM0q7wix0qL+b3IF11GwI=</ds:DigestValue>
+      </ds:Reference>
+    </ds:SignedInfo>
+    <ds:SignatureValue>BMbrSW9osmO8dgQA5l5zU3GJMpUL5x6zZjJlXroSctYGNbOjRAq1QzXPuOprNPGwaPbFEAeP9rpxGN2rshtLv8k2+oz/cDiLGLShPu0DFAjC8jwy1uIF1ddZdUvibI5ONn7FRIz3U6/nMcOye9qk4ENM0q7wix0qL+b3IF11GwI=</ds:SignatureValue>
+    <ds:KeyInfo>
+      <ds:X509Data>
+        <ds:X509Certificate>zxH+3Jht0tPelhL/KgrUpYhndj4AbMm/x8UMX1t7vcN/1u7/7f+zvpAQpBULMoMGOxhHog1rI/ee2v/1mofcgoK9Z8Fm9DiMAT6HPZmwZoLi6pTzmKPpelt1tNZl61aJ6X2fDuqD4qkJk0cRb5of7W1XaGt3AqsSvwd3a9wv7/FRiHvwPK7SDWeyEJMiYU3srgZwZ47GV/HUO4J+7y4Psddi9PKQQxJM890SDQJTaNZ2DDtOsEh5RfCcDj24Pzv4QxasISNgp7lLJRw/eGwCWmoKlhAQcyhei4RBPlPxOf1ck0ru32NX5112l7Q9CpTa4rdNS81G+X9ngm8mIYiJ5g==</ds:X509Certificate>
+      </ds:X509Data>
+    </ds:KeyInfo>
+  </ds:Signature>
+</Invoice>

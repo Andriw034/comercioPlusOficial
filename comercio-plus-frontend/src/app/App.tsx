@@ -45,11 +45,13 @@ const CheckoutSuccess = lazy(() => import('@/pages/CheckoutSuccess'))
 const CheckoutResult = lazy(() => import('@/pages/CheckoutResult'))
 const SimpleContentPage = lazy(() => import('@/pages/SimpleContentPage'))
 const OrderHistory = lazy(() => import('@/pages/OrderHistory'))
+const AIAssistant = lazy(() => import('@/pages/AIAssistant'))
 
 const Dashboard = lazy(() => import('./dashboard/page'))
 const DashboardCategoriesPage = lazy(() => import('./dashboard/categories/page'))
 const DashboardCustomers = lazy(() => import('./dashboard/customers/page'))
 const DashboardCreditPage = lazy(() => import('./dashboard/credit/page'))
+const DashboardInvoicingPage = lazy(() => import('./dashboard/invoicing/page'))
 const DashboardInventoryPage = lazy(() => import('./dashboard/inventory/page'))
 const InventoryReceivePage = lazy(() => import('./dashboard/inventory/receive/page'))
 const InventoryImportPage = lazy(() => import('./dashboard/inventory/import/page'))
@@ -87,6 +89,7 @@ export default function App() {
             <Route path="/payment/success" element={<CheckoutSuccess />} />
             <Route path="/orders/history" element={<OrderHistory />} />
             <Route path="/orders/:id" element={<CheckoutSuccess />} />
+            <Route path="/assistant" element={<AIAssistant />} />
             <Route path="/category/:id" element={<Category />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
@@ -172,6 +175,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/customers" element={<DashboardCustomers />} />
             <Route path="/dashboard/credit" element={<DashboardCreditPage />} />
+            <Route path="/dashboard/invoicing" element={<DashboardInvoicingPage />} />
             <Route path="/dashboard/store" element={<DashboardStore />} />
             <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
             <Route path="/dashboard/orders" element={<DashboardOrdersPage />} />

@@ -37,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'has.store' => \App\Http\Middleware\HasStore::class,
             'redirect.after.login' => \App\Http\Middleware\RedirectAfterLogin::class,
             'role.key' => \App\Http\Middleware\EnsureRole::class,
-            // Aqui puedes a�adir otros alias que necesites en el futuro.
+            'requires.dian' => \App\Http\Middleware\RequiresDianEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

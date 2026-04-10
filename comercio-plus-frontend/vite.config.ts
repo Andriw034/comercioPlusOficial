@@ -14,6 +14,19 @@ export default defineConfig(({ mode }) => {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+    esbuild: mode === 'production' ? { drop: ['console', 'debugger'] } : {},
+    build: {
+      sourcemap: false,
+      chunkSizeWarningLimit: 500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'ui-vendor': ['lucide-react'],
+          },
+        },
+      },
+    },
     server: {
       proxy: {
         '/api': {

@@ -4,7 +4,7 @@
 # UNIVERSAL_COMERCIOPLUS_AI
 
 DOC_STATUS: DERIVADO_SIN_AUTORIDAD  
-DOC_DATE: 2026-03-05
+DOC_DATE: 2026-03-24
 
 Este archivo NO es una segunda fuente de verdad.
 

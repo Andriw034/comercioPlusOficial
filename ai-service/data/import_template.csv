@@ -1,0 +1,2 @@
+part_reference,part_type,part_brand,part_description,motorcycle_brand,motorcycle_model,year_from,year_to,notes
+EJEMPLO-001,bujia,NGK,Bujia ejemplo,Yamaha,YBR 125,2014,2024,Ejemplo de como llenar el CSV

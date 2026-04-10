@@ -55,6 +55,7 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+    'domain' => env('APP_DOMAIN', 'localhost'),
     'frontend_url' => env('APP_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173')),
     'release' => env('RAILWAY_GIT_COMMIT_SHA', env('APP_RELEASE', 'local')),
 

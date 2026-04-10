@@ -120,6 +120,107 @@ export interface CreditTransactionRow {
   created_at: string
 }
 
+// ─── Facturación Electrónica DIAN ───
+
+export interface ElectronicDocumentItem {
+  id: number
+  electronic_document_id: number
+  product_id?: number | null
+  line_number: number
+  code?: string | null
+  description: string
+  unit_measure: string
+  quantity: number
+  unit_price: number
+  discount: number
+  tax_amount: number
+  line_total: number
+  tax_type: string
+  tax_rate: number
+}
+
+export interface ElectronicDocumentTax {
+  id: number
+  electronic_document_id: number
+  tax_type: string
+  tax_rate: number
+  taxable_amount: number
+  tax_amount: number
+}
+
+export interface ElectronicDocumentLog {
+  id: number
+  electronic_document_id: number
+  user_id?: number | null
+  action: string
+  status_from?: string | null
+  status_to?: string | null
+  message?: string | null
+  payload?: Record<string, unknown> | null
+  ip_address?: string | null
+  created_at: string
+  user?: { id: number; name: string } | null
+}
+
+export type DianStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'cancelled'
+export type DocumentType = 'invoice' | 'credit_note' | 'debit_note'
+
+export interface ElectronicDocument {
+  id: number
+  store_id: number
+  order_id?: number | null
+  document_type: DocumentType
+  prefix: string
+  number: number
+  full_number?: string
+  cufe?: string | null
+  cude?: string | null
+  dian_status: DianStatus
+  dian_track_id?: string | null
+  dian_approved_at?: string | null
+  dian_response_message?: string | null
+  issuer_nit: string
+  issuer_name: string
+  issuer_email?: string | null
+  issuer_phone?: string | null
+  issuer_address?: string | null
+  issuer_city?: string | null
+  issuer_department?: string | null
+  customer_identification_type: string
+  customer_identification: string
+  customer_name: string
+  customer_email?: string | null
+  customer_phone?: string | null
+  customer_address?: string | null
+  customer_city?: string | null
+  customer_department?: string | null
+  subtotal: number
+  tax_total: number
+  discount_total: number
+  total: number
+  currency: string
+  payment_method?: string | null
+  payment_means?: string | null
+  payment_due_date?: string | null
+  reference_document_id?: number | null
+  notes?: string | null
+  metadata?: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+  items?: ElectronicDocumentItem[]
+  taxes?: ElectronicDocumentTax[]
+  logs?: ElectronicDocumentLog[]
+  reference_document?: ElectronicDocument | null
+  referenced_by?: ElectronicDocument[]
+}
+
+export interface InvoicingStats {
+  total_documents: number
+  by_status: Record<DianStatus, number>
+  total_invoiced_amount: number
+  currency: string
+}
+
 export interface StoreVerification {
   id: number
   store_id: number

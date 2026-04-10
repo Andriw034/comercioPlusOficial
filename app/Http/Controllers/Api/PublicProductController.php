@@ -16,29 +16,35 @@ class PublicProductController extends Controller
     {
         // Implementación con validación y paginación personalizada
         $data = $request->validate([
-            'q'           => ['nullable','string','max:100'],
-            'category_id' => ['nullable','integer'],
-            'offer'       => ['nullable','in:0,1'],
-            'min_price'   => ['nullable','numeric','min:0'],
-            'max_price'   => ['nullable','numeric','min:0'],
-            'sort'        => ['nullable','in:price_asc,price_desc,rating_desc,newest'],
-            'page'        => ['nullable','integer','min:1'],
-            'per_page'    => ['nullable','integer','min:1','max:50'],
+            'q'                => ['nullable','string','max:100'],
+            'category_id'      => ['nullable','integer'],
+            'offer'            => ['nullable','in:0,1'],
+            'min_price'        => ['nullable','numeric','min:0'],
+            'max_price'        => ['nullable','numeric','min:0'],
+            'sort'             => ['nullable','in:price_asc,price_desc,rating_desc,newest'],
+            'page'             => ['nullable','integer','min:1'],
+            'per_page'         => ['nullable','integer','min:1','max:50'],
+            'motorcycle_brand' => ['nullable','string','max:50'],
+            'motorcycle_model' => ['nullable','string','max:80'],
+            'motorcycle_year'  => ['nullable','integer','min:1990','max:2040'],
         ]);
 
         $perPage = $data['per_page'] ?? 12;
 
         $cacheVersion = Cache::get('public_products_version', 1);
         $cacheParams = array_filter([
-            'q'           => $data['q'] ?? null,
-            'category_id' => $data['category_id'] ?? null,
-            'offer'       => $data['offer'] ?? null,
-            'min_price'   => $data['min_price'] ?? null,
-            'max_price'   => $data['max_price'] ?? null,
-            'sort'        => $data['sort'] ?? null,
-            'page'        => $data['page'] ?? 1,
-            'per_page'    => $perPage,
-            'v'           => $cacheVersion,
+            'q'                => $data['q'] ?? null,
+            'category_id'      => $data['category_id'] ?? null,
+            'offer'            => $data['offer'] ?? null,
+            'min_price'        => $data['min_price'] ?? null,
+            'max_price'        => $data['max_price'] ?? null,
+            'sort'             => $data['sort'] ?? null,
+            'page'             => $data['page'] ?? 1,
+            'per_page'         => $perPage,
+            'motorcycle_brand' => $data['motorcycle_brand'] ?? null,
+            'motorcycle_model' => $data['motorcycle_model'] ?? null,
+            'motorcycle_year'  => $data['motorcycle_year'] ?? null,
+            'v'                => $cacheVersion,
         ], fn ($v) => $v !== null);
         ksort($cacheParams);
         $cacheKey = 'public_products_' . md5(serialize($cacheParams));
@@ -74,6 +80,26 @@ class PublicProductController extends Controller
 
             if (!empty($data['max_price'])) {
                 $q->where('price', '<=', (float)$data['max_price']);
+            }
+
+            // Motorcycle compatibility filters
+            $hasMotoFilter = !empty($data['motorcycle_brand']) || !empty($data['motorcycle_model']) || !empty($data['motorcycle_year']);
+            if ($hasMotoFilter) {
+                $q->whereHas('motorcycleModels', function ($mq) use ($data) {
+                    if (!empty($data['motorcycle_brand'])) {
+                        $mq->where('brand', $data['motorcycle_brand']);
+                    }
+                    if (!empty($data['motorcycle_model'])) {
+                        $mq->where('model', 'like', '%' . $data['motorcycle_model'] . '%');
+                    }
+                    if (!empty($data['motorcycle_year'])) {
+                        $year = (int) $data['motorcycle_year'];
+                        $mq->where('year_from', '<=', $year)
+                            ->where(function ($yq) use ($year) {
+                                $yq->whereNull('year_to')->orWhere('year_to', '>=', $year);
+                            });
+                    }
+                });
             }
 
             switch ($data['sort'] ?? null) {

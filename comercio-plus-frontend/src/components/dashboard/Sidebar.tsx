@@ -45,6 +45,7 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard/orders', icon: 'file-text', iconBg: 'bg-emerald-500/20', label: 'Pedidos' },
       { href: '/dashboard/customers', icon: 'users', iconBg: 'bg-violet-500/20', label: 'Clientes' },
       { href: '/dashboard/credit', icon: 'credit-card', iconBg: 'bg-amber-500/20', label: 'Fiado' },
+      { href: '/dashboard/invoicing', icon: 'file-text', iconBg: 'bg-blue-500/20', label: 'Facturación DIAN' },
     ],
   },
   {

@@ -87,6 +87,11 @@ class Product extends Model
         return $this->productCodes();
     }
 
+    public function motorcycleModels()
+    {
+        return $this->belongsToMany(MotorcycleModel::class, 'product_motorcycle_compatibility');
+    }
+
     public function needsReorder(): bool
     {
         return (int) $this->stock <= (int) $this->reorder_point;

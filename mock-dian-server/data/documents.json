@@ -1,0 +1,422 @@
+{
+    "DIAN-528D07BD05060501": {
+        "track_id": "DIAN-528D07BD05060501",
+        "cufe": "18c197101b8d52faf0ab5c4ec0519d9c4546e09416870783b97b3ba745bc873f57c94daa102217c150aa191affe2f766",
+        "doc_number": "FE1011",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:17:30+02:00"
+    },
+    "DIAN-663B8FCA9CFCB6E3": {
+        "track_id": "DIAN-663B8FCA9CFCB6E3",
+        "cufe": "a512cd66a06776be7efe38498afef5ee033d17a52eb6b1798ab9aa6f54703ad65101d3502e772f14b80d9ae465213cb4",
+        "doc_number": "UNKNOWN",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:18:10+02:00"
+    },
+    "DIAN-E2676FA6B9C78D68": {
+        "track_id": "DIAN-E2676FA6B9C78D68",
+        "cufe": "a512cd66a06776be7efe38498afef5ee033d17a52eb6b1798ab9aa6f54703ad65101d3502e772f14b80d9ae465213cb4",
+        "doc_number": "UNKNOWN",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:18:11+02:00"
+    },
+    "DIAN-21B70770BE47554F": {
+        "track_id": "DIAN-21B70770BE47554F",
+        "cufe": "a512cd66a06776be7efe38498afef5ee033d17a52eb6b1798ab9aa6f54703ad65101d3502e772f14b80d9ae465213cb4",
+        "doc_number": "UNKNOWN",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:20:43+02:00"
+    },
+    "DIAN-C3C00D9FBEF8B6F1": {
+        "track_id": "DIAN-C3C00D9FBEF8B6F1",
+        "cufe": "0df191ece330901cb5eef6ddee03a8e1601bc0313c67a7f1173e255186332e51a99bcf0174037d9e78d25d86ee66a625",
+        "doc_number": "FE1012",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:23:43+02:00"
+    },
+    "DIAN-49B94A2B8A9C3B47": {
+        "track_id": "DIAN-49B94A2B8A9C3B47",
+        "cufe": "e9bb1d28b674f49b18cc687981356693a87bcd39939aff3de237072787ed9c08364095ed843eadf21c75745111c98783",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:43+02:00"
+    },
+    "DIAN-704FE25B8F3BCAA3": {
+        "track_id": "DIAN-704FE25B8F3BCAA3",
+        "cufe": "a143f76fa486a860af92850f125934563fae5094c927100e64ea09698dfd612e2834dd81795244bbd918ab5c9e1a5341",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:45+02:00"
+    },
+    "DIAN-A885BEE2BF72092A": {
+        "track_id": "DIAN-A885BEE2BF72092A",
+        "cufe": "a143f76fa486a860af92850f125934563fae5094c927100e64ea09698dfd612e2834dd81795244bbd918ab5c9e1a5341",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:45+02:00"
+    },
+    "DIAN-8890CE05E5C3B4ED": {
+        "track_id": "DIAN-8890CE05E5C3B4ED",
+        "cufe": "a143f76fa486a860af92850f125934563fae5094c927100e64ea09698dfd612e2834dd81795244bbd918ab5c9e1a5341",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:46+02:00"
+    },
+    "DIAN-B8847BCC80E8A638": {
+        "track_id": "DIAN-B8847BCC80E8A638",
+        "cufe": "6c6b27b8c7c13e1fb01faee44f69a0d91e6375fe4e3be5dcf1507e28c1edd5ce72c972f84d2ee75058aa8e51a6e22958",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:46+02:00"
+    },
+    "DIAN-0ECED4EB534A748D": {
+        "track_id": "DIAN-0ECED4EB534A748D",
+        "cufe": "acc5fe167711122e437b63f0454607777345099d0af7bca83afddbc54ebcf9989e9c299cb553dc5dc0ff0d79782e9255",
+        "doc_number": "NC1",
+        "endpoint": "\/api\/ubl2.1\/credit-note",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:46+02:00"
+    },
+    "DIAN-B47DCB50D62CC542": {
+        "track_id": "DIAN-B47DCB50D62CC542",
+        "cufe": "6c6b27b8c7c13e1fb01faee44f69a0d91e6375fe4e3be5dcf1507e28c1edd5ce72c972f84d2ee75058aa8e51a6e22958",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:46+02:00"
+    },
+    "DIAN-55F66A151E682CB4": {
+        "track_id": "DIAN-55F66A151E682CB4",
+        "cufe": "6c6b27b8c7c13e1fb01faee44f69a0d91e6375fe4e3be5dcf1507e28c1edd5ce72c972f84d2ee75058aa8e51a6e22958",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:47+02:00"
+    },
+    "DIAN-0B19D4D4C7D14029": {
+        "track_id": "DIAN-0B19D4D4C7D14029",
+        "cufe": "23cd92d8e0fd21fc1f1b67cd4a1c8593da1163f304e305599a8a76330032b08d6cea4a6575ef5ebd34e7b43d21369c0f",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "rejected",
+        "is_valid": false,
+        "message": "Documento rechazado: el NIT del emisor no coincide con la resolución de facturación.",
+        "created_at": "2026-03-30T00:25:47+02:00"
+    },
+    "DIAN-E8A1A31FC82122C0": {
+        "track_id": "DIAN-E8A1A31FC82122C0",
+        "cufe": "a67a8374ea8499d99e4ab145cb810e14b78db092b2e41d14f501e31458f652ce0b77ced8bc894be993384467195c1ea3",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:48+02:00"
+    },
+    "DIAN-DB3BB55D75CC8A71": {
+        "track_id": "DIAN-DB3BB55D75CC8A71",
+        "cufe": "210c33e27596f7fa54e6eb4b009d497ca44e9a511b172f909bd837c9a4c649fede52c4a8bb18664f054fb51257117abf",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "rejected",
+        "is_valid": false,
+        "message": "Documento rechazado: el NIT del emisor no coincide con la resolución de facturación.",
+        "created_at": "2026-03-30T00:25:48+02:00"
+    },
+    "DIAN-96A507C86C0E4214": {
+        "track_id": "DIAN-96A507C86C0E4214",
+        "cufe": "c07c199690339bbf266e1245f3d68eff53e288b25b2a6969c3ad704cd14b4e7fc465296eba7cdcce514d380192b8859f",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "rejected",
+        "is_valid": false,
+        "message": "Documento rechazado: el NIT del emisor no coincide con la resolución de facturación.",
+        "created_at": "2026-03-30T00:25:49+02:00"
+    },
+    "DIAN-5C48CFD54EF4D978": {
+        "track_id": "DIAN-5C48CFD54EF4D978",
+        "cufe": "34aa9e71a118f26c7848c4249516b5f285b960ffbe5055e2570ae2abec120fefb9dfe1482fd7c3311456bc33c848d67b",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:25:49+02:00"
+    },
+    "DIAN-7C77CFC09087695D": {
+        "track_id": "DIAN-7C77CFC09087695D",
+        "cufe": "efd527a3a6f67dd3f73d1f0eba6035893b0f61058eb1f598d0bb2af931ab58abd5329207e0b85d5aab4a255262d3d01b",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:26+02:00"
+    },
+    "DIAN-C06AD31BD539C34D": {
+        "track_id": "DIAN-C06AD31BD539C34D",
+        "cufe": "efd527a3a6f67dd3f73d1f0eba6035893b0f61058eb1f598d0bb2af931ab58abd5329207e0b85d5aab4a255262d3d01b",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:26+02:00"
+    },
+    "DIAN-F67D1B4B23EB51EA": {
+        "track_id": "DIAN-F67D1B4B23EB51EA",
+        "cufe": "efd527a3a6f67dd3f73d1f0eba6035893b0f61058eb1f598d0bb2af931ab58abd5329207e0b85d5aab4a255262d3d01b",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:26+02:00"
+    },
+    "DIAN-7E0CE4EC7438B0B6": {
+        "track_id": "DIAN-7E0CE4EC7438B0B6",
+        "cufe": "efd527a3a6f67dd3f73d1f0eba6035893b0f61058eb1f598d0bb2af931ab58abd5329207e0b85d5aab4a255262d3d01b",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:26+02:00"
+    },
+    "DIAN-EDFBE447117581BC": {
+        "track_id": "DIAN-EDFBE447117581BC",
+        "cufe": "efd527a3a6f67dd3f73d1f0eba6035893b0f61058eb1f598d0bb2af931ab58abd5329207e0b85d5aab4a255262d3d01b",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:26+02:00"
+    },
+    "DIAN-2C5827325303EF45": {
+        "track_id": "DIAN-2C5827325303EF45",
+        "cufe": "99e187e0ed746f9464c64a9c99ae896670d5cad9b1bb04eabf177fb8a4658fad196bbd420d2ee6b73557ae7cd581b4c2",
+        "doc_number": "NC1",
+        "endpoint": "\/api\/ubl2.1\/credit-note",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:27+02:00"
+    },
+    "DIAN-6DD4915063B3FE34": {
+        "track_id": "DIAN-6DD4915063B3FE34",
+        "cufe": "5966e34918c0b3596bd8672a2dd3c75ba53b789837ad7c7c0c321b487b8339c3bfd049ba27e9ee9d4c17ea8b977b8527",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:27+02:00"
+    },
+    "DIAN-325959F057B8886A": {
+        "track_id": "DIAN-325959F057B8886A",
+        "cufe": "5966e34918c0b3596bd8672a2dd3c75ba53b789837ad7c7c0c321b487b8339c3bfd049ba27e9ee9d4c17ea8b977b8527",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:27+02:00"
+    },
+    "DIAN-2AA82F43465CD342": {
+        "track_id": "DIAN-2AA82F43465CD342",
+        "cufe": "5966e34918c0b3596bd8672a2dd3c75ba53b789837ad7c7c0c321b487b8339c3bfd049ba27e9ee9d4c17ea8b977b8527",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:28+02:00"
+    },
+    "DIAN-B5DFB118F65F3895": {
+        "track_id": "DIAN-B5DFB118F65F3895",
+        "cufe": "4a45a40b53bae80202960621efc0f4b607ff217e99ffa842d4b54ed5965b7d6fd61a9eecf7f866428cd880eda21d3c9d",
+        "doc_number": "NC1",
+        "endpoint": "\/api\/ubl2.1\/credit-note",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:28+02:00"
+    },
+    "DIAN-FFA60B3BCD93CEAA": {
+        "track_id": "DIAN-FFA60B3BCD93CEAA",
+        "cufe": "e70a67764873d47c6d5155b27d4d7990ae15e6a5e11db8676f23874b7325a40323c4cf43bdfbd1bd2a376d3a348b4fe7",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:28+02:00"
+    },
+    "DIAN-F0FAA92E71F272A7": {
+        "track_id": "DIAN-F0FAA92E71F272A7",
+        "cufe": "e0f5a49381a767a881e72b4bb680212ee7e8b4371e9b92827ccb391e932055fd832edb49342ac6d8315780742df1f8e3",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:28+02:00"
+    },
+    "DIAN-7D95E22F4A3627D7": {
+        "track_id": "DIAN-7D95E22F4A3627D7",
+        "cufe": "67d83b25ff314ecb89bc02c3000a56aab95c7ae1a61ade32ba5013faa1d5bd54bef9e1b7a14a8364af66937f972bdeb2",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:29+02:00"
+    },
+    "DIAN-FC29908F4DA758DA": {
+        "track_id": "DIAN-FC29908F4DA758DA",
+        "cufe": "67d83b25ff314ecb89bc02c3000a56aab95c7ae1a61ade32ba5013faa1d5bd54bef9e1b7a14a8364af66937f972bdeb2",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:26:29+02:00"
+    },
+    "DIAN-8E156C29956C1814": {
+        "track_id": "DIAN-8E156C29956C1814",
+        "cufe": "4a31465ff39093f70a052cf70219c3b44bef874973e80f635c6c8ee22afe52dc8f58466688e9d03a179f75944bab30e8",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:29:12+02:00"
+    },
+    "DIAN-A1B5A68AF87ED7A8": {
+        "track_id": "DIAN-A1B5A68AF87ED7A8",
+        "cufe": "99a45ea946f8157a2e30b65f6c88116164e264f577b1dd051db928a57e0ef58c8ab9a1f3143a1be5081825a3bb7c55be",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "rejected",
+        "is_valid": false,
+        "message": "Documento rechazado: el NIT del emisor no coincide con la resolución de facturación.",
+        "created_at": "2026-03-30T00:54:20+02:00"
+    },
+    "DIAN-410FF06045B9BEEB": {
+        "track_id": "DIAN-410FF06045B9BEEB",
+        "cufe": "99a45ea946f8157a2e30b65f6c88116164e264f577b1dd051db928a57e0ef58c8ab9a1f3143a1be5081825a3bb7c55be",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "rejected",
+        "is_valid": false,
+        "message": "Documento rechazado: el NIT del emisor no coincide con la resolución de facturación.",
+        "created_at": "2026-03-30T00:54:20+02:00"
+    },
+    "DIAN-A808FBE33742B9C6": {
+        "track_id": "DIAN-A808FBE33742B9C6",
+        "cufe": "67ae3de076cd61de7672a0cf4906811f932b601e838cf0265cf65d922c9a6efcaf0c7e78a3761b243cd872f58d8eca1d",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:54:21+02:00"
+    },
+    "DIAN-D3957E668512686B": {
+        "track_id": "DIAN-D3957E668512686B",
+        "cufe": "deba8e2893022e1090519539938d4db06b60e751c20d2426c02dfaa6e75ff266ed2eedc5f144d104b8e83f27dee630ca",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:59:31+02:00"
+    },
+    "DIAN-210C6CB1C327D3A4": {
+        "track_id": "DIAN-210C6CB1C327D3A4",
+        "cufe": "deba8e2893022e1090519539938d4db06b60e751c20d2426c02dfaa6e75ff266ed2eedc5f144d104b8e83f27dee630ca",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:59:32+02:00"
+    },
+    "DIAN-ECA60117AD2AAA62": {
+        "track_id": "DIAN-ECA60117AD2AAA62",
+        "cufe": "64f92b0b4d3f1bbaec613ce17252ac8c553a03c4878d20758edde596ea52c9d80ea00b578c2b1f139812fa4392d98e7d",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-03-30T00:59:32+02:00"
+    },
+    "DIAN-2388F321CAAE5CB3": {
+        "track_id": "DIAN-2388F321CAAE5CB3",
+        "cufe": "7fe908ee412011e08cde9c68365cff5e4ccaed39aa598738e018be58704b89a4b615b9f4fcfd3a317f2b0d28a511ebd5",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-04-01T01:04:54+02:00"
+    },
+    "DIAN-01359B800335DD41": {
+        "track_id": "DIAN-01359B800335DD41",
+        "cufe": "8c13003cff9bdf20ae5c47fb92d89dbf3e130acfdcbd159394f20237e0def23a5bfd4c6ec5d595765de21d9a4af27cdb",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-04-01T01:05:27+02:00"
+    },
+    "DIAN-FE2B1ABB02FC864B": {
+        "track_id": "DIAN-FE2B1ABB02FC864B",
+        "cufe": "8b2ea81a9124ff0ce6ff26c60f2b246f94cda545b9ce4909ecf7b1d5a2513fc6bf0d8c8199580fea3335c92741fd8cca",
+        "doc_number": "FE1",
+        "endpoint": "\/api\/ubl2.1\/invoice",
+        "status": "approved",
+        "is_valid": true,
+        "message": "Documento validado exitosamente por la DIAN. CUFE asignado.",
+        "created_at": "2026-04-01T01:06:22+02:00"
+    }
+}

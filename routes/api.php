@@ -29,10 +29,16 @@ use App\Http\Controllers\Api\Merchant\InventoryReceiveController;
 use App\Http\Controllers\Api\Merchant\MerchantStoreController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
 use App\Http\Controllers\Api\Merchant\AutoRestockController;
+use App\Http\Controllers\Api\MotorcycleController;
 use App\Http\Controllers\Api\Merchant\LiveMetricsController;
+use App\Http\Controllers\Api\Merchant\DianConfigController;
+use App\Http\Controllers\Api\Merchant\ElectronicDocumentController;
 use App\Http\Controllers\Api\Merchant\ProductCodeLookupController;
+use App\Http\Controllers\Api\Merchant\SimpleReceiptController;
+use App\Http\Controllers\Api\Merchant\StoreQrController;
 use App\Http\Controllers\Api\InventoryDecisionsController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\QRCodeController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Services\InventoryImportService;
 use Illuminate\Support\Facades\Route;
@@ -109,6 +115,18 @@ Route::get('/public/categories', [PublicCategoryController::class, 'index']);
 Route::get('/public/stores', [StoreController::class, 'publicStores']);
 Route::get('/public/stores/{store}', [StoreController::class, 'show']);
 Route::get('/public/barcode/search', [BarcodeController::class, 'publicSearch'])->middleware('throttle:60,1');
+Route::get('/public/stores/{store}/qr', [StoreQrController::class, 'preview']);
+
+// QR Codes públicos (PNG).
+Route::get('/stores/{store}/qr', [QRCodeController::class, 'generate'])
+    ->name('api.qr.generate');
+Route::get('/stores/{store}/qr/download', [QRCodeController::class, 'download'])
+    ->name('api.qr.download');
+
+// Motorcycle catalog (public).
+Route::get('/motorcycles', [MotorcycleController::class, 'index']);
+Route::get('/motorcycles/brands', [MotorcycleController::class, 'brands']);
+Route::get('/motorcycles/models', [MotorcycleController::class, 'models']);
 
 // Public catalog used by frontend.
 Route::get('/products', [ProductController::class, 'index']);
@@ -192,6 +210,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/merchant/store/verification', [StoreVerificationController::class, 'show']);
     Route::post('/merchant/store/verification', [StoreVerificationController::class, 'submit']);
     Route::get('/merchant/live-metrics', [LiveMetricsController::class, 'snapshot']);
+
+    // QR Code de la tienda
+    Route::get('/merchant/store/qr', [StoreQrController::class, 'show']);
+    Route::get('/merchant/store/qr/download', [StoreQrController::class, 'download']);
+
+    // Comprobantes de venta simples (sin DIAN).
+    Route::get('/merchant/receipts', [SimpleReceiptController::class, 'index']);
+    Route::post('/merchant/receipts/order/{order}', [SimpleReceiptController::class, 'store']);
+    Route::get('/merchant/receipts/{receipt}', [SimpleReceiptController::class, 'show']);
+    Route::get('/merchant/receipts/{receipt}/pdf', [SimpleReceiptController::class, 'downloadPdf']);
+
+    // Configuración DIAN (no requiere dian_enabled, permite activar/desactivar).
+    Route::get('/merchant/dian-config', [DianConfigController::class, 'show']);
+    Route::post('/merchant/dian-config/enable', [DianConfigController::class, 'enable']);
+    Route::post('/merchant/dian-config/disable', [DianConfigController::class, 'disable']);
     Route::get('/merchant/dashboard', [StatsController::class, 'summary']);
     Route::get('/merchant/stats', [StatsController::class, 'summary']);
     Route::get('/reports/summary', [ReportController::class, 'summary']);
@@ -258,8 +291,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/settings', [SettingsController::class, 'update']);
 });
 
-
-
+// Facturación electrónica DIAN (requiere auth + DIAN habilitado en tienda).
+Route::middleware(['auth:sanctum', 'requires.dian'])->prefix('merchant/invoicing')->group(function () {
+    Route::get('/', [ElectronicDocumentController::class, 'index']);
+    Route::post('/', [ElectronicDocumentController::class, 'store']);
+    Route::get('/stats', [ElectronicDocumentController::class, 'stats']);
+    Route::get('/{document}', [ElectronicDocumentController::class, 'show']);
+    Route::put('/{document}', [ElectronicDocumentController::class, 'update']);
+    Route::post('/{document}/send', [ElectronicDocumentController::class, 'send']);
+    Route::get('/{document}/status', [ElectronicDocumentController::class, 'checkStatus']);
+    Route::post('/{document}/cancel', [ElectronicDocumentController::class, 'cancel']);
+    Route::post('/{document}/credit-note', [ElectronicDocumentController::class, 'creditNote']);
+    Route::get('/{document}/logs', [ElectronicDocumentController::class, 'logs']);
+    Route::post('/from-order/{order}', [ElectronicDocumentController::class, 'createFromOrder']);
+});
 
 // Debug env — solo disponible en entorno local para evitar fuga de config en producción.
 Route::get('/_debug/env', function () {

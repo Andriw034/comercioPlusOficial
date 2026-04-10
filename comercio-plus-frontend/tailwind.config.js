@@ -112,11 +112,16 @@ export default {
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out forwards',
         'slide-up': 'slideUp 0.5s ease-out forwards',
+        'slide-down': 'slideDown 0.3s ease-out',
         'scale-in': 'scaleIn 0.4s ease-out forwards',
         float: 'float 6s ease-in-out infinite',
         'glow-pulse': 'glowPulse 2s ease-in-out infinite',
       },
       keyframes: {
+        slideDown: {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },

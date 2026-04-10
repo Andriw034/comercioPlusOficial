@@ -44,3 +44,7 @@ Thumbs.db
 /inforem/
 /colorful-creative-login-form/
 /comercio-plus-frontend/.tmp_*
+ai-service/.env
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/services/__pycache__/

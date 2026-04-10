@@ -37,10 +37,15 @@ Regla de prioridad en caso de conflicto:
 
 ```text
 docs/
-|-- UNIVERSAL_COMERCIOPLUS.md
-|-- DOC_GOVERNANCE.md
-|-- README.md
-`-- _archive/
+|-- UNIVERSAL_COMERCIOPLUS.md    # Fuente unica de verdad
+|-- DOC_GOVERNANCE.md            # Esta politica
+|-- README.md                    # Indice de docs
+|-- UNIVERSAL_COMERCIOPLUS_AI.md # Alias derivado para IA (sin autoridad)
+|-- QA_RELEASE_REPORT.md         # Reporte QA de release
+|-- EXPO_DOSSIER.md              # Dossier para exposicion
+|-- README_VALIDADOR.md          # Doc validador pre-codex
+|-- UNIVERSAL_FILE_INDEX.txt     # Indice de distribucion ZIP
+`-- _archive/                    # Historico
 ```
 
 ## 5) Creacion de nuevos documentos

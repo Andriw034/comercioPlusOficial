@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from '@/components/dashboard/Sidebar'
 import DashboardTopbar from '@/components/dashboard/DashboardTopbar'
 import SidebarDrawer from '@/components/dashboard/SidebarDrawer'
+import FloatingChatButton from '@/components/ai/FloatingChatButton'
 import API from '@/services/api'
 import { resolveMediaUrl } from '@/lib/format'
 
@@ -122,6 +123,8 @@ export default function DashboardLayout() {
         <DashboardTopbar storeName={store?.name || 'Panel ComercioPlus'} onMenuClick={() => setIsDrawerOpen(true)} />
         <Outlet context={{ store }} />
       </main>
+
+      <FloatingChatButton />
     </div>
   )
 }

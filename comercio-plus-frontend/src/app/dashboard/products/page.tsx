@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import API from '@/lib/api'
 import Button, { buttonVariants } from '@/components/ui/button'
 import Input from '@/components/ui/Input'
@@ -297,6 +297,9 @@ export default function ManageProducts() {
   const [cameraModalOpen, setCameraModalOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [imageRefreshKey, setImageRefreshKey] = useState(0)
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const highlightId = searchParams.get('highlight')
 
   const categorySeedRef = useRef(false)
 
@@ -900,6 +903,47 @@ export default function ManageProducts() {
     }
   }, [entryMethod, showForm])
 
+  // Scroll to and highlight product from search bar — stays until user interacts
+  useEffect(() => {
+    if (!highlightId || loading) return
+
+    let cleanedUp = false
+
+    const timer = window.setTimeout(() => {
+      const row = document.querySelector(`tr[data-product-id="${highlightId}"]`)
+      if (!row || cleanedUp) return
+
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      row.classList.add('highlight-product')
+
+      const dismiss = () => {
+        if (cleanedUp) return
+        cleanedUp = true
+        row.classList.remove('highlight-product')
+        setSearchParams((prev) => {
+          prev.delete('highlight')
+          return prev
+        }, { replace: true })
+        window.removeEventListener('scroll', dismiss)
+        window.removeEventListener('click', dismiss)
+        window.removeEventListener('keydown', dismiss)
+      }
+
+      // Small delay so the initial scroll doesn't immediately dismiss
+      window.setTimeout(() => {
+        if (cleanedUp) return
+        window.addEventListener('scroll', dismiss, { once: true })
+        window.addEventListener('click', dismiss, { once: true })
+        window.addEventListener('keydown', dismiss, { once: true })
+      }, 800)
+    }, 400)
+
+    return () => {
+      cleanedUp = true
+      window.clearTimeout(timer)
+    }
+  }, [highlightId, loading, setSearchParams])
+
   const orderedProducts = useMemo(
     () => [...products].sort((a, b) => toNumber(a.id) - toNumber(b.id)),
     [products],
@@ -1451,7 +1495,7 @@ export default function ManageProducts() {
                     const productEmoji = getInventoryEmoji(item.name || '', item.category?.name || '')
 
                     return (
-                      <tr key={item.id} className="border-b border-[#EEF2F7] last:border-b-0 transition-colors hover:bg-[#FAFAFA]">
+                      <tr key={item.id} data-product-id={item.id} className="border-b border-[#EEF2F7] last:border-b-0 transition-colors hover:bg-[#FAFAFA]">
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2.5">
                             <ProductThumbnail src={imageUrl} name={item.name} fallbackEmoji={productEmoji} />
