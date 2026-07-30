@@ -135,9 +135,26 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+            // TLS hacia MySQL, en dos modos:
+            //  1. Con CA en disco -> conexion cifrada y verificada (preferido).
+            //  2. Sin CA -> cifrada pero sin verificar la identidad del servidor.
+            //     Necesario en proveedores gestionados que exigen ssl-mode=REQUIRED
+            //     (Aiven, PlanetScale) cuando no se tiene el ca.pem a mano.
+            // Se comprueba que el archivo exista, no solo que la variable este
+            // definida: si la ruta apunta a un CA inexistente, PDO falla.
+            'options' => extension_loaded('pdo_mysql') ? (static function () {
+                $ca = env('MYSQL_ATTR_SSL_CA');
+
+                if ($ca && is_file($ca)) {
+                    return [PDO::MYSQL_ATTR_SSL_CA => $ca];
+                }
+
+                if (filter_var(env('DB_SSL_WITHOUT_CA', false), FILTER_VALIDATE_BOOLEAN)) {
+                    return [PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false];
+                }
+
+                return [];
+            })() : [],
         ],
 
         'pgsql' => [

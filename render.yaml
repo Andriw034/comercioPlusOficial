@@ -50,12 +50,22 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      # Aiven exige TLS. Ruta al CA que se escribe en el arranque.
+      # Aiven exige TLS (ssl-mode=REQUIRED). Hay dos formas de cumplirlo:
+      #
+      # 1. Con certificado (mas seguro): pegar el ca.pem de la consola de Aiven
+      #    en AIVEN_CA_CERT. El arranque lo escribe en la ruta de abajo y
+      #    Laravel verifica la identidad del servidor.
+      # 2. Sin certificado: dejar AIVEN_CA_CERT vacio. La conexion va cifrada
+      #    igual, pero sin verificar que el servidor sea el autentico.
+      #
+      # Hoy esta en el modo 2. Para pasar al 1 basta con cargar AIVEN_CA_CERT:
+      # el codigo detecta que el archivo existe y lo prioriza solo.
       - key: MYSQL_ATTR_SSL_CA
         value: /app/storage/aiven-ca.pem
-      # Contenido del ca.pem que descarga la consola de Aiven
       - key: AIVEN_CA_CERT
         sync: false
+      - key: DB_SSL_WITHOUT_CA
+        value: "true"
 
       # ── Sesiones y cache: sin Redis, van a la base ─────────────────
       - key: SESSION_DRIVER
