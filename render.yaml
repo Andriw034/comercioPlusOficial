@@ -1,0 +1,90 @@
+# Blueprint de despliegue para Render (plan free).
+# El backend usa el Dockerfile de la raiz tal cual: Render inyecta $PORT y el
+# CMD ya lo respeta.
+#
+# La base de datos NO se define aca: Render no ofrece MySQL, solo PostgreSQL.
+# Se usa una instancia MySQL gestionada externa (Aiven free) y se conecta por
+# las variables DB_* / MYSQL_ATTR_SSL_CA, que config/database.php ya soporta.
+services:
+  - type: web
+    name: comercioplus-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: ComercioPlus
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      # Generar con: php artisan key:generate --show
+      - key: APP_KEY
+        sync: false
+      # URL publica del servicio, se completa despues del primer deploy
+      - key: APP_URL
+        sync: false
+      - key: APP_LOCALE
+        value: es
+      - key: APP_FALLBACK_LOCALE
+        value: es
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: error
+
+      # ── Base de datos (Aiven MySQL) ────────────────────────────────
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Aiven exige TLS. Ruta al CA que se escribe en el arranque.
+      - key: MYSQL_ATTR_SSL_CA
+        value: /app/storage/aiven-ca.pem
+      # Contenido del ca.pem que descarga la consola de Aiven
+      - key: AIVEN_CA_CERT
+        sync: false
+
+      # ── Sesiones y cache: sin Redis, van a la base ─────────────────
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: public
+
+      # ── CORS / Sanctum: dominio del frontend en Vercel ─────────────
+      - key: FRONTEND_URL
+        value: https://comercio-plus-oficial.vercel.app
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://comercio-plus-oficial.vercel.app
+      - key: SANCTUM_STATEFUL_DOMAINS
+        value: comercio-plus-oficial.vercel.app
+
+      # ── Integraciones ──────────────────────────────────────────────
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_PRESET
+        value: comercio_plus_upload
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADOPAGO_PUBLIC_KEY
+        sync: false
