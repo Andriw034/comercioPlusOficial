@@ -29,8 +29,17 @@ Regla de verdad: si hay diferencia entre docs y codigo, manda el codigo.
 
 - Frontend Vercel (detectado en config): `https://comercio-plus-oficial.vercel.app`
   - Evidencia: `config/cors.php` (origen fijo) y `comercio-plus-frontend/vercel-check.ps1` (BaseUrl default).
-- Backend Railway (detectado en rewrites): `https://comercioplusoficial-production-d61e.up.railway.app`
-  - Evidencia: `comercio-plus-frontend/vercel.json` (`/api`, `/sanctum`, `/storage`).
+- Backend Render: `https://comercioplus-api-zakm.onrender.com`
+  - Evidencia: `render.yaml` (blueprint, plan free, Docker) y `comercio-plus-frontend/vercel.json` (`/api`, `/sanctum`, `/storage`).
+  - Migrado desde Railway el 2026-07-30 (el trial de Railway expiro y pauso los despliegues).
+  - El plan free de Render apaga el servicio tras 15 min de inactividad: la primera peticion puede tardar ~50 s.
+- Base de datos: MySQL 8.4 gestionado en Aiven (plan free).
+  - Exige TLS (`ssl-mode=REQUIRED`). `config/database.php` soporta dos modos: con CA en disco
+    (`MYSQL_ATTR_SSL_CA`, verifica el servidor) o sin CA (`DB_SSL_WITHOUT_CA=true`, cifra sin verificar).
+  - Hoy corre en el segundo modo. Cargar `AIVEN_CA_CERT` en Render activa el primero sin tocar codigo.
+- El frontend NO lleva la URL del backend compilada: `VITE_API_BASE_URL` va vacia y
+  `src/lib/runtime.ts` cae a `/api`, que resuelven los rewrites de Vercel. La direccion del
+  backend vive en un solo lugar: `vercel.json`.
 
 ### 2.3 Auth y CORS real
 
@@ -597,7 +606,7 @@ Decision actual:
 2. git pull --ff-only origin master
 3. git push origin master
 4. Verificar Vercel: ./comercio-plus-frontend/vercel-check.ps1 -BaseUrl https://comercio-plus-oficial.vercel.app
-5. Verificar Railway: /api/health, /api/public/stores, CORS OPTIONS.
+5. Verificar Render: /api/health, /api/public/stores, CORS OPTIONS.
 
 ### 9.4 Como evitar ver builds viejos
 
@@ -605,6 +614,27 @@ Decision actual:
 - Hacer hard refresh (Ctrl+F5) o incognito.
 - No ejecutar `npm ci` junto con lint/build/dev en paralelo.
 - Validar hashes de assets en Vercel si hay dudas de cache.
+
+**Trampa: las variables del panel de Vercel le ganan al repo.**
+Si una `VITE_*` esta definida en Vercel (Settings > Environment Variables), Vite usa ESE
+valor y no el de `comercio-plus-frontend/.env.production`. Consecuencia: se cambia el
+archivo, se hace push, Vercel despliega... y el bundle sale identico, con el mismo hash y
+el valor viejo adentro. Los rewrites de `vercel.json` si se actualizan, asi que `curl` a
+`/api/health` responde bien y parece que todo funciona, mientras el navegador sigue
+llamando al backend anterior y falla por CORS.
+
+Como detectarlo:
+
+```powershell
+# hash del bundle publicado
+(curl -s https://comercio-plus-oficial.vercel.app/) -match '/assets/index-[A-Za-z0-9_-]+\.js'
+# comparar con el que produce el build local; si coinciden pero el codigo cambio, no reconstruyo
+# y revisar si la URL vieja sigue adentro:
+curl -s https://comercio-plus-oficial.vercel.app/assets/index-XXXX.js | Select-String 'https://'
+```
+
+Solucion: borrar la variable del panel de Vercel y **redeploy con "Use existing Build
+Cache" DESMARCADO**. Esto costo varios despliegues fallidos en la migracion del 2026-07-30.
 
 ### 9.5 Checklist post-deploy
 
@@ -616,7 +646,7 @@ Decision actual:
    - Productos e inventario
    - IA comercial y reportes
    - Centro inteligente de decisiones
-6. Railway GET /api/health = 200.
+6. Render GET /api/health = 200 (si tardo ~50 s, el servicio estaba dormido; no es un fallo).
 7. CORS preflight (OPTIONS) responde 204 para origen Vercel.
 
 ## 10) Historial de actualizaciones
@@ -628,3 +658,4 @@ Decision actual:
 | 2026-03-13 | Actualizacion completa: rutas 173 totales / 143 API. Pagos migrados de Wompi a MercadoPago. Nuevas rutas: merchant/live-metrics, merchant/restock/*, reports/alerts, reports/inventory-decisions, reports/trends, profile, settings, merchant/picking/events. Inventario modelos (41) y controladores (50). Frontend: React 19, Vite 7, TypeScript 5.9. lint FAIL (2 errores en CheckoutResult.tsx). Build PASS. Node v22.22.1. |
 | 2026-03-15 | Re-inventario: rutas 173/143 (sin cambio). Modelos corregido a 40 (conteo anterior erroneo). PruebaController agregado al listado de controladores. 3 nuevas rutas React: `/checkout/result`, `/orders/history`, `/dashboard/inventory/restock`. Feature "Historial pedidos client" cambia de NO EXISTE a EXISTE. Drift produccion: `hero-images` resuelto (200), `barcode/search` sigue 404. Tests 123 passed (407 assertions). Lint PASS. Build PASS (7.82s). |
 | 2026-03-24 | Actualizacion completa post-optimizacion. Documentada auditoria de rendimiento: correccion N+1 en PublicCategoryController (~151 queries → 4), indices de BD en stores/products/orders/inventory_movements, cache file-driver TTL 300s en endpoints publicos con invalidacion automatica. Fix image_url en PublicProductController. Fix lint frontend. Migraciones totales: 99. Nuevo componente: LowStockAlert.tsx. Metricas del repositorio agregadas. hero-images drift resuelto confirmado. |
+| 2026-07-30 | Migracion de infraestructura: el backend salio de Railway (trial expirado, despliegues pausados y `/api/*` devolviendo "Application not found") y ahora corre en **Render** (`comercioplus-api-zakm.onrender.com`, plan free, mismo Dockerfile). La base pasa a **MySQL 8.4 gestionado en Aiven** (plan free): 61 tablas y los datos migrados (1877 productos, 35 tiendas, 69 usuarios). Nuevos: `render.yaml`; `config/database.php` soporta TLS sin CA via `DB_SSL_WITHOUT_CA`; el Dockerfile escribe el CA solo si `AIVEN_CA_CERT` esta definida. `VITE_API_BASE_URL` queda vacia para que el frontend use rutas relativas `/api` y la URL del backend viva solo en `vercel.json`. Verificado en produccion: health, public/stores, public/products, hero-images, motorcycles/brands en 200, y login devolviendo token. Tests 222 passed (670 assertions), lint y build PASS. |

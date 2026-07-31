@@ -4,6 +4,14 @@ REPORT_STATUS: COMPLETE_FASE_0_A_4
 REPORT_DATE: 2026-03-24
 EXECUTION_STATUS: FASE 3 (local) y FASE 4 (produccion) ejecutadas con evidencia
 
+> **Nota (2026-07-30) — la infraestructura cambio despues de este informe.**
+> El backend ya no esta en Railway: el trial expiro y los despliegues quedaron pausados.
+> Hoy corre en **Render** (`https://comercioplus-api-zakm.onrender.com`) con **MySQL
+> gestionado en Aiven**. Las URLs y los resultados de produccion de abajo corresponden a
+> la infraestructura vigente cuando se ejecuto este QA y **se conservan como registro
+> historico**: no se reescriben, porque documentan lo que realmente se probo ese dia.
+> Para el estado actual del despliegue, ver `docs/UNIVERSAL_COMERCIOPLUS.md`.
+
 ## 1) Alcance de este reporte
 
 Este documento cubre:

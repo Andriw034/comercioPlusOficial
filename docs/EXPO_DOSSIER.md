@@ -4,6 +4,13 @@ DOC_STATUS: EXPO_READY_FINAL
 DOC_DATE: 2026-03-24
 BASE_DOC: `docs/UNIVERSAL_COMERCIOPLUS.md`
 
+> **Nota (2026-07-30) — la infraestructura cambio despues de este dossier.**
+> El backend ya no esta en Railway: el trial expiro y los despliegues quedaron pausados.
+> Hoy corre en **Render** (`https://comercioplus-api-zakm.onrender.com`) con **MySQL
+> gestionado en Aiven**. El diagrama y las verificaciones de abajo describen la
+> infraestructura vigente en su momento y **se conservan como registro historico**.
+> Para el estado actual del despliegue, ver `docs/UNIVERSAL_COMERCIOPLUS.md`.
+
 ## 1) Que es ComercioPlus
 
 Problema:
