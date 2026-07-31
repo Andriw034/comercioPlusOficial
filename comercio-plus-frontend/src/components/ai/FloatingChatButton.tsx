@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react'
 import { MessageCircle } from 'lucide-react'
 import ChatOverlay from './ChatOverlay'
 
-export default function FloatingChatButton() {
+interface FloatingChatButtonProps {
+  /** Tienda del comerciante, para cruzar compatibilidades con su inventario. */
+  storeId?: number
+}
+
+export default function FloatingChatButton({ storeId }: FloatingChatButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   // Listen for open-ai-chat events (from search bar, Ctrl+K, etc.)
@@ -32,7 +37,7 @@ export default function FloatingChatButton() {
         </span>
       </button>
 
-      <ChatOverlay isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <ChatOverlay isOpen={isOpen} onClose={() => setIsOpen(false)} storeId={storeId} />
     </>
   )
 }

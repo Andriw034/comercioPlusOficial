@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { Message, UsageInfo, PartResult } from '@/types/ai'
-import { searchParts, checkHealth } from '@/services/aiService'
+import type { Message, UsageInfo } from '@/types/ai'
+import { searchParts } from '@/services/aiService'
+import { buildEmptyMessage } from '@/components/ai/emptyMessage'
 import ChatMessage from '@/components/ai/ChatMessage'
 import ChatInput from '@/components/ai/ChatInput'
 import UsageCounter from '@/components/ai/UsageCounter'
@@ -14,32 +15,16 @@ const WELCOME_MESSAGE: Message = {
 }
 
 const SUGGESTIONS = [
-  'Que banda sirve para Viva R 2018?',
-  'Pastillas de freno para YBR 125',
-  'Bujia para Pulsar 200 NS',
-  'Cadena para FZ 150',
+  'Que banda sirve para YBR 125 2016?',
+  'Pastillas de freno para AKT NKD 125',
+  'Bujia para Pulsar NS 200',
+  'Cadena para Honda Wave 110',
 ]
-
-function formatResponse(results: PartResult[], query: string): { content: string; parts: PartResult[] } {
-  if (results.length === 0) {
-    return {
-      content: `No encontre repuestos compatibles con "${query}". Trabajamos con marcas como Yamaha, Honda, AKT, Suzuki y Bajaj. Verifica la marca y modelo e intenta de nuevo.`,
-      parts: [],
-    }
-  }
-
-  const moto = `${results[0].motorcycle_brand} ${results[0].motorcycle_model}`
-  const count = results.length
-  const content = `Encontre ${count} repuesto${count === 1 ? '' : 's'} compatible${count === 1 ? '' : 's'} con ${moto}:`
-
-  return { content, parts: results }
-}
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE])
   const [usage, setUsage] = useState<UsageInfo>({ used: 0, limit: 5, plan: 'FREE' })
   const [isLoading, setIsLoading] = useState(false)
-  const [serviceOnline, setServiceOnline] = useState<boolean | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -47,11 +32,6 @@ export default function AIAssistant() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
-
-  // Check service health on mount
-  useEffect(() => {
-    checkHealth().then(setServiceOnline)
-  }, [])
 
   const addMessage = useCallback((msg: Message) => {
     setMessages(prev => [...prev, msg])
@@ -75,23 +55,22 @@ export default function AIAssistant() {
     setIsLoading(true)
 
     try {
-      const data = await searchParts(text)
-      const { content, parts } = formatResponse(data.results, text)
+      const result = await searchParts(text)
+      const hasResults = result.compatibilidades.length > 0
 
-      const assistantMsg: Message = {
+      addMessage({
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content,
+        content: hasResults ? '' : buildEmptyMessage(result),
         timestamp: new Date(),
-        parts: parts.length > 0 ? parts : undefined,
-      }
-      addMessage(assistantMsg)
+        result: hasResults ? result : undefined,
+      })
       setUsage(prev => ({ ...prev, used: prev.used + 1 }))
     } catch {
       addMessage({
         id: `error-${Date.now()}`,
         role: 'assistant',
-        content: 'No pude conectar con el servidor de repuestos. Verifica que el microservicio este corriendo en localhost:5000.',
+        content: 'No pude consultar el catalogo de compatibilidad. Intenta de nuevo en un momento.',
         timestamp: new Date(),
       })
     } finally {
@@ -119,14 +98,7 @@ export default function AIAssistant() {
           </div>
           <div>
             <h1 className="text-base font-bold text-slate-900">Asistente de Repuestos</h1>
-            <div className="flex items-center gap-1.5">
-              {serviceOnline !== null && (
-                <span className={`inline-block h-1.5 w-1.5 rounded-full ${serviceOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
-              )}
-              <p className="text-xs text-slate-500">
-                {serviceOnline === null ? 'Conectando...' : serviceOnline ? 'En linea' : 'Sin conexion'}
-              </p>
-            </div>
+            <p className="text-xs text-slate-500">Busqueda por compatibilidad verificada</p>
           </div>
         </div>
 

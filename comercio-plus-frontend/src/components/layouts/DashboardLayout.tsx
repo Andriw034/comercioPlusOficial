@@ -124,7 +124,9 @@ export default function DashboardLayout() {
         <Outlet context={{ store }} />
       </main>
 
-      <FloatingChatButton />
+      {/* La tienda se pasa para que el asistente cruce las referencias
+          compatibles con el stock y el precio del comerciante. */}
+      <FloatingChatButton storeId={store?.id ? Number(store.id) : undefined} />
     </div>
   )
 }

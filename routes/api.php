@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\Merchant\MerchantStoreController;
 use App\Http\Controllers\Api\Merchant\OrderPickingController;
 use App\Http\Controllers\Api\Merchant\AutoRestockController;
 use App\Http\Controllers\Api\MotorcycleController;
+use App\Http\Controllers\Api\PartsAssistantController;
 use App\Http\Controllers\Api\Merchant\LiveMetricsController;
 use App\Http\Controllers\Api\Merchant\DianConfigController;
 use App\Http\Controllers\Api\Merchant\ElectronicDocumentController;
@@ -127,6 +128,10 @@ Route::get('/stores/{store}/qr/download', [QRCodeController::class, 'download'])
 Route::get('/motorcycles', [MotorcycleController::class, 'index']);
 Route::get('/motorcycles/brands', [MotorcycleController::class, 'brands']);
 Route::get('/motorcycles/models', [MotorcycleController::class, 'models']);
+
+// Asistente de repuestos: busqueda de compatibilidad por lenguaje natural.
+Route::get('/assistant/search', [PartsAssistantController::class, 'search'])
+    ->middleware('throttle:60,1');
 
 // Public catalog used by frontend.
 Route::get('/products', [ProductController::class, 'index']);
