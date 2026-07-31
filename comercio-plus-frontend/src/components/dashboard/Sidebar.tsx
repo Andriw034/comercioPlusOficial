@@ -1,18 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import type { IconName } from '@/components/Icon'
+import { Icon, type IconName } from '@/components/Icon'
 import { resolveMediaUrl } from '@/lib/format'
 import API from '@/lib/api'
 import { clearSession } from '@/services/auth-session'
 import LogoImage from '@/ui/images/LogoImage'
-import { getImageBrightness, getThemeClassesByBrightness, type ImageBrightness } from '@/utils/imageTheme'
-import EmojiIcon from '@/components/ui/EmojiIcon'
 
 type NavItem = {
   href: string
   label: string
   icon: IconName
-  iconBg: string
 }
 
 type NavGroup = {
@@ -35,29 +32,31 @@ type SidebarProps = {
   store?: StoreLike
 }
 
+// Sin color por item: el naranja de marca se reserva para el item activo. Antes
+// habia 10 fondos distintos (sky, indigo, emerald, violet, lime...) compitiendo
+// entre si, que es lo que hacia ver el panel saturado.
 const navGroups: NavGroup[] = [
   {
     label: 'PRINCIPAL',
     items: [
-      { href: '/dashboard', icon: 'chart', iconBg: 'bg-sky-500/20', label: 'Dashboard' },
-      { href: '/dashboard/store', icon: 'store', iconBg: 'bg-indigo-500/20', label: '🏪 Mi Tienda' },
-      { href: '/dashboard/products', icon: 'package', iconBg: 'bg-orange-500/20', label: 'Productos' },
-      { href: '/dashboard/orders', icon: 'file-text', iconBg: 'bg-emerald-500/20', label: 'Pedidos' },
-      { href: '/dashboard/customers', icon: 'users', iconBg: 'bg-violet-500/20', label: 'Clientes' },
-      { href: '/dashboard/credit', icon: 'credit-card', iconBg: 'bg-amber-500/20', label: 'Fiado' },
-      { href: '/dashboard/invoicing', icon: 'file-text', iconBg: 'bg-blue-500/20', label: 'Facturación DIAN' },
+      { href: '/dashboard', icon: 'chart', label: 'Dashboard' },
+      { href: '/dashboard/store', icon: 'store', label: 'Mi Tienda' },
+      { href: '/dashboard/products', icon: 'package', label: 'Productos' },
+      { href: '/dashboard/orders', icon: 'file', label: 'Pedidos' },
+      { href: '/dashboard/customers', icon: 'users', label: 'Clientes' },
+      { href: '/dashboard/credit', icon: 'wallet', label: 'Fiado' },
+      { href: '/dashboard/invoicing', icon: 'file', label: 'Facturación DIAN' },
     ],
   },
   {
-    label: 'GESTION',
+    label: 'GESTIÓN',
     items: [
-      { href: '/dashboard/categories', icon: 'tag', iconBg: 'bg-amber-500/20', label: 'Categorias' },
-      { href: '/dashboard/inventory', icon: 'package', iconBg: 'bg-cyan-500/20', label: 'Inventario' },
-      { href: '/dashboard/inventory/import', icon: 'upload', iconBg: 'bg-orange-500/20', label: 'Importar inventario' },
-      { href: '/dashboard/inventory/receive', icon: 'camera', iconBg: 'bg-orange-500/20', label: 'Ingreso escaner' },
-
-      { href: '/dashboard/reports', icon: 'trending', iconBg: 'bg-lime-500/20', label: '🤖 IA Comercial' },
-      { href: '/dashboard/settings', icon: 'settings', iconBg: 'bg-slate-500/30', label: 'Configuracion' },
+      { href: '/dashboard/categories', icon: 'tag', label: 'Categorías' },
+      { href: '/dashboard/inventory', icon: 'package', label: 'Inventario' },
+      { href: '/dashboard/inventory/import', icon: 'upload', label: 'Importar inventario' },
+      { href: '/dashboard/inventory/receive', icon: 'camera', label: 'Ingreso escáner' },
+      { href: '/dashboard/reports', icon: 'trending', label: 'IA Comercial' },
+      { href: '/dashboard/settings', icon: 'settings', label: 'Configuración' },
     ],
   },
 ]
@@ -77,25 +76,17 @@ const getStoredLogo = (value: StoreLike): string => {
   return resolveMediaUrl(value.logo_url || value.logo_path || value.logo) || ''
 }
 
-const getStoredCover = (value: StoreLike): string => {
-  if (!value) return ''
-  return resolveMediaUrl(value.cover_url || value.cover_path || value.background_url || value.cover) || ''
-}
-
 export default function Sidebar({ store = null }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const [storeName, setStoreName] = useState('Mi tienda')
   const [logoUrl, setLogoUrl] = useState('')
-  const [coverUrl, setCoverUrl] = useState('')
-  const [coverTheme, setCoverTheme] = useState<ImageBrightness>('dark')
 
   useEffect(() => {
     const readStoreData = () => {
       if (store) {
         setStoreName(getStoredName(store) || 'Mi tienda')
         setLogoUrl(getStoredLogo(store))
-        setCoverUrl(getStoredCover(store))
         return
       }
 
@@ -104,11 +95,9 @@ export default function Sidebar({ store = null }: SidebarProps) {
         const parsed = raw ? JSON.parse(raw) : null
         setStoreName(getStoredName(parsed) || 'Mi tienda')
         setLogoUrl(getStoredLogo(parsed))
-        setCoverUrl(getStoredCover(parsed))
       } catch {
         setStoreName('Mi tienda')
         setLogoUrl('')
-        setCoverUrl('')
       }
     }
 
@@ -117,7 +106,6 @@ export default function Sidebar({ store = null }: SidebarProps) {
       if (custom.detail) {
         setStoreName(getStoredName(custom.detail) || 'Mi tienda')
         setLogoUrl(getStoredLogo(custom.detail))
-        setCoverUrl(getStoredCover(custom.detail))
         return
       }
       readStoreData()
@@ -139,25 +127,6 @@ export default function Sidebar({ store = null }: SidebarProps) {
     }
   }, [store])
 
-  useEffect(() => {
-    if (!coverUrl) {
-      setCoverTheme('dark')
-      return
-    }
-
-    let mounted = true
-    getImageBrightness(coverUrl).then((theme) => {
-      if (!mounted) return
-      setCoverTheme(theme)
-    })
-
-    return () => {
-      mounted = false
-    }
-  }, [coverUrl])
-
-  const themeClasses = getThemeClassesByBrightness(coverTheme)
-
   const handleLogout = async () => {
     try {
       await API.post('/logout')
@@ -172,30 +141,28 @@ export default function Sidebar({ store = null }: SidebarProps) {
 
   return (
     <aside className="flex h-screen min-h-0 w-[205px] flex-shrink-0 flex-col border-r border-[#2A2F45] bg-[#171C2B]">
-      <div className="relative overflow-hidden border-b border-[#2A2F45] px-[16px] pb-[14px] pt-5">
-        {coverUrl ? (
-          <>
-            <img src={coverUrl} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-25" />
-            <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${themeClasses.overlay}`} />
-          </>
-        ) : null}
-
-        <div className="relative mb-2 flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-orange-400/40 bg-white/10 shadow-[0_8px_16px_rgba(0,0,0,0.25)]">
+      {/* Cabecera sobre fondo solido: la portada de la tienda se muestra en la
+          tienda publica, no detras del texto de una herramienta de trabajo. */}
+      <div className="border-b border-[#2A2F45] px-4 pb-4 pt-5">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/5">
             {logoUrl ? (
               <LogoImage
                 src={logoUrl}
-                alt="Logo tienda"
-                className="h-full w-full rounded-none border-0 bg-transparent p-1"
+                alt={`Logo de ${storeName}`}
+                className="h-full w-full rounded-none border-0 bg-transparent p-0.5"
                 imageClassName="h-full w-full"
               />
             ) : (
-              <EmojiIcon name="store" size={18} />
+              <Icon name="store" variant="fa" className="h-5 w-5 text-[#8C97B8]" />
             )}
           </div>
-          <div>
-            <p className="max-w-[130px] truncate text-[15px] font-black leading-none tracking-tight text-[#FF8A3D]">{storeName}</p>
-            <p className="mt-1 text-[9px] font-bold uppercase tracking-[1.2px] text-[#FFB37A]">Panel de ventas</p>
+          <div className="min-w-0 pt-0.5">
+            {/* El nombre es identidad: se permite una segunda linea antes que cortarlo. */}
+            <p className="line-clamp-2 text-[14px] font-semibold leading-tight text-white">{storeName}</p>
+            <p className="mt-1 text-[10px] font-medium uppercase tracking-[1px] text-[#8C97B8]">
+              Panel de ventas
+            </p>
           </div>
         </div>
       </div>
@@ -216,18 +183,22 @@ export default function Sidebar({ store = null }: SidebarProps) {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className={`mx-2 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] transition-all ${
+                  aria-current={active ? 'page' : undefined}
+                  className={`relative mx-2 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] transition-colors ${
                     active
-                      ? 'bg-orange-500/20 font-extrabold text-white shadow-[0_8px_20px_rgba(251,146,60,0.2)]'
-                      : 'font-semibold text-[#E6ECFF] hover:bg-[#242B43] hover:text-white'
+                      ? 'bg-comercioplus-600/15 font-semibold text-white'
+                      : 'font-medium text-[#B9C3E0] hover:bg-white/5 hover:text-white'
                   }`}
                   style={{ width: 'calc(100% - 16px)' }}
                 >
-                  <span className={`flex h-[22px] w-[22px] items-center justify-center rounded-md ${item.iconBg}`}>
-                    <EmojiIcon name={item.icon} size={14} />
+                  {/* Barra de acento: marca el item activo sin agregar otro color. */}
+                  {active && (
+                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-comercioplus-600" />
+                  )}
+                  <span className={`flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center ${active ? 'text-comercioplus-600' : 'text-current'}`}>
+                    <Icon name={item.icon} variant="fa" className="h-[17px] w-[17px]" />
                   </span>
                   <span className="flex-1">{item.label}</span>
-                  {active ? <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange-300" /> : null}
                 </Link>
               )
             })}
@@ -239,13 +210,13 @@ export default function Sidebar({ store = null }: SidebarProps) {
         <button
           type="button"
           onClick={handleLogout}
-          className="mx-2 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-semibold text-rose-100 transition-all hover:bg-rose-500/20 hover:text-white"
+          className="mx-2 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[#B9C3E0] transition-colors hover:bg-rose-500/10 hover:text-rose-200"
           style={{ width: 'calc(100% - 16px)' }}
         >
-          <span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-rose-500/20">
-            <EmojiIcon name="logout" size={14} />
+          <span className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center">
+            <Icon name="logout" variant="fa" className="h-[17px] w-[17px]" />
           </span>
-          <span className="flex-1">Cerrar sesion</span>
+          <span className="flex-1">Cerrar sesión</span>
         </button>
       </div>
     </aside>
