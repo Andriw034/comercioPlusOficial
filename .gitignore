@@ -48,3 +48,16 @@ ai-service/.env
 ai-service/venv/
 ai-service/__pycache__/
 ai-service/services/__pycache__/
+
+# Herramientas de agentes de IA: son configuracion de la maquina de cada quien,
+# no parte del producto. Quien clone el repo no las necesita para levantar la app.
+.claude/
+.skills/
+.mcp.json
+.cursorrules
+**/.agents/
+**/skills-lock.json
+
+# Script local con correos personales que ademas deja las contrasenas en un
+# valor fijo. El repositorio es publico: esto no puede subirse nunca.
+reset-passwords.bat
