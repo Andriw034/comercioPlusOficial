@@ -46,4 +46,8 @@ fi
 
 php artisan optimize:clear || true
 
-exec php -S 0.0.0.0:"${PORT:-8080}" -t public public/index.php
+# El router es server.php y no public/index.php: el servidor embebido entrega a
+# Laravel TODA peticion cuando se le pasa el front controller directo, asi que
+# ningun archivo estatico llegaba nunca al navegador (ni las imagenes de
+# /storage, ni /robots.txt). server.php sirve lo que existe y delega el resto.
+exec php -S 0.0.0.0:"${PORT:-8080}" -t public server.php
