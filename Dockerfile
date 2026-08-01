@@ -49,8 +49,7 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
 EXPOSE 8080
 
 # ---- Start command ----
-# Runs migrations on every deploy, then starts the built-in PHP server.
-# If AIVEN_CA_CERT is set (managed MySQL that requires TLS), the certificate is
-# written to disk first so PDO can find it via MYSQL_ATTR_SSL_CA. No-op when the
-# variable is absent, so providers that don't need TLS are unaffected.
-CMD ["sh", "-lc", "if [ -n \"$AIVEN_CA_CERT\" ]; then mkdir -p storage && printf '%s' \"$AIVEN_CA_CERT\" > \"${MYSQL_ATTR_SSL_CA:-/app/storage/aiven-ca.pem}\"; fi && php artisan migrate --force && php artisan optimize:clear && php -S 0.0.0.0:${PORT:-8080} -t public public/index.php"]
+# La secuencia de arranque vive en docker-start.sh (certificado TLS, enlace de
+# storage, migraciones y servidor). Se invoca con `sh` a proposito: asi no
+# depende del bit de ejecucion, que Git en Windows no siempre conserva.
+CMD ["sh", "/app/docker-start.sh"]
