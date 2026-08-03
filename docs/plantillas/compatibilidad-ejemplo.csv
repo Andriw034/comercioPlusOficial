@@ -1,0 +1,10 @@
+part_reference,part_type,part_brand,part_description,motorcycle_brand,motorcycle_model,year_from,year_to,notes
+RET-30X42X11,retenedor,NOK,Retenedor de barra delantera 30x42x11,Bajaj,Boxer 100,2010,2020,Medida 30x42x11. Va de a dos por moto
+RET-30X42X11,retenedor,NOK,Retenedor de barra delantera 30x42x11,Bajaj,Discover 125,2012,2018,Misma medida que la Boxer 100
+RET-30X42X11,retenedor,NOK,Retenedor de barra delantera 30x42x11,AKT,NKD 125,2010,2024,Verificar que la barra sea de 30mm
+RET-33X45X11,retenedor,NOK,Retenedor de barra delantera 33x45x11,Honda,CB 125F,2015,2024,Barra de 33mm
+RET-33X45X11,retenedor,NOK,Retenedor de barra delantera 33x45x11,Yamaha,YBR 125,2005,2024,Misma medida que la CB 125F
+GUA-ACEL-NKD,guaya,Generico,Guaya de acelerador,AKT,NKD 125,2010,2024,Largo 95cm
+GUA-ACEL-NKD,guaya,Generico,Guaya de acelerador,AKT,Flex 125,2015,2018,Mismo largo que la NKD
+KDIR-22X44,rodamiento_direccion,Generico,Kit de rodamientos de direccion conicos,Bajaj,Boxer 100,2010,2020,Juego completo arriba y abajo
+KDIR-22X44,rodamiento_direccion,Generico,Kit de rodamientos de direccion conicos,Bajaj,Pulsar 135,2012,2018,Mismo kit que la Boxer 100

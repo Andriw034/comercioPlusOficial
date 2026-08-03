@@ -31,6 +31,16 @@ class PartsAssistantService
         'pinon_motor'      => ['pinon', 'pinion'],
         'catalina'         => ['catalina', 'sprocket'],
         'caucho_carburador'=> ['caucho', 'carburador'],
+        // Los tres de abajo son de los mas preguntados en el mostrador y no estaban:
+        // sin la palabra aca, cargar los datos no sirve de nada porque el buscador
+        // nunca reconoce lo que escribe el cliente.
+        'retenedor'        => ['retenedor', 'retenedores', 'reten', 'retenes', 'estopera', 'estoperas'],
+        'guaya'            => ['guaya', 'guayas'],
+        'rodamiento_direccion' => [
+            'rodamiento de direccion', 'rodamientos de direccion',
+            'balinera de direccion', 'balineras de direccion',
+            'kit de direccion', 'juego de direccion',
+        ],
     ];
 
     /** Etiquetas legibles para el usuario final. */
@@ -47,7 +57,23 @@ class PartsAssistantService
         'pinon_motor'       => 'Pinon motor',
         'catalina'          => 'Catalina',
         'caucho_carburador' => 'Caucho de carburador',
+        'retenedor'         => 'Retenedor',
+        'guaya'             => 'Guaya',
+        'rodamiento_direccion' => 'Rodamiento de direccion',
     ];
+
+    /**
+     * Tipos que el buscador sabe reconocer cuando el cliente escribe la pregunta.
+     *
+     * Lo usa el importador para avisar si un CSV trae un tipo que nadie va a poder
+     * encontrar: cargar datos que el buscador no alcanza es trabajo perdido.
+     *
+     * @return list<string>
+     */
+    public static function tiposBuscables(): array
+    {
+        return array_keys(self::PART_TYPE_SYNONYMS);
+    }
 
     public function search(string $question, ?int $storeId = null): array
     {
