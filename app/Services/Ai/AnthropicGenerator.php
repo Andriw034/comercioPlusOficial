@@ -15,6 +15,8 @@ use RuntimeException;
  */
 class AnthropicGenerator implements AiTextGenerator
 {
+    use RetriesTransientFailures;
+
     private const ENDPOINT = 'https://api.anthropic.com/v1/messages';
 
     public function generate(string $system, array $history, string $userContent): string
@@ -32,7 +34,7 @@ class AnthropicGenerator implements AiTextGenerator
             'x-api-key'         => $key,
             'anthropic-version' => config('services.anthropic.version', '2023-06-01'),
             'content-type'      => 'application/json',
-        ])->timeout(60)->retry(1, 500, throw: false)->post(self::ENDPOINT, [
+        ])->timeout(45)->retry(self::INTENTOS, self::ESPERA_MS, $this->reintentable(), throw: false)->post(self::ENDPOINT, [
             'model'      => config('services.anthropic.model'),
             'max_tokens' => config('services.anthropic.max_tokens', 900),
             'system'     => $system,
@@ -48,7 +50,14 @@ class AnthropicGenerator implements AiTextGenerator
                 'body'   => $response->body(),
             ]);
 
-            throw new RuntimeException('El asistente no esta disponible en este momento.');
+            // El tipo de error de Anthropic es un enumerado (invalid_request_error,
+            // authentication_error, rate_limit_error...): no filtra nada y evita tener
+            // que entrar a leer los logs del servidor para saber que paso.
+            $motivo = trim($response->status().' '.(string) $response->json('error.type'));
+
+            throw new RuntimeException(
+                "El asistente no esta disponible en este momento (anthropic respondio {$motivo})."
+            );
         }
 
         $text = $response->json('content.0.text');

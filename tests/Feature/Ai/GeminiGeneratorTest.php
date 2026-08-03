@@ -22,9 +22,9 @@ class GeminiGeneratorTest extends TestCase
         parent::setUp();
 
         config([
-            'services.gemini.key'      => 'test-key',
-            'services.gemini.model'    => 'gemini-3.6-flash',
-            'services.gemini.thinking' => 'minimal',
+            'services.gemini.key'             => 'test-key',
+            'services.gemini.model'           => 'gemini-3.5-flash',
+            'services.gemini.thinking_budget' => '0',
         ]);
 
         $this->generator = new GeminiGenerator();
@@ -69,10 +69,13 @@ class GeminiGeneratorTest extends TestCase
             $this->assertSame('user', $body['contents'][2]['role']);
             $this->assertSame('que pastillas tienes', $body['contents'][2]['parts'][0]['text']);
 
-            $this->assertSame('minimal', $body['generationConfig']['thinking_level']);
+            // El campo correcto es thinkingConfig.thinkingBudget: `thinking_level`
+            // hacia fallar TODAS las peticiones con 400 Unknown name.
+            $this->assertSame(0, $body['generationConfig']['thinkingConfig']['thinkingBudget']);
+            $this->assertArrayNotHasKey('thinking_level', $body['generationConfig']);
 
             // La clave viaja en cabecera, no en la URL: asi no queda en los logs.
-            $this->assertStringContainsString('models/gemini-3.6-flash:generateContent', $request->url());
+            $this->assertStringContainsString('models/gemini-3.5-flash:generateContent', $request->url());
             $this->assertStringNotContainsString('test-key', $request->url());
 
             return $request->hasHeader('x-goog-api-key', 'test-key');
@@ -83,7 +86,7 @@ class GeminiGeneratorTest extends TestCase
     {
         // La URL ya trae "models/": si la variable de entorno lo repite, Google
         // responde 404 y el motivo no se entiende desde afuera.
-        config(['services.gemini.model' => 'models/gemini-3.6-flash']);
+        config(['services.gemini.model' => 'models/gemini-3.5-flash']);
         $this->fakeGemini();
 
         $this->generator->generate('sistema', [], 'hola');
@@ -95,20 +98,51 @@ class GeminiGeneratorTest extends TestCase
         });
     }
 
-    public function test_sin_nivel_de_razonamiento_no_manda_el_parametro(): void
+    public function test_sin_presupuesto_de_razonamiento_no_manda_el_parametro(): void
     {
-        // Es un ajuste de costo, no un requisito: si el modelo no lo acepta se vacia
-        // la variable y la llamada tiene que seguir siendo valida.
-        config(['services.gemini.thinking' => '']);
+        // Es un ajuste de costo, no un requisito: si un modelo futuro no acepta
+        // presupuesto cero se vacia la variable y la llamada sigue siendo valida.
+        config(['services.gemini.thinking_budget' => '']);
         $this->fakeGemini();
 
         $this->generator->generate('sistema', [], 'hola');
 
         Http::assertSent(function (Request $request): bool {
-            $this->assertArrayNotHasKey('thinking_level', $request->data()['generationConfig']);
+            $this->assertArrayNotHasKey('thinkingConfig', $request->data()['generationConfig']);
 
             return true;
         });
+    }
+
+    public function test_reintenta_cuando_google_esta_saturado(): void
+    {
+        // El plan gratuito devuelve 503 UNAVAILABLE ("high demand") de a ratos. Sin
+        // reintento el cliente de la tienda ve un chat roto por algo pasajero.
+        Http::fakeSequence()
+            ->push(['error' => ['status' => 'UNAVAILABLE']], 503)
+            ->push(['candidates' => [['content' => ['parts' => [['text' => 'Si, tenemos.']]]]]], 200);
+
+        $this->assertSame('Si, tenemos.', $this->generator->generate('sistema', [], 'hola'));
+
+        Http::assertSentCount(2);
+    }
+
+    public function test_no_reintenta_un_error_que_no_se_arregla_solo(): void
+    {
+        // Una peticion mal armada (400) o una clave invalida no mejoran reintentando:
+        // gastar tres intentos solo hace esperar mas al cliente.
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'error' => ['status' => 'INVALID_ARGUMENT'],
+            ], 400),
+        ]);
+
+        try {
+            $this->generator->generate('sistema', [], 'hola');
+            $this->fail('Se esperaba una excepcion.');
+        } catch (RuntimeException) {
+            Http::assertSentCount(1);
+        }
     }
 
     public function test_sin_clave_no_llama_a_la_api(): void
@@ -126,18 +160,29 @@ class GeminiGeneratorTest extends TestCase
         }
     }
 
-    public function test_un_error_de_la_api_no_le_filtra_detalles_al_cliente(): void
+    public function test_un_error_de_la_api_dice_el_motivo_sin_filtrar_detalles(): void
     {
+        // El codigo y el `status` son enumerados y ayudan a diagnosticar sin entrar a
+        // los logs; el mensaje largo de Google NO puede llegarle al cliente.
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([
-                'error' => ['message' => 'API key not valid'],
+                'error' => [
+                    'message' => 'Unknown name "thinking_level" at generation_config',
+                    'status'  => 'INVALID_ARGUMENT',
+                ],
             ], 400),
         ]);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('El asistente no esta disponible en este momento.');
-
-        $this->generator->generate('sistema', [], 'hola');
+        try {
+            $this->generator->generate('sistema', [], 'hola');
+            $this->fail('Se esperaba una excepcion.');
+        } catch (RuntimeException $e) {
+            $this->assertSame(
+                'El asistente no esta disponible en este momento (google respondio 400 INVALID_ARGUMENT).',
+                $e->getMessage(),
+            );
+            $this->assertStringNotContainsString('thinking_level', $e->getMessage());
+        }
     }
 
     public function test_una_respuesta_sin_texto_pide_reformular(): void

@@ -92,6 +92,17 @@ Route::get('/health/integrations', function () {
             'api_key_present' => trim((string) config('services.cloudinary.api_key', '')) !== '',
             'api_secret_present' => trim((string) config('services.cloudinary.api_secret', '')) !== '',
         ],
+        // Que proveedor de IA quedo activo y si tiene clave. Sin esto, un asistente
+        // caido en produccion no se distingue de uno mal configurado: hay que entrar
+        // a leer logs del servidor. NUNCA se expone la clave, solo si esta presente.
+        'ai' => [
+            'provider' => (string) config('services.ai.provider'),
+            'key_present' => trim((string) config(
+                'services.'.config('services.ai.provider').'.key',
+                ''
+            )) !== '',
+            'model' => (string) config('services.'.config('services.ai.provider').'.model'),
+        ],
     ], $dbOk ? 200 : 503);
 });
 

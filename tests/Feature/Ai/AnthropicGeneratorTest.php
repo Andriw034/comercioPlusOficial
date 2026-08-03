@@ -82,18 +82,27 @@ class AnthropicGeneratorTest extends TestCase
         }
     }
 
-    public function test_un_error_de_la_api_no_le_filtra_detalles_al_cliente(): void
+    public function test_un_error_de_la_api_dice_el_motivo_sin_filtrar_detalles(): void
     {
         Http::fake([
             'api.anthropic.com/*' => Http::response([
-                'error' => ['message' => 'credit balance is too low'],
+                'error' => [
+                    'type'    => 'invalid_request_error',
+                    'message' => 'Your credit balance is too low',
+                ],
             ], 400),
         ]);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('El asistente no esta disponible en este momento.');
-
-        $this->generator->generate('sistema', [], 'hola');
+        try {
+            $this->generator->generate('sistema', [], 'hola');
+            $this->fail('Se esperaba una excepcion.');
+        } catch (RuntimeException $e) {
+            $this->assertSame(
+                'El asistente no esta disponible en este momento (anthropic respondio 400 invalid_request_error).',
+                $e->getMessage(),
+            );
+            $this->assertStringNotContainsString('credit balance', $e->getMessage());
+        }
     }
 
     public function test_una_respuesta_sin_texto_pide_reformular(): void

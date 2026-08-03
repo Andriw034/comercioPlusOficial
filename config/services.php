@@ -48,12 +48,16 @@ return [
     // El modelo va en variable porque Google apaga los viejos (gemini-2.0-flash ya
     // no existe) y un modelo retirado responde 404 sin explicacion util.
     'gemini' => [
-        'key'        => env('GEMINI_API_KEY'),
-        'model'      => env('GEMINI_MODEL', 'gemini-3.6-flash'),
+        'key' => env('GEMINI_API_KEY'),
+        // gemini-3.5-flash y no 3.6: el 3.6 devolvio 503 UNAVAILABLE ("high demand")
+        // en las pruebas del 2026-08-03, y un chat de tienda necesita responder
+        // siempre. Los modelos 2.5 dan NOT_FOUND con clave del plan gratuito.
+        'model'      => env('GEMINI_MODEL', 'gemini-3.5-flash'),
         'max_tokens' => (int) env('GEMINI_MAX_TOKENS', 1200),
-        // Gemini 3.x razona por defecto ("medium") y ese razonamiento gasta el
-        // presupuesto de salida. Vaciar la variable quita el parametro del cuerpo.
-        'thinking'   => env('GEMINI_THINKING_LEVEL', 'minimal'),
+        // Presupuesto de razonamiento. 0 lo apaga: para responder "tienes frenos
+        // para una AKT?" no aporta y se come tokens de la respuesta. Vaciar la
+        // variable quita el campo del cuerpo.
+        'thinking_budget' => env('GEMINI_THINKING_BUDGET', '0'),
     ],
 
     /*

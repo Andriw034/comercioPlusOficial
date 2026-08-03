@@ -23,6 +23,8 @@ use RuntimeException;
  */
 class GeminiGenerator implements AiTextGenerator
 {
+    use RetriesTransientFailures;
+
     private const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
 
     public function generate(string $system, array $history, string $userContent): string
@@ -38,7 +40,7 @@ class GeminiGenerator implements AiTextGenerator
         $response = Http::withHeaders([
             'x-goog-api-key' => $key,
             'content-type'   => 'application/json',
-        ])->timeout(60)->retry(1, 500, throw: false)
+        ])->timeout(45)->retry(self::INTENTOS, self::ESPERA_MS, $this->reintentable(), throw: false)
             ->post(sprintf(self::ENDPOINT, $model), $this->body($system, $history, $userContent));
 
         if (! $response->successful()) {
@@ -50,7 +52,15 @@ class GeminiGenerator implements AiTextGenerator
                 'body'   => $response->body(),
             ]);
 
-            throw new RuntimeException('El asistente no esta disponible en este momento.');
+            // El codigo y el `status` de Google (INVALID_ARGUMENT, PERMISSION_DENIED,
+            // NOT_FOUND...) son enumerados, no texto libre: no filtran nada y son la
+            // diferencia entre diagnosticar en un minuto o tener que entrar a leer
+            // los logs del servidor. El mensaje largo si se queda solo en el log.
+            $motivo = trim($response->status().' '.(string) $response->json('error.status'));
+
+            throw new RuntimeException(
+                "El asistente no esta disponible en este momento (google respondio {$motivo})."
+            );
         }
 
         $text = $response->json('candidates.0.content.parts.0.text');
@@ -104,13 +114,20 @@ class GeminiGenerator implements AiTextGenerator
         ];
 
         // Gemini 3.x razona por defecto y ese razonamiento consume el presupuesto de
-        // salida. Para "tienes pastillas para una AKT?" no aporta y encarece: bajarlo
-        // deja mas tokens para la respuesta de verdad. Es opcional a proposito, por si
-        // el modelo configurado no acepta el parametro.
-        $thinking = trim((string) config('services.gemini.thinking', ''));
+        // salida. Para "tienes pastillas para una AKT?" no aporta y encarece: apagarlo
+        // deja mas tokens para la respuesta de verdad.
+        //
+        // El campo es thinkingConfig.thinkingBudget y va DENTRO de generationConfig.
+        // Verificado contra la API el 2026-08-03, despues de que `thinking_level` (que
+        // es como lo nombra la guia de "thinking") hiciera fallar TODAS las peticiones
+        // con 400: "Unknown name thinking_level at generation_config".
+        //
+        // Se deja configurable y opcional: vaciar GEMINI_THINKING_BUDGET quita el
+        // campo del cuerpo, por si un modelo futuro no acepta presupuesto cero.
+        $budget = trim((string) config('services.gemini.thinking_budget', ''));
 
-        if ($thinking !== '') {
-            $generationConfig['thinking_level'] = $thinking;
+        if ($budget !== '' && is_numeric($budget)) {
+            $generationConfig['thinkingConfig'] = ['thinkingBudget' => (int) $budget];
         }
 
         return [
