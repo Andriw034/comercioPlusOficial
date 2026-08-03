@@ -56,7 +56,7 @@
 - Frontend build: Vite build (31 páginas)
 - E2E: Playwright (chromium + mobile-chrome) en tests-e2e/
 
-## Módulos Implementados (19)
+## Módulos Implementados (20)
 
 ### Core (siempre activos)
 1. Auth (Sanctum bearer tokens)
@@ -80,6 +80,23 @@
 17. **Recibos Simples** — PDF "COMPROBANTE DE VENTA" para informales (NO es factura)
 18. **Búsqueda por Moto** — 60 motos colombianas, filtros brand/model/year
 19. **Facturación DIAN** — OPCIONAL, protegido por middleware RequiresDianEnabled
+
+### Nuevo (2026-08-03)
+20. **Asistente IA de la tienda** — chat que responde con el catálogo real
+
+## Arquitectura del Asistente IA
+- Dos endpoints que se complementan:
+  - `GET /assistant/search` — búsqueda estructurada de compatibilidad (`PartsAssistantService`), sin IA
+  - `POST /assistant/ask` — chat conversacional (`StoreAssistantService`), con IA real
+- **El proveedor es intercambiable** con `AI_PROVIDER`, sin tocar código:
+  - `gemini` (por defecto) — plan gratuito de Google, no pide tarjeta
+  - `anthropic` — Claude, requiere saldo de API (Claude Pro NO sirve: es otro producto)
+- `app/Services/Ai/`: interfaz `AiTextGenerator` + `GeminiGenerator` y `AnthropicGenerator`
+- `StoreAssistantService` arma el contexto y **no sabe qué proveedor responde**: resumen
+  del catálogo, productos que coinciden, compatibilidad verificada y memoria multi-turno
+- La llamada sale del backend: la API key nunca llega al navegador
+- El modelo va en variable de entorno (`GEMINI_MODEL`, `ANTHROPIC_MODEL`) porque los
+  proveedores retiran modelos y uno retirado responde 404 sin explicación útil
 
 ## Arquitectura DIAN (Opcional)
 - `stores.dian_enabled` (boolean, default false) controla acceso

@@ -4,35 +4,35 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\Store;
+use App\Services\Ai\AiTextGenerator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Asistente conversacional de una tienda, con Claude REAL.
+ * Asistente conversacional de una tienda, con IA real.
  *
  * A diferencia de PartsAssistantService (busqueda estructurada de compatibilidad),
- * aca se le da a Claude el catalogo REAL de la tienda y responde como si fuera el
- * vendedor de ESA tienda. La llamada a Anthropic se hace desde el backend, no desde
- * el navegador: asi funciona para cualquier cliente en produccion y la API key
- * nunca queda expuesta en el frontend.
+ * aca se le da a la IA el catalogo REAL de la tienda y responde como si fuera el
+ * vendedor de ESA tienda. La llamada se hace desde el backend, no desde el
+ * navegador: asi funciona para cualquier cliente en produccion y la API key nunca
+ * queda expuesta en el frontend.
  *
  * El contexto que se le arma tiene tres capas, y esa es la razon de que pueda
  * responder "cualquier cosa" sin inventar: un resumen agregado del catalogo (para
  * preguntas tipo "que tienes"), los productos que coinciden con la pregunta, y la
  * tabla de compatibilidad verificada (que no depende de la tienda).
+ *
+ * Que proveedor responde (Gemini o Claude) lo decide AI_PROVIDER y no le importa a
+ * esta clase: todo lo de arriba es igual para cualquiera. Ver App\Services\Ai.
  */
-class ClaudeAssistantService
+class StoreAssistantService
 {
-    private const ENDPOINT = 'https://api.anthropic.com/v1/messages';
-
     /** Tope de productos y compatibilidades en el contexto: mas es ruido y tokens. */
     private const MAX_PRODUCTS = 15;
     private const MAX_COMPATIBILITIES = 15;
 
-    /** Turnos previos que se le reenvian a Claude para que mantenga el hilo. */
+    /** Turnos previos que se le reenvian a la IA para que mantenga el hilo. */
     private const MAX_HISTORY = 10;
 
     /** Palabras vacias que no aportan a la busqueda de productos. */
@@ -43,8 +43,10 @@ class ClaudeAssistantService
         'me', 'un', 'y', 'o', 'a', 'es', 'necesito', 'quiero', 'busco', 'sobre',
     ];
 
-    public function __construct(private readonly PartsAssistantService $parts)
-    {
+    public function __construct(
+        private readonly PartsAssistantService $parts,
+        private readonly AiTextGenerator $ai,
+    ) {
     }
 
     /**
@@ -62,7 +64,7 @@ class ClaudeAssistantService
         $products = $this->findStoreProducts($store->id, $question);
         $verified = $this->verifiedCompatibility($question, $store->id);
 
-        $answer = $this->callClaude(
+        $answer = $this->ai->generate(
             $this->systemPrompt($store),
             $this->normalizeHistory($history),
             $this->buildUserContent($question, $store->id, $products, $verified),
@@ -310,12 +312,13 @@ class ClaudeAssistantService
         PROMPT;
     }
 
-    // ── Llamada a Anthropic ──────────────────────────────────────────────
+    // ── Historial ────────────────────────────────────────────────────────
 
     /**
      * Anthropic exige que el primer mensaje sea del usuario. El chat del panel
      * arranca con un saludo del asistente, asi que si se reenvia tal cual la API
      * responde 400: hay que descartar los turnos de assistant que van al inicio.
+     * Gemini es mas tolerante, pero la conversacion igual se lee mejor asi.
      *
      * @param  list<array{role: string, content: string}>  $history
      * @return list<array{role: string, content: string}>
@@ -340,50 +343,6 @@ class ClaudeAssistantService
         }
 
         return array_values(array_slice($clean, -self::MAX_HISTORY));
-    }
-
-    /**
-     * @param  list<array{role: string, content: string}>  $history
-     */
-    private function callClaude(string $system, array $history, string $userContent): string
-    {
-        $key = config('services.anthropic.key');
-
-        if (empty($key)) {
-            throw new RuntimeException('Falta configurar ANTHROPIC_API_KEY en el .env');
-        }
-
-        $messages   = $history;
-        $messages[] = ['role' => 'user', 'content' => $userContent];
-
-        $response = Http::withHeaders([
-            'x-api-key'         => $key,
-            'anthropic-version' => config('services.anthropic.version', '2023-06-01'),
-            'content-type'      => 'application/json',
-        ])->timeout(60)->retry(1, 500, throw: false)->post(self::ENDPOINT, [
-            'model'      => config('services.anthropic.model'),
-            'max_tokens' => config('services.anthropic.max_tokens', 900),
-            'system'     => $system,
-            'messages'   => $messages,
-        ]);
-
-        if (! $response->successful()) {
-            // El body trae el motivo real (modelo retirado, credito agotado, etc.).
-            // Sin esto en el log el fallo es indistinguible desde afuera.
-            Log::warning('Anthropic API error', [
-                'status' => $response->status(),
-                'model'  => config('services.anthropic.model'),
-                'body'   => $response->body(),
-            ]);
-
-            throw new RuntimeException('El asistente no esta disponible en este momento.');
-        }
-
-        $text = $response->json('content.0.text');
-
-        return is_string($text) && $text !== ''
-            ? $text
-            : 'No pude generar una respuesta. Intenta reformular tu pregunta.';
     }
 
     /** @return Collection<int, string> */

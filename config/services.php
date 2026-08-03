@@ -24,7 +24,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Anthropic (Claude) — asistente de repuestos
+    | Asistente de la tienda — proveedor de IA
+    |--------------------------------------------------------------------------
+    |
+    | Que IA responde el chat de la tienda. Se cambia con una sola variable, sin
+    | tocar codigo ni volver a desplegar:
+    |
+    |   gemini    -> plan gratuito de Google, sin tarjeta de credito
+    |   anthropic -> Claude, requiere saldo de API (Claude Pro NO sirve: es otra cosa)
+    |
+    | Un valor mal escrito revienta a proposito en vez de caer en un default
+    | silencioso: un typo en el panel de Render tiene que verse.
+    */
+    'ai' => [
+        'provider' => env('AI_PROVIDER', 'gemini'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Google Gemini
+    |--------------------------------------------------------------------------
+    */
+    // El modelo va en variable porque Google apaga los viejos (gemini-2.0-flash ya
+    // no existe) y un modelo retirado responde 404 sin explicacion util.
+    'gemini' => [
+        'key'        => env('GEMINI_API_KEY'),
+        'model'      => env('GEMINI_MODEL', 'gemini-3.6-flash'),
+        'max_tokens' => (int) env('GEMINI_MAX_TOKENS', 1200),
+        // Gemini 3.x razona por defecto ("medium") y ese razonamiento gasta el
+        // presupuesto de salida. Vaciar la variable quita el parametro del cuerpo.
+        'thinking'   => env('GEMINI_THINKING_LEVEL', 'minimal'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Anthropic (Claude)
     |--------------------------------------------------------------------------
     */
     // El modelo por defecto debe ser uno vigente: los retirados responden 404 y el
