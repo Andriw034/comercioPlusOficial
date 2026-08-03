@@ -33,3 +33,34 @@ export async function searchParts(query: string, storeId?: number): Promise<Assi
     motos_con_datos: [],
   })
 }
+
+/** Producto de la tienda que Claude menciona en su respuesta. */
+export interface AssistantProduct {
+  id: number
+  name: string
+  price: string | number
+  stock: number
+}
+
+/** Respuesta conversacional de Claude (IA real) usando el catalogo de la tienda. */
+export interface AssistantAnswer {
+  answer: string
+  products: AssistantProduct[]
+}
+
+/**
+ * Pregunta conversacional a Claude. A diferencia de searchParts (buscador
+ * estructurado por compatibilidad verificada), aca Claude razona sobre el
+ * inventario real de la tienda y responde en lenguaje natural.
+ */
+export async function askAssistant(question: string, storeId?: number): Promise<AssistantAnswer> {
+  const response = await API.post('/assistant/ask', {
+    question,
+    store_id: storeId,
+  })
+
+  return getApiPayload<AssistantAnswer>(response, {
+    answer: 'No pude generar una respuesta. Intenta reformular tu pregunta.',
+    products: [],
+  })
+}

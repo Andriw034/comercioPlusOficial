@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
 import type { Message, UsageInfo } from '@/types/ai'
-import { searchParts } from '@/services/aiService'
-import { buildEmptyMessage } from './emptyMessage'
+import { askAssistant } from '@/services/aiService'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import UsageCounter from './UsageCounter'
@@ -11,15 +10,15 @@ const WELCOME_MESSAGE: Message = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Soy tu asistente de repuestos. Preguntame por compatibilidad de piezas para motos.\n\nEjemplos:\n- Que banda sirve para Yamaha YBR 125 2016?\n- Pastillas de freno para AKT NKD 125\n- Bujias compatibles con FZ 16',
+    'Soy tu asistente con IA. Preguntame por los repuestos de tu tienda y te ayudo a encontrar lo que el cliente necesita.\n\nEjemplos:\n- Que le sirve a una Boxer 2018?\n- Tienes pastillas de freno para NKD 125?\n- Que bandas tienes en stock?',
   timestamp: new Date(),
 }
 
 const SUGGESTIONS = [
-  'Banda para YBR 125',
-  'Pastillas NKD 125',
-  'Bujia FZ 16',
-  'Cadena Wave 110',
+  'Que le sirve a una Boxer 2018?',
+  'Que tienes en stock?',
+  'Pastillas para NKD 125',
+  'Bandas disponibles',
 ]
 
 interface ChatOverlayProps {
@@ -72,17 +71,15 @@ export default function ChatOverlay({ isOpen, onClose, storeId }: ChatOverlayPro
       setIsLoading(true)
 
       try {
-        const result = await searchParts(text, storeId)
-        const hasResults = result.compatibilidades.length > 0
+        const { answer } = await askAssistant(text, storeId)
 
         setMessages(prev => [
           ...prev,
           {
             id: `assistant-${Date.now()}`,
             role: 'assistant',
-            content: hasResults ? '' : buildEmptyMessage(result),
+            content: answer,
             timestamp: new Date(),
-            result: hasResults ? result : undefined,
           },
         ])
         setUsage(prev => ({ ...prev, used: prev.used + 1 }))
@@ -92,7 +89,7 @@ export default function ChatOverlay({ isOpen, onClose, storeId }: ChatOverlayPro
           {
             id: `error-${Date.now()}`,
             role: 'assistant',
-            content: 'No pude consultar el catalogo de compatibilidad. Intenta de nuevo en un momento.',
+            content: 'No pude consultar el asistente. Intenta de nuevo en un momento.',
             timestamp: new Date(),
           },
         ])
@@ -123,7 +120,7 @@ export default function ChatOverlay({ isOpen, onClose, storeId }: ChatOverlayPro
                     Beta
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500">Busqueda por compatibilidad verificada</p>
+                <p className="text-[11px] text-slate-500">IA que responde con tu inventario</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
