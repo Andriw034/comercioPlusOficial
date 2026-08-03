@@ -106,6 +106,29 @@ class StoreAssistantTest extends TestCase
         $this->assertStringContainsString('Pastillas de freno delanteras', (string) $spy->userContent);
     }
 
+    public function test_encuentra_productos_aunque_pregunten_en_plural(): void
+    {
+        // El cliente pregunta como habla ("que aceites tienes?") pero los productos se
+        // cargan en singular. Sin pasar la palabra a singular, la busqueda por
+        // fragmento no encontraba nada y la tienda respondia que no tenia el producto
+        // teniendolo: una venta perdida por una letra.
+        Product::factory()->create([
+            'store_id' => $this->store->id,
+            'name'     => 'aceite lubricante cadena',
+            'price'    => 12000,
+            'stock'    => 3,
+        ]);
+
+        $spy = $this->fakeAi();
+
+        $this->postJson('/api/assistant/ask', [
+            'store_id' => $this->store->id,
+            'question' => 'que aceites tienes?',
+        ])->assertStatus(200);
+
+        $this->assertStringContainsString('aceite lubricante cadena', (string) $spy->userContent);
+    }
+
     public function test_reenvia_el_historial_para_mantener_el_hilo(): void
     {
         $spy = $this->fakeAi();

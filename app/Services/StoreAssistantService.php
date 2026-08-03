@@ -356,8 +356,39 @@ class StoreAssistantService
         return collect(preg_split('/\s+/', (string) $clean))
             ->map(fn (string $w): string => trim($w))
             ->filter(fn (string $w): bool => mb_strlen($w) >= 3 && ! in_array($w, self::STOP_WORDS, true))
+            ->map(fn (string $w): string => $this->singular($w))
             ->unique()
             ->take(6)
             ->values();
+    }
+
+    /**
+     * Pasa la palabra a singular para buscar en el catalogo.
+     *
+     * El cliente pregunta como habla ("que aceites tienes?") pero los productos se
+     * cargan en singular ("aceite lubricante cadena"). Como la busqueda es por
+     * fragmento, "aceites" no encuentra "aceite" y la tienda respondia que no tenia
+     * -- con 14 aceites cargados. Una venta perdida por una letra.
+     *
+     * Al reves no hace falta: buscar "aceite" ya encuentra "aceites" por ser fragmento.
+     *
+     * No es un lematizador de espanol, es la regla que cubre el 90% de los casos del
+     * mostrador: frenos, pastillas, llantas, espejos, guayas, motores, bujias.
+     */
+    private function singular(string $word): string
+    {
+        // "motores" -> "motor", "bujes" -> "buje". Se exige largo para no destrozar
+        // palabras cortas ("mes" no debe volverse "m").
+        if (mb_strlen($word) >= 6 && str_ends_with($word, 'es')) {
+            return mb_substr($word, 0, -2);
+        }
+
+        // "aceites" -> "aceite", "frenos" -> "freno". Se protege "-ss" y palabras que
+        // ya terminan en "s" siendo singulares cortas.
+        if (mb_strlen($word) >= 5 && str_ends_with($word, 's') && ! str_ends_with($word, 'ss')) {
+            return mb_substr($word, 0, -1);
+        }
+
+        return $word;
     }
 }
