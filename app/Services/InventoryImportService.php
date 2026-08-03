@@ -539,7 +539,7 @@ class InventoryImportService
     private function parseSpreadsheet(UploadedFile $file): Collection
     {
         // PhpSpreadsheet can be memory-intensive on large files.
-        // Raise the limit temporarily to avoid fatal OOM on Railway.
+        // Se sube el limite temporalmente para evitar un OOM fatal en el servidor.
         $prevMemoryLimit = ini_get('memory_limit');
         ini_set('memory_limit', '512M');
 

@@ -1,7 +1,7 @@
 # ---- Base image ----
 FROM php:8.3-cli-bookworm
 
-ARG RAILWAY_CACHE_BUST=2026-03-10-mbstring
+ARG DEPS_CACHE_BUST=2026-03-10-mbstring
 
 # ---- System deps + PHP extensions required by Laravel ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libwebp-dev \
     bash \
-  && echo "cache-bust=${RAILWAY_CACHE_BUST}" \
+  && echo "cache-bust=${DEPS_CACHE_BUST}" \
   && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
   && docker-php-ext-install \
     bcmath \
@@ -45,7 +45,7 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
   && chmod -R 775 storage bootstrap/cache || true \
   && chown -R www-data:www-data storage bootstrap/cache || true
 
-# Railway will provide $PORT; keep 8080 as default
+# Render inyecta $PORT en tiempo de ejecucion; 8080 queda como valor por defecto
 EXPOSE 8080
 
 # ---- Start command ----

@@ -1,6 +1,12 @@
+# Cambia el entorno activo copiando .env.<destino> sobre .env.
+#
+# El destino "railway" quedo obsoleto: el backend corre en Render desde el
+# 2026-07-30 y el archivo .env.railway ya no existe, asi que ese destino fallaba.
+# Para usar "render" hay que crear .env.render con los datos de Render + Aiven
+# (no se versiona: lleva la contrasena de la base).
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet("local", "railway")]
+  [ValidateSet("local", "render")]
   [string]$Target
 )
 

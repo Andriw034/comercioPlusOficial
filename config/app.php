@@ -57,7 +57,10 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
     'domain' => env('APP_DOMAIN', 'localhost'),
     'frontend_url' => env('APP_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173')),
-    'release' => env('RAILWAY_GIT_COMMIT_SHA', env('APP_RELEASE', 'local')),
+    // Render inyecta RENDER_GIT_COMMIT en cada despliegue. Antes se leia la variable
+    // equivalente de Railway, que ya no existe: /api/health reportaba release "local"
+    // en produccion y no habia forma de saber que version estaba corriendo.
+    'release' => env('RENDER_GIT_COMMIT', env('APP_RELEASE', 'local')),
 
     'asset_url' => env('ASSET_URL', '/'),
 

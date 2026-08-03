@@ -38,8 +38,9 @@
 
 ### Deploy
 - Frontend: Vercel (comercio-plus-oficial)
-- Backend: Railway (comercioplusoficial-production-d61e)
-- Rewrites Vercel: /api, /sanctum, /storage → Railway
+- Backend: Render (comercioplus-api-zakm.onrender.com, plan free)
+- Base de datos: Aiven MySQL 8.4 (plan free; se apaga sola por inactividad)
+- Rewrites Vercel: /api, /sanctum, /storage → Render
 
 ### Testing y QA
 - Backend: `php artisan test` (123 tests, 407 assertions)
@@ -72,7 +73,7 @@ comercioPlusOficial/
 │   │   ├── lib/                # API client, utils
 │   │   ├── types/              # Tipos TypeScript (api.ts)
 │   │   └── contexts/           # CartContext y otros
-│   ├── vercel.json             # Rewrites a Railway
+│   ├── vercel.json             # Rewrites a Render
 │   └── vite.config.ts
 ├── resources/js/               # Frontend Vue LEGACY (no tocar)
 ├── docs/                       # Documentación canónica
@@ -159,7 +160,7 @@ Todas las rutas /dashboard/*:
 5. npm run lint --prefix comercio-plus-frontend
 6. npm run build --prefix comercio-plus-frontend
 7. git push origin master
-8. Verificar Vercel + Railway post-deploy
+8. Verificar Vercel + Render post-deploy
 
 ## Estilo de comunicación
 - Explica el POR QUÉ de cada decisión.

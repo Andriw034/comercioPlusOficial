@@ -34,14 +34,12 @@ if ($databaseUrl !== '') {
     };
 }
 
-$mysqlEnvDetected = (bool) (
-    env('MYSQLHOST') ||
-    env('MYSQLDATABASE') ||
-    env('MYSQLUSER') ||
-    env('MYSQL_URL') ||
-    env('MYSQLPORT') ||
-    env('MYSQLPASSWORD')
-);
+// MYSQL_URL es la forma estandar en que varios proveedores gestionados entregan la
+// conexion completa en una sola variable. Antes se miraban tambien MYSQLHOST,
+// MYSQLPORT, MYSQLDATABASE, MYSQLUSER y MYSQLPASSWORD, que eran los nombres que
+// inyectaba Railway: ya no las define nadie, asi que ese camino estaba muerto.
+// El despliegue actual (Render + Aiven) usa DB_HOST, DB_PORT, DB_DATABASE, etc.
+$mysqlEnvDetected = (bool) env('MYSQL_URL');
 
 $pgsqlEnvDetected = (bool) (
     env('PGHOST') ||
@@ -121,13 +119,14 @@ return [
 
         'mysql' => [
             'driver' => 'mysql',
-            // Railway compatibility: prioritize provider vars and MYSQL URL.
+            // Si el proveedor entrega la conexion como URL se usa esa; si no, los
+            // campos sueltos DB_*, que es lo que define render.yaml.
             'url' => $prefer($mysqlEnvDetected, $mysqlUrl, $databaseUrlConnection === 'mysql' ? $databaseUrl : null),
-            'host' => $prefer($mysqlEnvDetected, env('MYSQLHOST'), env('DB_HOST'), '127.0.0.1'),
-            'port' => $prefer($mysqlEnvDetected, env('MYSQLPORT'), env('DB_PORT'), '3306'),
-            'database' => $prefer($mysqlEnvDetected, env('MYSQLDATABASE'), env('DB_DATABASE'), 'forge'),
-            'username' => $prefer($mysqlEnvDetected, env('MYSQLUSER'), env('DB_USERNAME'), 'forge'),
-            'password' => $prefer($mysqlEnvDetected, env('MYSQLPASSWORD'), env('DB_PASSWORD'), ''),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',

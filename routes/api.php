@@ -326,7 +326,7 @@ Route::get('/_debug/env', function () {
         'app_env' => app()->environment(),
         'config_cached' => app()->configurationIsCached(),
 
-        // ¿Railway está inyectando estas variables?
+        // ¿El proveedor está inyectando estas variables?
         'has_DB_HOST' => !empty(env('DB_HOST')),
         'DB_HOST' => env('DB_HOST') ? 'SET' : 'EMPTY',
 
