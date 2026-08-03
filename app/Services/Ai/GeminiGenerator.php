@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -36,12 +37,21 @@ class GeminiGenerator implements AiTextGenerator
         }
 
         $model = $this->model();
+        $body  = $this->body($system, $history, $userContent);
 
-        $response = Http::withHeaders([
-            'x-goog-api-key' => $key,
-            'content-type'   => 'application/json',
-        ])->timeout(45)->retry(self::INTENTOS, self::ESPERA_MS, $this->reintentable(), throw: false)
-            ->post(sprintf(self::ENDPOINT, $model), $this->body($system, $history, $userContent));
+        $response = $this->llamar($key, $model, $body);
+
+        // No todos los modelos aceptan thinkingConfig: gemini-3.5-flash-lite lo
+        // rechaza con 400 mientras gemini-3.5-flash lo acepta. Es un ajuste de costo,
+        // no un requisito, asi que antes de dar el chat por caido se reintenta sin el.
+        // Si no, cambiar de modelo para esquivar un limite de cuota rompe el chat y el
+        // motivo no tiene nada que ver con lo que uno cambio.
+        if ($response->status() === 400 && isset($body['generationConfig']['thinkingConfig'])) {
+            Log::info('Gemini rechazo thinkingConfig, se reintenta sin el', ['model' => $model]);
+
+            unset($body['generationConfig']['thinkingConfig']);
+            $response = $this->llamar($key, $model, $body);
+        }
 
         if (! $response->successful()) {
             // La clave nunca se registra: va en cabecera, no en la URL, justamente
@@ -81,9 +91,19 @@ class GeminiGenerator implements AiTextGenerator
         return self::SIN_RESPUESTA;
     }
 
+    /** @param array<string, mixed> $body */
+    private function llamar(string $key, string $model, array $body): Response
+    {
+        return Http::withHeaders([
+            'x-goog-api-key' => $key,
+            'content-type'   => 'application/json',
+        ])->timeout(45)->retry(self::INTENTOS, self::ESPERA_MS, $this->reintentable(), throw: false)
+            ->post(sprintf(self::ENDPOINT, $model), $body);
+    }
+
     /**
      * La URL ya trae el segmento `models/`. Si la variable de entorno lo repite
-     * ("models/gemini-3.6-flash") Google responde 404 y el motivo no es evidente.
+     * ("models/gemini-3.5-flash") Google responde 404 y el motivo no es evidente.
      */
     private function model(): string
     {

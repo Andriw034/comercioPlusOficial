@@ -49,14 +49,19 @@ return [
     // no existe) y un modelo retirado responde 404 sin explicacion util.
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
-        // gemini-3.5-flash y no 3.6: el 3.6 devolvio 503 UNAVAILABLE ("high demand")
-        // en las pruebas del 2026-08-03, y un chat de tienda necesita responder
-        // siempre. Los modelos 2.5 dan NOT_FOUND con clave del plan gratuito.
-        'model'      => env('GEMINI_MODEL', 'gemini-3.5-flash'),
+        // Elegido midiendo contra la API el 2026-08-03, no por ser el mas nuevo:
+        //   gemini-3.6-flash      -> 503 UNAVAILABLE intermitente ("high demand")
+        //   gemini-3.5-flash      -> anda, pero el plan gratuito da 20 pedidos AL DIA
+        //   gemini-3.5-flash-lite -> anda, misma calidad de respuesta, cuota mas alta
+        //   gemini-2.5-*          -> NOT_FOUND con clave del plan gratuito
+        // La cuota gratuita es POR MODELO: cambiar de modelo es la salida rapida si
+        // uno se agota. Los limites de cada cuenta se ven en ai.dev/rate-limit.
+        'model'      => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
         'max_tokens' => (int) env('GEMINI_MAX_TOKENS', 1200),
         // Presupuesto de razonamiento. 0 lo apaga: para responder "tienes frenos
-        // para una AKT?" no aporta y se come tokens de la respuesta. Vaciar la
-        // variable quita el campo del cuerpo.
+        // para una AKT?" no aporta y se come tokens de la respuesta. No todos los
+        // modelos lo aceptan (flash-lite lo rechaza) y el generador se recupera solo
+        // reintentando sin el; vaciar la variable lo quita de una.
         'thinking_budget' => env('GEMINI_THINKING_BUDGET', '0'),
     ],
 

@@ -127,10 +127,39 @@ class GeminiGeneratorTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_reintenta_sin_thinking_config_si_el_modelo_no_lo_acepta(): void
+    {
+        // gemini-3.5-flash-lite rechaza thinkingConfig con 400 y gemini-3.5-flash lo
+        // acepta. Como es un ajuste de costo y no un requisito, cambiar de modelo para
+        // esquivar un limite de cuota no puede romper el chat por un motivo que no
+        // tiene nada que ver con lo que uno cambio.
+        Http::fakeSequence()
+            ->push(['error' => ['status' => 'INVALID_ARGUMENT']], 400)
+            ->push(['candidates' => [['content' => ['parts' => [['text' => 'Si, tenemos.']]]]]], 200);
+
+        $this->assertSame('Si, tenemos.', $this->generator->generate('sistema', [], 'hola'));
+
+        Http::assertSent(function (Request $request): bool {
+            static $primera = true;
+
+            if ($primera) {
+                $primera = false;
+                $this->assertArrayHasKey('thinkingConfig', $request->data()['generationConfig']);
+            } else {
+                $this->assertArrayNotHasKey('thinkingConfig', $request->data()['generationConfig']);
+            }
+
+            return true;
+        });
+    }
+
     public function test_no_reintenta_un_error_que_no_se_arregla_solo(): void
     {
-        // Una peticion mal armada (400) o una clave invalida no mejoran reintentando:
-        // gastar tres intentos solo hace esperar mas al cliente.
+        // Una peticion mal armada (400) no mejora reintentando: gastar los tres
+        // intentos de la politica solo hace esperar mas al cliente. Sin thinkingConfig
+        // de por medio, un 400 se responde de una.
+        config(['services.gemini.thinking_budget' => '']);
+
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([
                 'error' => ['status' => 'INVALID_ARGUMENT'],
@@ -142,6 +171,24 @@ class GeminiGeneratorTest extends TestCase
             $this->fail('Se esperaba una excepcion.');
         } catch (RuntimeException) {
             Http::assertSentCount(1);
+        }
+    }
+
+    public function test_un_400_persistente_no_se_reintenta_mas_de_una_vez(): void
+    {
+        // Con thinkingConfig se permite UN reintento sin ese campo. Si igual falla, se
+        // corta: no se gastan los tres intentos de la politica de saturacion.
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'error' => ['status' => 'INVALID_ARGUMENT'],
+            ], 400),
+        ]);
+
+        try {
+            $this->generator->generate('sistema', [], 'hola');
+            $this->fail('Se esperaba una excepcion.');
+        } catch (RuntimeException) {
+            Http::assertSentCount(2);
         }
     }
 
