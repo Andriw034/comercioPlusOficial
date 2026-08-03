@@ -27,10 +27,13 @@ return [
     | Anthropic (Claude) — asistente de repuestos
     |--------------------------------------------------------------------------
     */
+    // El modelo por defecto debe ser uno vigente: los retirados responden 404 y el
+    // asistente queda caido sin explicacion util. Se puede cambiar sin tocar codigo
+    // con ANTHROPIC_MODEL (claude-sonnet-5 cuesta menos de la mitad).
     'anthropic' => [
         'key'        => env('ANTHROPIC_API_KEY'),
-        'model'      => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
-        'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 800),
+        'model'      => env('ANTHROPIC_MODEL', 'claude-opus-5'),
+        'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 900),
         'version'    => env('ANTHROPIC_VERSION', '2023-06-01'),
     ],
 

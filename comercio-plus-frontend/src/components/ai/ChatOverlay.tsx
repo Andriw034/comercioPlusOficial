@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
 import type { Message, UsageInfo } from '@/types/ai'
-import { askAssistant } from '@/services/aiService'
+import { askAssistant, type AssistantTurn } from '@/services/aiService'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import UsageCounter from './UsageCounter'
@@ -64,6 +64,12 @@ export default function ChatOverlay({ isOpen, onClose, storeId }: ChatOverlayPro
         return
       }
 
+      // El saludo inicial y los avisos de error no son parte de la conversacion:
+      // reenviarlos confunde al asistente y gasta tokens sin aportar contexto.
+      const history: AssistantTurn[] = messages
+        .filter(m => m.id !== 'welcome' && !m.id.startsWith('error-'))
+        .map(m => ({ role: m.role, content: m.content }))
+
       setMessages(prev => [
         ...prev,
         { id: `user-${Date.now()}`, role: 'user', content: text, timestamp: new Date() },
@@ -71,7 +77,7 @@ export default function ChatOverlay({ isOpen, onClose, storeId }: ChatOverlayPro
       setIsLoading(true)
 
       try {
-        const { answer } = await askAssistant(text, storeId)
+        const { answer } = await askAssistant(text, storeId, history)
 
         setMessages(prev => [
           ...prev,
@@ -83,13 +89,17 @@ export default function ChatOverlay({ isOpen, onClose, storeId }: ChatOverlayPro
           },
         ])
         setUsage(prev => ({ ...prev, used: prev.used + 1 }))
-      } catch {
+      } catch (error: unknown) {
+        const backendMessage = (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message
         setMessages(prev => [
           ...prev,
           {
             id: `error-${Date.now()}`,
             role: 'assistant',
-            content: 'No pude consultar el asistente. Intenta de nuevo en un momento.',
+            content: backendMessage
+              ? `No pude responder: ${backendMessage}`
+              : 'No pude consultar el asistente. Intenta de nuevo en un momento.',
             timestamp: new Date(),
           },
         ])
@@ -97,7 +107,7 @@ export default function ChatOverlay({ isOpen, onClose, storeId }: ChatOverlayPro
         setIsLoading(false)
       }
     },
-    [isLoading, usage, storeId],
+    [isLoading, usage, storeId, messages],
   )
 
   if (!isOpen) return null

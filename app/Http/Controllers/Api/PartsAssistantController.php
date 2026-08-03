@@ -36,16 +36,22 @@ class PartsAssistantController extends Controller
     /**
      * Pregunta conversacional a Claude (IA real) usando el catalogo de la tienda.
      * Publico: lo usan los clientes desde la pagina de la tienda.
+     *
+     * `history` son los turnos previos del chat: sin ellos el asistente no entiende
+     * un "y para la 150?" despues de una pregunta sobre otra moto.
      */
     public function ask(Request $request, ClaudeAssistantService $claude): JsonResponse
     {
         $data = $request->validate([
-            'question' => ['required', 'string', 'min:2', 'max:500'],
-            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'question'          => ['required', 'string', 'min:2', 'max:500'],
+            'store_id'          => ['required', 'integer', 'exists:stores,id'],
+            'history'           => ['sometimes', 'array', 'max:20'],
+            'history.*.role'    => ['required_with:history', 'in:user,assistant'],
+            'history.*.content' => ['required_with:history', 'string', 'max:4000'],
         ]);
 
         try {
-            $result = $claude->ask($data['question'], $data['store_id']);
+            $result = $claude->ask($data['question'], $data['store_id'], $data['history'] ?? []);
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,

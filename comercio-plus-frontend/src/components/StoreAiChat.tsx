@@ -1,26 +1,12 @@
 import { useRef, useState } from 'react'
-import API from '@/services/api'
-import { getApiPayload } from '@/lib/apiPayload'
-
-interface FoundProduct {
-  id: number
-  name: string
-  price: string | number
-  stock: number
-}
-
-interface AskResult {
-  store?: { id: number; name: string }
-  question?: string
-  answer: string
-  products_found: number
-  products: FoundProduct[]
-}
+import { askAssistant, type AssistantProduct, type AssistantTurn } from '@/services/aiService'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
-  products?: FoundProduct[]
+  products?: AssistantProduct[]
+  /** Los avisos de error no se reenvian como contexto de la conversacion. */
+  isError?: boolean
 }
 
 interface StoreAiChatProps {
@@ -46,21 +32,17 @@ export default function StoreAiChat({ storeId, storeName }: StoreAiChatProps) {
     const question = input.trim()
     if (!question || loading) return
 
+    const history: AssistantTurn[] = messages
+      .filter((m) => !m.isError)
+      .map((m) => ({ role: m.role, content: m.text }))
+
     setMessages((prev) => [...prev, { role: 'user', text: question }])
     setInput('')
     setLoading(true)
     scrollToBottom()
 
     try {
-      const response = await API.post('/assistant/ask', {
-        store_id: storeId,
-        question,
-      })
-      const result = getApiPayload<AskResult>(response, {
-        answer: 'Sin respuesta.',
-        products_found: 0,
-        products: [],
-      })
+      const result = await askAssistant(question, Number(storeId), history)
 
       setMessages((prev) => [
         ...prev,
@@ -74,7 +56,7 @@ export default function StoreAiChat({ storeId, storeName }: StoreAiChatProps) {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         'No pude responder en este momento. Intenta de nuevo en un momento.'
-      setMessages((prev) => [...prev, { role: 'assistant', text: message }])
+      setMessages((prev) => [...prev, { role: 'assistant', text: message, isError: true }])
     } finally {
       setLoading(false)
       scrollToBottom()

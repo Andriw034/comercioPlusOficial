@@ -31,7 +31,7 @@
 - Media: Cloudinary (cloudinary_php ^3.1) + fallback local
 - Pagos: MercadoPago (dx-php ^3.8 backend, @mercadopago/sdk-react frontend)
 - PDF: barryvdh/laravel-dompdf (recibos simples)
-- Testing: PHPUnit (222 tests, 670 assertions)
+- Testing: PHPUnit (238 tests, 740 assertions)
 - Rutas API: 150+ endpoints, 50+ controladores
 
 ### Frontend activo (comercio-plus-frontend/)
@@ -46,11 +46,12 @@
 
 ### Deploy
 - Frontend: Vercel (comercio-plus-oficial)
-- Backend: Railway (comercioplusoficial-production-d61e)
-- Rewrites Vercel: /api, /sanctum, /storage → Railway
+- Backend: Render (comercioplus-api-zakm.onrender.com, plan free)
+- Base de datos: Aiven MySQL 8.4 (plan free; se apaga sola por inactividad)
+- Rewrites Vercel: /api, /sanctum, /storage → Render
 
 ### Testing y QA
-- Backend: `php artisan test` (222 tests, 670 assertions — ALL PASSING)
+- Backend: `php artisan test` (238 tests, 740 assertions — ALL PASSING)
 - Frontend lint: ESLint con max-warnings=0
 - Frontend build: Vite build (31 páginas)
 - E2E: Playwright (chromium + mobile-chrome) en tests-e2e/
@@ -117,7 +118,7 @@ comercioPlusOficial/
 ├── mock-dian-server/              # Mock DIAN para testing local
 ├── comercio-plus-frontend/        # Frontend React (ACTIVO)
 │   └── src/app/dashboard/settings/dian/page.tsx
-├── tests/                         # 222 tests PHPUnit
+├── tests/                         # 238 tests PHPUnit
 └── docs/                          # Documentación canónica
 ```
 
@@ -191,7 +192,7 @@ comercioPlusOficial/
 5. npm run lint --prefix comercio-plus-frontend
 6. npm run build --prefix comercio-plus-frontend
 7. git push origin master
-8. Verificar Vercel + Railway post-deploy
+8. Verificar Vercel + Render post-deploy
 
 ## Estilo de comunicación
 - Explica el POR QUÉ de cada decisión

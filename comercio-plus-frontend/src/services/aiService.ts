@@ -48,15 +48,32 @@ export interface AssistantAnswer {
   products: AssistantProduct[]
 }
 
+/** Turno previo de la conversacion, para que el asistente mantenga el hilo. */
+export interface AssistantTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/** Turnos que se reenvian al backend. Mas historial es mas costo por consulta. */
+const HISTORY_LIMIT = 8
+
 /**
  * Pregunta conversacional a Claude. A diferencia de searchParts (buscador
  * estructurado por compatibilidad verificada), aca Claude razona sobre el
  * inventario real de la tienda y responde en lenguaje natural.
+ *
+ * `history` son los turnos anteriores: sin ellos cada pregunta se responde
+ * aislada y el cliente no puede decir "y para la 150?".
  */
-export async function askAssistant(question: string, storeId?: number): Promise<AssistantAnswer> {
+export async function askAssistant(
+  question: string,
+  storeId?: number,
+  history: AssistantTurn[] = [],
+): Promise<AssistantAnswer> {
   const response = await API.post('/assistant/ask', {
     question,
     store_id: storeId,
+    history: history.slice(-HISTORY_LIMIT),
   })
 
   return getApiPayload<AssistantAnswer>(response, {
