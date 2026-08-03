@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Services\Ai\AiTextGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Tests\TestCase;
@@ -127,6 +128,50 @@ class StoreAssistantTest extends TestCase
         ])->assertStatus(200);
 
         $this->assertStringContainsString('aceite lubricante cadena', (string) $spy->userContent);
+    }
+
+    public function test_le_pasa_las_otras_motos_que_usan_la_misma_referencia(): void
+    {
+        // "esto de la NKD le sirve a la Discover?" es LA pregunta del mostrador. Antes
+        // el contexto solo traia las filas de la moto preguntada, asi que al pedirle
+        // las otras motos la IA llenaba el hueco de memoria e inventaba modelos.
+        DB::table('parts_compatibility')->insert([
+            [
+                'part_reference' => 'NGK-CR7HSA', 'part_type' => 'bujia', 'part_brand' => 'NGK',
+                'part_description' => 'Bujia estandar', 'motorcycle_brand' => 'Yamaha',
+                'motorcycle_model' => 'YBR 125', 'year_from' => 2005, 'year_to' => 2024,
+            ],
+            [
+                'part_reference' => 'NGK-CR7HSA', 'part_type' => 'bujia', 'part_brand' => 'NGK',
+                'part_description' => 'Bujia estandar', 'motorcycle_brand' => 'Bajaj',
+                'motorcycle_model' => 'Discover 125', 'year_from' => 2014, 'year_to' => 2018,
+            ],
+        ]);
+
+        $spy = $this->fakeAi();
+
+        $this->postJson('/api/assistant/ask', [
+            'store_id' => $this->store->id,
+            'question' => 'bujia para Yamaha YBR 125',
+        ])->assertStatus(200);
+
+        $this->assertStringContainsString('INTERCAMBIABILIDAD VERIFICADA', (string) $spy->userContent);
+        $this->assertStringContainsString('Bajaj Discover 125', (string) $spy->userContent);
+    }
+
+    public function test_prohibe_afirmar_compatibilidades_de_memoria(): void
+    {
+        // Recomendar mal un repuesto de freno o suspension es peligroso: la instruccion
+        // tiene que estar, no alcanza con darle buenos datos.
+        $spy = $this->fakeAi();
+
+        $this->postJson('/api/assistant/ask', [
+            'store_id' => $this->store->id,
+            'question' => 'que pastilla le sirve a mi moto',
+        ])->assertStatus(200);
+
+        $this->assertStringContainsString('NUNCA nombres una moto o una referencia', (string) $spy->system);
+        $this->assertStringContainsString('peligroso', (string) $spy->system);
     }
 
     public function test_reenvia_el_historial_para_mantener_el_hilo(): void

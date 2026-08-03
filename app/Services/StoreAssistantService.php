@@ -211,6 +211,11 @@ class StoreAssistantService
             $blocks[] = $compatBlock;
         }
 
+        $intercambio = $this->formatInterchange($verified);
+        if ($intercambio !== null) {
+            $blocks[] = $intercambio;
+        }
+
         return implode("\n\n", $blocks);
     }
 
@@ -292,6 +297,60 @@ class StoreAssistantService
         return $header . "\n" . implode("\n", $lines);
     }
 
+    /**
+     * Que OTRAS motos usan las mismas referencias, que es la pregunta real del
+     * mostrador: "esto de la NKD le sirve a la Discover?".
+     *
+     * Sin este bloque el asistente recibia solo las filas de la moto preguntada. Al
+     * pedirle "que otras motos usan esta bujia" no tenia con que responder y llenaba
+     * el hueco de memoria: invento Suzuki Best, AKT Dynamic y Kymco Agility, que no
+     * existen en la tabla, y omitio siete motos que si estaban. Un repuesto mal
+     * recomendado se traduce en una devolucion o en un freno que no frena.
+     *
+     * @param  array<string, mixed>  $verified
+     */
+    private function formatInterchange(array $verified): ?string
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $verified['compatibilidades'];
+
+        $referencias = collect($rows)->pluck('referencia')->filter()->unique();
+
+        if ($referencias->isEmpty()) {
+            return null;
+        }
+
+        $motosPorReferencia = DB::table('parts_compatibility')
+            ->whereIn('part_reference', $referencias->all())
+            ->select('part_reference', 'motorcycle_brand', 'motorcycle_model', 'year_from', 'year_to')
+            ->get()
+            ->groupBy('part_reference');
+
+        $lines = [];
+
+        foreach ($motosPorReferencia as $referencia => $motos) {
+            $nombres = $motos
+                ->map(fn ($m): string => trim($m->motorcycle_brand . ' ' . $m->motorcycle_model))
+                ->unique()
+                ->values();
+
+            // Una sola moto no es intercambiabilidad: no aporta y gasta contexto.
+            if ($nombres->count() < 2) {
+                continue;
+            }
+
+            $lines[] = '- ' . $referencia . ' sirve para: ' . $nombres->implode('; ');
+        }
+
+        if ($lines === []) {
+            return null;
+        }
+
+        return "INTERCAMBIABILIDAD VERIFICADA (lista COMPLETA de motos por referencia;\n"
+            . "si una moto NO aparece aca, NO afirmes que esa referencia le sirve):\n"
+            . implode("\n", $lines);
+    }
+
     private function systemPrompt(Store $store): string
     {
         $description = trim((string) ($store->description ?? ''));
@@ -309,6 +368,12 @@ class StoreAssistantService
         - Si algo no esta en el catalogo, dilo con honestidad y sugiere escribirle al vendedor.
         - Si el dato viene de "compatibilidad verificada" y no del inventario, aclaralo.
         - Se breve y directo.
+
+        REGLA CRITICA sobre que repuesto le sirve a que moto:
+        - NUNCA nombres una moto o una referencia que no aparezca literalmente en los datos que te doy. Ni para afirmar que sirve, ni para afirmar que NO sirve.
+        - Si te preguntan si un repuesto de una moto le sirve a otra y esa combinacion no esta en los datos, di que no lo tienes verificado y que consulte al vendedor. NO deduzcas, NO compares medidas de memoria, NO digas "usan mordazas distintas" ni razonamientos parecidos.
+        - Recomendar mal un repuesto de freno, suspension o direccion es peligroso. Ante la duda, di que no esta verificado.
+        - Tu memoria de mecanica sirve para consejos de mantenimiento (cada cuanto cambiar algo, sintomas de desgaste), NO para afirmar compatibilidades.
         PROMPT;
     }
 
