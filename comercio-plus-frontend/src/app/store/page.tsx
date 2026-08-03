@@ -5,6 +5,7 @@ import { getStoredToken, getStoredUserRaw } from '@/services/auth-session'
 import type { Product, Store } from '@/types/api'
 import { buttonVariants } from '@/components/ui/button'
 import PriceAlertButton from '@/components/PriceAlertButton'
+import StoreAiChat from '@/components/StoreAiChat'
 import { useCart } from '@/context/CartContext'
 import { extractList } from '@/lib/api-response'
 import { formatPrice, resolveMediaUrl } from '@/lib/format'
@@ -303,6 +304,8 @@ export default function StoreDetail() {
           </div>
         )}
       </div>
+
+      {store && <StoreAiChat storeId={store.id} storeName={store.name} />}
     </div>
   )
 }

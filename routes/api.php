@@ -133,6 +133,11 @@ Route::get('/motorcycles/models', [MotorcycleController::class, 'models']);
 Route::get('/assistant/search', [PartsAssistantController::class, 'search'])
     ->middleware('throttle:60,1');
 
+// Asistente conversacional con Claude (IA real), usa el catalogo de la tienda.
+// Mas estricto porque cada consulta consume tokens de la API.
+Route::post('/assistant/ask', [PartsAssistantController::class, 'ask'])
+    ->middleware('throttle:20,1');
+
 // Public catalog used by frontend.
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);

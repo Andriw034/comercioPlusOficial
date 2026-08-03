@@ -22,6 +22,18 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Anthropic (Claude) — asistente de repuestos
+    |--------------------------------------------------------------------------
+    */
+    'anthropic' => [
+        'key'        => env('ANTHROPIC_API_KEY'),
+        'model'      => env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
+        'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 800),
+        'version'    => env('ANTHROPIC_VERSION', '2023-06-01'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

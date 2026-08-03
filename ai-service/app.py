@@ -62,6 +62,125 @@ def search_parts(query):
 
     return results
 
+def get_store(store_id):
+    """
+    Devuelve datos basicos de la tienda o None si no existe.
+    Acepta un id numerico (3) o un texto: nombre o slug ("Todo Motos Pipe",
+    "todo-motos-pipe"). Asi el frontend puede mandar el nombre sin conocer el id.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if str(store_id).isdigit():
+        cursor.execute(
+            "SELECT id, name, slug, description FROM stores WHERE id = %s LIMIT 1",
+            (int(store_id),),
+        )
+    else:
+        needle = str(store_id).strip().lower()
+        cursor.execute(
+            """
+            SELECT id, name, slug, description
+            FROM stores
+            WHERE LOWER(slug) = %s OR LOWER(name) = %s OR LOWER(name) LIKE %s
+            ORDER BY (LOWER(name) = %s) DESC, id ASC
+            LIMIT 1
+            """,
+            (needle, needle, f'%{needle}%', needle),
+        )
+
+    store = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return store
+
+def search_store_products(store_id, query):
+    """
+    Busca productos REALES de una tienda concreta.
+    Coincide por nombre/descripcion del producto o por la moto compatible.
+    Devuelve tambien todas las motos compatibles de cada producto.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    term = f'%{query.lower()}%'
+
+    # 1) IDs de productos de la tienda que coinciden con la busqueda
+    cursor.execute(
+        """
+        SELECT DISTINCT p.id
+        FROM products p
+        LEFT JOIN product_motorcycle_compatibility pmc ON pmc.product_id = p.id
+        LEFT JOIN motorcycle_models m ON m.id = pmc.motorcycle_model_id
+        WHERE p.store_id = %s
+          AND (
+            LOWER(p.name) LIKE %s OR
+            LOWER(COALESCE(p.description, '')) LIKE %s OR
+            LOWER(COALESCE(m.brand, '')) LIKE %s OR
+            LOWER(COALESCE(m.model, '')) LIKE %s
+          )
+        LIMIT 15
+        """,
+        (store_id, term, term, term, term),
+    )
+    ids = [row['id'] for row in cursor.fetchall()]
+
+    if not ids:
+        cursor.close()
+        conn.close()
+        return []
+
+    # 2) Detalle de esos productos + TODAS sus motos compatibles
+    placeholders = ','.join(['%s'] * len(ids))
+    cursor.execute(
+        f"""
+        SELECT
+            p.id,
+            p.name,
+            p.description,
+            p.price,
+            p.stock,
+            GROUP_CONCAT(
+                DISTINCT CONCAT(
+                    m.brand, ' ', m.model,
+                    ' (', m.year_from, '-', COALESCE(m.year_to, 'actual'), ')'
+                ) SEPARATOR '; '
+            ) AS motos
+        FROM products p
+        LEFT JOIN product_motorcycle_compatibility pmc ON pmc.product_id = p.id
+        LEFT JOIN motorcycle_models m ON m.id = pmc.motorcycle_model_id
+        WHERE p.id IN ({placeholders})
+        GROUP BY p.id, p.name, p.description, p.price, p.stock
+        ORDER BY p.name
+        """,
+        tuple(ids),
+    )
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return results
+
+def build_store_context(products):
+    """Construye contexto para Claude con productos reales de la tienda"""
+    if not products:
+        return "No se encontraron productos en el catalogo de esta tienda."
+
+    lines = []
+    for p in products:
+        stock = p.get('stock')
+        disponibilidad = f"stock: {stock}" if stock and int(stock) > 0 else "SIN STOCK"
+        line = (
+            f"- {p['name']} | precio: ${p['price']} | {disponibilidad}"
+        )
+        if p.get('motos'):
+            line += f" | compatible con: {p['motos']}"
+        if p.get('description'):
+            desc = (p['description'] or '').strip().replace('\n', ' ')
+            if desc:
+                line += f" | {desc[:160]}"
+        lines.append(line)
+
+    return "\n".join(lines)
+
 def build_context(parts):
     """Construye contexto para Claude"""
     if not parts:
@@ -80,10 +199,31 @@ def build_context(parts):
 
     return "\n".join(context_lines)
 
-def ask_claude(question, parts_context):
-    """Llama a Claude API"""
+def ask_claude(question, parts_context, store_name=None):
+    """Llama a Claude API. Si store_name viene, el asistente actua para esa tienda."""
 
-    prompt = f"""Eres un asistente experto en repuestos de motos en Colombia.
+    if store_name:
+        prompt = f"""Eres el asistente de ventas de la tienda "{store_name}", que vende repuestos de motos en Colombia.
+
+Atiendes a clientes que quieren comprar en ESTA tienda. Responde SOLO con lo que hay en el catalogo de la tienda que te paso abajo.
+
+IMPORTANTE:
+- Usa lenguaje colombiano natural y cercano
+- Recomienda productos de esta tienda, con su precio
+- Si hay varias opciones compatibles, menciona TODAS
+- Explica POR QUE ese repuesto le sirve a la moto del cliente
+- Si un producto no tiene stock, avisalo
+- Si NO hay nada en el catalogo para lo que pide, dilo con honestidad y sugiere que consulte al vendedor. NO inventes productos.
+
+PREGUNTA DEL CLIENTE:
+{question}
+
+CATALOGO DE LA TIENDA:
+{parts_context}
+
+RESPONDE de forma clara y util:"""
+    else:
+        prompt = f"""Eres un asistente experto en repuestos de motos en Colombia.
 
 Tu trabajo es ayudar a vendedores de repuestos a responder preguntas de clientes.
 
@@ -137,9 +277,14 @@ def health():
 @app.route('/ask', methods=['POST'])
 def ask():
     """
-    Endpoint principal para preguntas
+    Endpoint principal para preguntas.
 
-    Body: {"question": "Que banda le sirve a Viva R 2018?"}
+    Body:
+      { "question": "Que banda le sirve a Boxer 2018?" }            -> modo general
+      { "question": "...", "store_id": 3 }                          -> modo tienda
+
+    Si mandas store_id, el asistente responde SOLO con los productos
+    reales de esa tienda (tabla products), como un vendedor de esa tienda.
     """
     try:
         data = request.get_json()
@@ -148,17 +293,35 @@ def ask():
             return jsonify({'error': 'Falta campo "question"'}), 400
 
         question = data['question']
+        store_id = data.get('store_id')
 
-        # 1. Buscar repuestos
+        # ---- Modo TIENDA: responde con productos reales de la tienda ----
+        if store_id:
+            store = get_store(store_id)
+            if not store:
+                return jsonify({'error': f'No se encontro la tienda "{store_id}"'}), 404
+
+            products = search_store_products(store['id'], question)
+            context = build_store_context(products)
+            claude_response = ask_claude(question, context, store_name=store['name'])
+
+            return jsonify({
+                'question': question,
+                'store': {'id': store['id'], 'name': store['name']},
+                'answer': claude_response['answer'],
+                'products_found': len(products),
+                'products': products[:5],
+                'tokens': {
+                    'input': claude_response['tokens_input'],
+                    'output': claude_response['tokens_output'],
+                },
+            })
+
+        # ---- Modo GENERAL: tabla parts_compatibility (comportamiento previo) ----
         parts = search_parts(question)
-
-        # 2. Construir contexto
         context = build_context(parts)
-
-        # 3. Preguntar a Claude
         claude_response = ask_claude(question, context)
 
-        # 4. Retornar respuesta
         return jsonify({
             'question': question,
             'answer': claude_response['answer'],
