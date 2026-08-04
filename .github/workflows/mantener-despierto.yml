@@ -1,0 +1,54 @@
+# Mantiene despierta la base de datos (y de paso el backend).
+#
+# Aiven en plan gratuito se apaga sola por inactividad. Cuando eso pasa la tienda
+# entera deja de responder y desde afuera no se entiende por que: paso el 2026-08-03
+# y costo una hora de diagnostico. Este ping evita que llegue a estar inactiva.
+#
+# Se golpea /api/health/integrations y NO /api/health a proposito: el primero hace una
+# consulta real a la base, que es lo unico que cuenta como actividad para Aiven. El
+# segundo solo responde desde la aplicacion y dejaria la base durmiendose igual.
+#
+# Efecto secundario bienvenido: Render tampoco se duerme, asi que el primer cliente
+# del dia no espera los ~50 segundos que tarda en despertar.
+#
+# Ademas sirve de alarma: si la base responde mal, el job falla y GitHub manda un
+# correo. Vigilancia gratis.
+
+name: Mantener despierto
+
+on:
+  schedule:
+    # Cada 10 minutos. GitHub no garantiza puntualidad -- cuando esta cargado puede
+    # atrasarse bastante -- pero para evitar inactividad alcanza de sobra.
+    - cron: '*/10 * * * *'
+  # Para poder dispararlo a mano desde la pestana Actions al diagnosticar algo.
+  workflow_dispatch:
+
+# Si un ping se atrasa y se solapa con el siguiente, no tiene sentido correr los dos.
+concurrency:
+  group: mantener-despierto
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Consultar la salud de la base
+        run: |
+          URL="https://comercioplus-api-zakm.onrender.com/api/health/integrations"
+
+          # --max-time alto a proposito: si Render estaba dormido, esta peticion es
+          # justamente la que lo despierta y esa primera respuesta tarda.
+          RESPUESTA=$(curl -s --max-time 120 "$URL")
+
+          echo "$RESPUESTA"
+
+          if echo "$RESPUESTA" | grep -q '"ok":true'; then
+            echo "Base de datos respondiendo."
+            exit 0
+          fi
+
+          echo "::error::La base de datos NO esta respondiendo. Revisar si Aiven se apago."
+          exit 1
