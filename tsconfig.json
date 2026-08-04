@@ -1,4 +1,13 @@
 {
+  // Cubre SOLO el frontend Vue legacy (resources/js), que ya no se usa y no se toca
+  // sin consultar. "target: es5" y "moduleResolution: node" quedaron obsoletos, pero
+  // modernizarlos cambiaria como compila codigo muerto: riesgo sin beneficio.
+  //
+  // Si el editor los marca en rojo es porque VS Code trae su propio TypeScript, mas
+  // nuevo que el del proyecto. El tsc 5.9.3 que corre el build NO se queja -- se
+  // comprobo. Se corrige apuntando el editor al TypeScript del proyecto
+  // ("typescript.tsdk": "comercio-plus-frontend/node_modules/typescript/lib"), no
+  // cambiando esto.
   "compilerOptions": {
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],

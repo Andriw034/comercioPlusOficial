@@ -7,9 +7,11 @@
     "module": "ESNext",
     "types": ["vite/client"],
     "skipLibCheck": true,
-    "baseUrl": ".",
+    // Sin baseUrl: quedo obsoleto y deja de funcionar en TypeScript 7. Las rutas de
+    // "paths" ahora se resuelven contra este archivo, que es lo mismo que hacia
+    // baseUrl ".", asi que los imports "@/..." no cambian.
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
 
     /* Bundler mode */
