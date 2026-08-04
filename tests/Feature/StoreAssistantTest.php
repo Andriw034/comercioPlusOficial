@@ -174,6 +174,27 @@ class StoreAssistantTest extends TestCase
         $this->assertStringContainsString('peligroso', (string) $spy->system);
     }
 
+    public function test_le_pide_un_tono_profesional_y_de_usted(): void
+    {
+        // La instruccion original decia "claro y cercano" y el modelo la leyo como
+        // "parcero" y "un abrazo". Para una tienda que atiende clientes que no conoce,
+        // eso resta seriedad: el tono es parte del producto, no un detalle.
+        $spy = $this->fakeAi();
+
+        $this->postJson('/api/assistant/ask', [
+            'store_id' => $this->store->id,
+            'question' => 'hola',
+        ])->assertStatus(200);
+
+        $system = (string) $spy->system;
+
+        $this->assertStringContainsString('Trata al cliente de USTED', $system);
+
+        foreach (['parcero', 'mi hermano', 'un abrazo', 'su nave'] as $prohibido) {
+            $this->assertStringContainsString($prohibido, $system, "Falta prohibir '{$prohibido}'");
+        }
+    }
+
     public function test_reenvia_el_historial_para_mantener_el_hilo(): void
     {
         $spy = $this->fakeAi();
