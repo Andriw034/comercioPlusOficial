@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { askAssistant, type AssistantProduct, type AssistantTurn } from '@/services/aiService'
+import RichAnswer from '@/components/ai/RichAnswer'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -106,7 +107,11 @@ export default function StoreAiChat({ storeId, storeName }: StoreAiChatProps) {
                       : 'max-w-[85%] rounded-2xl rounded-bl-sm border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1A1A2E]'
                   }
                 >
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  {msg.role === 'assistant' ? (
+                    <RichAnswer text={msg.text} />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                  )}
                   {msg.products && msg.products.length > 0 && (
                     <div className="mt-2 space-y-1 border-t border-[#E5E7EB] pt-2">
                       {msg.products.map((p) => (

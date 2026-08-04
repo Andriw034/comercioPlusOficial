@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, PackageX, Wand2 } from 'lucide-react'
 import { formatPrice } from '@/lib/format'
+import RichAnswer from '@/components/ai/RichAnswer'
 import type { Compatibility, Message } from '@/types/ai'
 
 interface ChatMessageProps {
@@ -75,7 +76,12 @@ export default function ChatMessage({ message }: ChatMessageProps) {
               : 'rounded-bl-md bg-slate-100 text-slate-800'
           }`}
         >
-          {message.content && <p className="whitespace-pre-line">{message.content}</p>}
+          {message.content &&
+            (isUser ? (
+              <p className="whitespace-pre-line">{message.content}</p>
+            ) : (
+              <RichAnswer text={message.content} />
+            ))}
 
           {result && (
             <div className="mt-2 space-y-3">
