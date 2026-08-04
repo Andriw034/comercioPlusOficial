@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { askAssistant, type AssistantProduct, type AssistantTurn } from '@/services/aiService'
+import NutIcon from '@/components/ai/NutIcon'
+import PartTag from '@/components/ai/PartTag'
 import RichAnswer from '@/components/ai/RichAnswer'
 
 interface ChatMessage {
@@ -15,6 +17,17 @@ interface StoreAiChatProps {
   storeName: string
 }
 
+/**
+ * Preguntas de arranque, en el idioma del mostrador. Son tocables porque el cliente
+ * suele estar con el celular en una mano y la moto en la otra: escribir es el paso
+ * que mas gente pierde antes de preguntar.
+ */
+const EJEMPLOS = [
+  '¿Qué le sirve a una Boxer 2018?',
+  '¿Qué bujía lleva la NKD 125?',
+  '¿Tienen guaya de clutch?',
+]
+
 export default function StoreAiChat({ storeId, storeName }: StoreAiChatProps) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -29,8 +42,8 @@ export default function StoreAiChat({ storeId, storeName }: StoreAiChatProps) {
     })
   }
 
-  const sendQuestion = async (): Promise<void> => {
-    const question = input.trim()
+  const sendQuestion = async (texto?: string): Promise<void> => {
+    const question = (texto ?? input).trim()
     if (!question || loading) return
 
     const history: AssistantTurn[] = messages
@@ -71,81 +84,121 @@ export default function StoreAiChat({ storeId, storeName }: StoreAiChatProps) {
 
   return (
     <>
-      {/* Boton flotante */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF6A00] text-white shadow-lg transition hover:brightness-110"
-        aria-label="Abrir asistente"
-      >
-        {open ? <span className="text-2xl leading-none">×</span> : <span className="text-xl">💬</span>}
-      </button>
+      {/* El boton desaparece con el panel abierto: si no, quedan dos "cerrar" a la
+          vista al mismo tiempo (este y el del encabezado) diciendo lo mismo. */}
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF6A00] text-white shadow-[0_6px_20px_rgba(255,106,0,0.35)] outline-none transition hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#141A22] focus-visible:ring-offset-2"
+          aria-label="Abrir asistente"
+        >
+          <NutIcon className="h-6 w-6" />
+        </button>
+      )}
 
-      {/* Panel de chat */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-40 flex h-[70vh] max-h-[560px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl">
-          <div className="bg-[#FF6A00] px-4 py-3 text-white">
-            <p className="text-sm font-bold">Asistente de {storeName}</p>
-            <p className="text-xs text-white/80">Pregunta por repuestos y compatibilidad</p>
-          </div>
-
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-[#F9FAFB] p-3">
-            {messages.length === 0 && (
-              <p className="mt-6 text-center text-sm text-slate-500">
-                Hola 👋 Pregúntame qué repuesto le sirve a tu moto.
-                <br />
-                Ej: &quot;¿Qué le sirve a una Boxer 2018?&quot;
+        <div className="fixed inset-x-3 bottom-5 z-40 flex h-[70vh] max-h-[560px] flex-col overflow-hidden rounded-2xl border border-[#E3E0DB] bg-[#F5F3F0] shadow-[0_18px_50px_rgba(20,26,34,0.18)] motion-safe:animate-chat-in sm:inset-x-auto sm:right-5 sm:w-[380px]">
+          {/* Cabecera sobre el mismo papel: el naranja se reserva para el contenido. */}
+          <header className="flex items-center gap-2.5 border-b border-[#E3E0DB] px-4 py-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#141A22] text-[#FF6A00]">
+              <NutIcon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-display text-[15px] font-semibold leading-tight text-[#141A22]">
+                {storeName}
               </p>
+              <p className="text-[11px] leading-tight text-[#5C6B7A]">
+                Responde con el inventario de la tienda
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="-mr-1 rounded-lg px-2 py-1 text-[18px] leading-none text-[#5C6B7A] outline-none transition hover:bg-[#E3E0DB] focus-visible:ring-2 focus-visible:ring-[#141A22]"
+              aria-label="Cerrar asistente"
+            >
+              ×
+            </button>
+          </header>
+
+          <div
+            ref={scrollRef}
+            className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
+            aria-live="polite"
+            aria-busy={loading}
+          >
+            {messages.length === 0 && (
+              <div className="pt-2">
+                <p className="font-display text-[17px] font-semibold leading-snug text-[#141A22]">
+                  ¿Qué necesita tu moto?
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#5C6B7A]">
+                  Pregunta por un repuesto, un precio, o si algo de otra moto te sirve.
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {EJEMPLOS.map((ejemplo) => (
+                    <li key={ejemplo}>
+                      <button
+                        type="button"
+                        onClick={() => void sendQuestion(ejemplo)}
+                        className="w-full rounded-xl border border-[#E3E0DB] bg-white px-3 py-2 text-left text-[13px] text-[#141A22] outline-none transition hover:border-[#141A22] focus-visible:ring-2 focus-visible:ring-[#141A22]"
+                      >
+                        {ejemplo}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
-            {messages.map((msg, i) => (
-              <div key={i} className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                <div
-                  className={
-                    msg.role === 'user'
-                      ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-[#FF6A00] px-3 py-2 text-sm text-white'
-                      : 'max-w-[85%] rounded-2xl rounded-bl-sm border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1A1A2E]'
-                  }
-                >
-                  {msg.role === 'assistant' ? (
-                    <RichAnswer text={msg.text} />
-                  ) : (
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                  )}
+            {messages.map((msg, i) =>
+              msg.role === 'user' ? (
+                <div key={i} className="flex justify-end">
+                  <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-[#FF6A00] px-3.5 py-2 text-[13px] leading-relaxed text-white">
+                    {msg.text}
+                  </p>
+                </div>
+              ) : (
+                /* El asistente habla sobre el papel, sin globo: deja las etiquetas de
+                   repuesto como el unico objeto con peso en la conversacion. */
+                <div key={i} data-msg="assistant" className="text-[13px] leading-relaxed text-[#141A22]">
+                  <RichAnswer text={msg.text} />
+
                   {msg.products && msg.products.length > 0 && (
-                    <div className="mt-2 space-y-1 border-t border-[#E5E7EB] pt-2">
+                    <ul className="mt-3 space-y-2.5 rounded-xl border border-[#E3E0DB] bg-white p-3">
                       {msg.products.map((p) => (
-                        <p key={p.id} className="text-xs text-slate-600">
-                          • {p.name} — ${p.price}
-                          {Number(p.stock) > 0 ? '' : ' (sin stock)'}
-                        </p>
+                        <PartTag key={p.id} product={p} />
                       ))}
-                    </div>
+                    </ul>
                   )}
                 </div>
-              </div>
-            ))}
+              ),
+            )}
 
             {loading && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-sm border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-slate-400">
-                  Escribiendo…
-                </div>
-              </div>
+              // Dice lo que de verdad esta pasando: primero se busca en el catalogo
+              // y despues responde la IA. "Escribiendo..." seria inventarse una
+              // persona que no existe.
+              <p className="flex items-center gap-2 text-[12px] text-[#5C6B7A]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FF6A00] motion-safe:animate-pulse" />
+                Buscando en el inventario…
+              </p>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex gap-2 border-t border-[#E5E7EB] p-3">
+          <form onSubmit={handleSubmit} className="flex gap-2 border-t border-[#E3E0DB] bg-white p-3">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Escribe tu pregunta…"
-              className="flex-1 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm outline-none focus:border-[#FF6A00]"
+              aria-label="Tu pregunta"
+              className="min-w-0 flex-1 rounded-xl border border-[#E3E0DB] px-3 py-2 text-[13px] text-[#141A22] outline-none transition placeholder:text-[#9AA3AD] focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/20"
             />
             <button
               type="submit"
               disabled={loading || input.trim().length === 0}
-              className="rounded-lg bg-[#FF6A00] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+              className="shrink-0 rounded-xl bg-[#FF6A00] px-4 py-2 text-[13px] font-semibold text-white outline-none transition hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#141A22] focus-visible:ring-offset-2 disabled:opacity-40"
             >
               Enviar
             </button>

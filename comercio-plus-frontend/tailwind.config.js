@@ -116,6 +116,9 @@ export default {
         'scale-in': 'scaleIn 0.4s ease-out forwards',
         float: 'float 6s ease-in-out infinite',
         'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+        // Entrada del panel del asistente: un solo movimiento corto. Mas que esto
+        // hace esperar al cliente para ver algo que ya podria estar leyendo.
+        'chat-in': 'chatIn 140ms ease-out',
       },
       keyframes: {
         slideDown: {
@@ -141,6 +144,10 @@ export default {
         glowPulse: {
           '0%, 100%': { boxShadow: '0 0 20px rgba(255, 152, 0, 0.4)' },
           '50%': { boxShadow: '0 0 40px rgba(255, 152, 0, 0.8)' },
+        },
+        chatIn: {
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         },
       },
       transitionTimingFunction: {
